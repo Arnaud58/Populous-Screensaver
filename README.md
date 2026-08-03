@@ -31,6 +31,8 @@ QML et JavaScript.
 - [x] Extraction des 1 180 cellules définies par le code original
 - [ ] Regroupement des autres frames en animations cohérentes
 - [x] Création du prototype QML sur fond noir
+- [x] Marche, changements de direction et évitement des collisions
+- [x] Traces de pas temporaires colorées par tribu
 - [ ] Réimplémentation de la simulation
 - [ ] Ajout des sons
 - [ ] Création de la configuration Plasma
@@ -64,6 +66,8 @@ populous-plasma/
 │   ├── sprites-native.json
 │   ├── sprites.json
 │   └── sprite-groups.json
+├── plugin/
+│   └── org.poptheme.populous/   # copie autonome directement installable
 └── package/
     └── contents/
         ├── images/
@@ -317,6 +321,7 @@ package/
     ├── ui/
     │   ├── main.qml
     │   ├── Character.qml
+    │   ├── Footprint.qml
     │   └── Simulation.js
     ├── images/
     ├── sounds/
@@ -345,15 +350,26 @@ animés et leurs positions restent dans les limites de l'écran.
 
 La simulation sera ajoutée progressivement :
 
-1. marche et changements de direction ;
-2. différentes tribus ;
-3. traces de pas ;
-4. collisions ;
+1. ~~marche et changements de direction~~ ;
+2. ~~différentes tribus~~ ;
+3. ~~traces de pas~~ ;
+4. ~~évitement des collisions~~ ;
 5. combats et morts ;
 6. conversions ;
 7. shamans et sorts ;
 8. rassemblement au centre ;
 9. Armageddon.
+
+Depuis la version 0.2.0, chaque personnage change spontanément de direction
+toutes les 2 à 7 secondes et se détourne d'un autre personnage trop proche.
+Ce premier système d'évitement prépare les interactions plus avancées sans
+encore déclencher de combat.
+
+La version 0.3.0 ajoute des paires de traces pixelisées colorées selon la
+tribu. Elles sont espacées selon la distance réellement parcourue, restent
+visibles brièvement puis disparaissent progressivement. Les cellules natives
+de particules de la rangée 27 ne seront utilisées qu'après confirmation de
+leur correspondance exacte avec les orientations des pas.
 
 Le comportement visible sera reproduit en priorité. Le désassemblage des
 129 Ko de code original servira seulement pour retrouver les règles,
@@ -417,6 +433,16 @@ kpackagetool6 --type Plasma/Wallpaper --list
 `org.poptheme.populous` est installé dans
 `~/.local/share/plasma/wallpapers/org.poptheme.populous/`. Une mise à niveau
 avec `--upgrade` doit être exécutée après chaque modification du paquet.
+
+Le dépôt contient aussi un instantané autonome dans
+`plugin/org.poptheme.populous/`. Il est identique au dossier `package/` à la
+version 0.3.0 et peut être copié ou installé sans les outils de recherche :
+
+```bash
+kpackagetool6 \
+    --type Plasma/Wallpaper \
+    --install plugin/org.poptheme.populous
+```
 
 Désinstallation :
 
