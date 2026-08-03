@@ -1,0 +1,103 @@
+{
+  "formatVersion": 1,
+  "status": "provisional-visual-classification",
+  "sourceManifest": "sprites-detected.json",
+  "notes": [
+    "These groups describe visible families, not final gameplay identities.",
+    "A single animation may cross an atlas row boundary.",
+    "Rows 27 and 38 contain effects that need dedicated multi-part handling."
+  ],
+  "groups": [
+    {
+      "id": "large_humanoid_brown",
+      "rows": [0, 1, 2, 3, 4, 5],
+      "description": "Large brown-haired humanoid in multiple directions and poses.",
+      "confidence": "high",
+      "nextAction": "split into directional movement and action sequences"
+    },
+    {
+      "id": "shaman_blue",
+      "rows": [6, 7],
+      "description": "Blue-clothed shaman with large headdress.",
+      "confidence": "high",
+      "nextAction": "identify walk, idle and spell-casting boundaries"
+    },
+    {
+      "id": "shaman_red",
+      "rows": [8, 9, 10],
+      "description": "Red-clothed shaman and cyan spell projectile frames.",
+      "confidence": "high",
+      "nextAction": "separate character frames from projectile frames"
+    },
+    {
+      "id": "gold_humanoid",
+      "rows": [11, 12],
+      "description": "Gold and brown humanoid with horned or raised-arm silhouette.",
+      "confidence": "medium",
+      "nextAction": "determine character class and directional sequence length"
+    },
+    {
+      "id": "green_humanoid",
+      "rows": [13, 14, 15],
+      "description": "Green-clothed humanoid in movement and action poses.",
+      "confidence": "high",
+      "nextAction": "split movement, idle and attack sequences"
+    },
+    {
+      "id": "small_walkers",
+      "rows": [16, 17, 18],
+      "description": "Smaller blue, red and green walkers.",
+      "confidence": "high",
+      "nextAction": "separate tribes and directional walk cycles"
+    },
+    {
+      "id": "ground_and_roll_actions",
+      "rows": [19, 20, 21, 22],
+      "description": "Characters bending, falling, rolling or lying on the ground.",
+      "confidence": "medium",
+      "nextAction": "identify combat, death and recovery sequences"
+    },
+    {
+      "id": "fire",
+      "rows": [23, 24, 25, 26],
+      "description": "Ground fires and tall flame bursts.",
+      "confidence": "high",
+      "nextAction": "group by fixed ground position and flame progression"
+    },
+    {
+      "id": "particles",
+      "rows": [27],
+      "description": "Very small particle trail elements packed on one short row.",
+      "confidence": "high",
+      "specialHandling": "Do not interpret each connected component as a full frame."
+    },
+    {
+      "id": "combatants",
+      "rows": [28, 29, 30, 31, 32],
+      "description": "Small combatants with melee movement and impact poses.",
+      "confidence": "medium",
+      "nextAction": "locate repeated attack cycles and tribe variants"
+    },
+    {
+      "id": "armageddon_combat",
+      "rows": [33, 34, 35, 36],
+      "description": "Mirrored or repeated extended melee sequences.",
+      "confidence": "medium",
+      "nextAction": "compare the four rows and correlate them with Armageddon sounds"
+    },
+    {
+      "id": "standing_figures",
+      "rows": [37],
+      "description": "Small standing humanoids in multiple color variants.",
+      "confidence": "medium",
+      "nextAction": "determine whether these are lineup or idle frames"
+    },
+    {
+      "id": "spell_or_celestial_effect",
+      "rows": [38],
+      "description": "Bright circular effect progressing through orange crescents.",
+      "confidence": "high",
+      "specialHandling": "Frames include interior holes; retain alpha exactly."
+    }
+  ]
+}

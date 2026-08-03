@@ -1,0 +1,40 @@
+# Sprite atlas research
+
+`sprites-detected.json` and `sprites-detected.png` are generated files. Rebuild
+them from the RGBA atlas with:
+
+```bash
+python3 tools/build-atlas.py
+```
+
+The detector uses the opaque horizontal guide lines from the original atlas to
+find packed rows. Fully transparent column runs then delimit candidate frames.
+
+The output is deliberately conservative: rows and frames are numbered but not
+yet assigned gameplay names. Use the annotated PNG to classify coherent
+sequences, then record reviewed animations in the top-level `animations` object
+of a separate curated manifest. Do not hand-edit the generated JSON because it
+will be overwritten on the next run.
+
+`sprite-groups.json` is the first visual classification pass. Its names and row
+ranges are review aids, not final animation identifiers. Unlike the detected
+manifest, this file is curated and is safe to edit as our understanding of the
+original screen saver improves.
+
+`animation-layout.json` describes reviewed continuous frame streams and their
+semantic layout. Build the QML-ready manifest and its animated review preview
+with:
+
+```bash
+python3 tools/build-sprites.py
+```
+
+This creates `research/sprites.json`, copies the same manifest to
+`package/contents/data/sprites.json`, and renders `research/walk-cycles.gif`.
+
+Known limitations:
+
+- a frame made of visually disconnected parts may produce several candidates;
+- touching adjacent frames may produce one candidate;
+- the provisional bottom-center anchor may cause jitter in some sequences;
+- packed sequences may continue from one atlas row to the next.

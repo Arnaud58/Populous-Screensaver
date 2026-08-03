@@ -1,0 +1,41 @@
+{
+  "formatVersion": 1,
+  "streams": [
+    {
+      "id": "brave_walk",
+      "entity": "brave",
+      "action": "walk",
+      "confidence": "high",
+      "sourceSegments": [
+        { "row": 16, "firstFrame": 0, "frameCount": 39 },
+        { "row": 17, "firstFrame": 0, "frameCount": 42 },
+        { "row": 18, "firstFrame": 0, "frameCount": 39 },
+        { "row": 19, "firstFrame": 0, "frameCount": 8 }
+      ],
+      "layout": {
+        "tribes": ["blue", "red", "yellow", "green"],
+        "directions": [
+          { "id": "south", "dx": 0, "dy": 1 },
+          { "id": "south_east", "dx": 1, "dy": 1 },
+          { "id": "east", "dx": 1, "dy": 0 },
+          { "id": "north_east", "dx": 1, "dy": -1 },
+          { "id": "north", "dx": 0, "dy": -1 },
+          { "id": "north_west", "dx": -1, "dy": -1 },
+          { "id": "west", "dx": -1, "dy": 0 },
+          { "id": "south_west", "dx": -1, "dy": 1 }
+        ],
+        "framesPerAnimation": 4,
+        "order": ["tribe", "direction", "frame"]
+      },
+      "playback": {
+        "loop": true,
+        "frameDurationMs": 120
+      },
+      "notes": [
+        "The 128 source frames form four complete eight-direction walk sets.",
+        "Tribe names are assigned from their visible team colours.",
+        "Direction names follow the character's facing direction on screen."
+      ]
+    }
+  ]
+}
