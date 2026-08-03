@@ -6,11 +6,8 @@
       "entity": "brave",
       "action": "walk",
       "confidence": "high",
-      "sourceSegments": [
-        { "row": 16, "firstFrame": 0, "frameCount": 39 },
-        { "row": 17, "firstFrame": 0, "frameCount": 42 },
-        { "row": 18, "firstFrame": 0, "frameCount": 39 },
-        { "row": 19, "firstFrame": 0, "frameCount": 8 }
+      "sourceRanges": [
+        { "firstSprite": 495, "frameCount": 128 }
       ],
       "layout": {
         "tribes": ["blue", "red", "yellow", "green"],
@@ -32,7 +29,7 @@
         "frameDurationMs": 120
       },
       "notes": [
-        "The 128 source frames form four complete eight-direction walk sets.",
+        "Native sprites 495 through 622 form four complete eight-direction walk sets.",
         "Tribe names are assigned from their visible team colours.",
         "Direction names follow the character's facing direction on screen."
       ]

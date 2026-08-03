@@ -1,0 +1,20 @@
+{
+    "KPackageStructure": "Plasma/Wallpaper",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "Poptheme porting project"
+            }
+        ],
+        "Description": "Populous: The Beginning animated screen saver on a black background",
+        "Description[fr]": "Économiseur d'écran animé Populous: The Beginning sur fond noir",
+        "EnabledByDefault": true,
+        "Icon": "preferences-desktop-wallpaper",
+        "Id": "org.poptheme.populous",
+        "License": "Proprietary",
+        "Name": "Populous Screen Saver",
+        "Name[fr]": "Économiseur d'écran Populous",
+        "Version": "0.1.0"
+    },
+    "X-KDE-ParentApp": "org.kde.plasmashell"
+}

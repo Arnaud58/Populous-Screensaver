@@ -30,7 +30,20 @@ python3 tools/build-sprites.py
 ```
 
 This creates `research/sprites.json`, copies the same manifest to
-`package/contents/data/sprites.json`, and renders `research/walk-cycles.gif`.
+`package/contents/data/sprites.json`, generates the QML-importable
+`package/contents/ui/Animations.js`, and renders `research/walk-cycles.gif`.
+
+`sprites-native.json` is recovered from the 1,180-record cell table initialized
+by the original executable. Regenerate it with:
+
+```bash
+python3 tools/extract-native-sprites.py
+```
+
+Prefer the native rectangles when compiling animations: unlike opaque pixel
+bounds, they retain the transparent padding chosen by the original author and
+therefore keep the character anchor stable. The heuristic detection remains
+useful for visual classification and cross-checking.
 
 Known limitations:
 

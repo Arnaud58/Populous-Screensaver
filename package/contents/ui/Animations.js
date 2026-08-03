@@ -1,4 +1,6 @@
-{
+.pragma library
+
+var manifest = {
   "formatVersion": 1,
   "atlas": {
     "source": "../images/sprites.png",

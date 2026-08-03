@@ -28,12 +28,15 @@ QML et JavaScript.
 - [x] Génération d'une carte annotée de l'atlas
 - [x] Première classification visuelle des familles de sprites
 - [x] Regroupement des 32 cycles de marche des quatre tribus
+- [x] Extraction des 1 180 cellules définies par le code original
 - [ ] Regroupement des autres frames en animations cohérentes
-- [ ] Création du prototype QML
+- [x] Création du prototype QML sur fond noir
 - [ ] Réimplémentation de la simulation
 - [ ] Ajout des sons
 - [ ] Création de la configuration Plasma
-- [ ] Installation et tests sur l'écran verrouillé
+- [x] Installation locale du plugin Plasma
+- [x] Test autonome du moteur QML
+- [ ] Sélection et test sur l'écran verrouillé
 
 ## Arborescence
 
@@ -50,11 +53,16 @@ populous-plasma/
 │       ├── ICON/
 │       └── WAVE/
 ├── tools/
-│   └── build-atlas.py
+│   ├── build-atlas.py
+│   ├── build-sprites.py
+│   └── extract-native-sprites.py
 ├── research/
 │   ├── README.md
+│   ├── animation-layout.json
 │   ├── sprites-detected.json
 │   ├── sprites-detected.png
+│   ├── sprites-native.json
+│   ├── sprites.json
 │   └── sprite-groups.json
 └── package/
     └── contents/
@@ -201,6 +209,18 @@ Ces rectangles ne correspondent pas encore tous à une frame complète. Les
 particules et les effets constitués de plusieurs éléments peuvent produire
 plusieurs rectangles pour une seule frame logique.
 
+Le binaire contient aussi une table native de 1 180 cellules avec largeur,
+hauteur, position X et position Y. Elle conserve les marges transparentes
+nécessaires pour éviter les tremblements pendant une animation :
+
+```bash
+python3 tools/extract-native-sprites.py
+```
+
+Le résultat `research/sprites-native.json` devient la source prioritaire des
+coordonnées. La détection visuelle reste utile pour nommer et regrouper les
+séquences.
+
 ### 6. Construire le manifeste d'animations
 
 Cette étape est en cours. Les 128 frames de marche ont été identifiées et
@@ -272,6 +292,12 @@ Cette commande génère également :
 
 ### 7. Créer le prototype QML
 
+Une première version est maintenant disponible dans `package/contents/ui`.
+Elle charge les 32 cycles de marche natifs et affiche 24 personnages des quatre
+tribus sur un fond noir. Les personnages choisissent l'une des huit directions,
+se déplacent à des vitesses légèrement différentes et changent de direction
+aux limites de l'écran.
+
 Le premier prototype contiendra :
 
 - un rectangle noir couvrant tout l'écran ;
@@ -297,8 +323,23 @@ package/
     └── config/
 ```
 
-Le composant QML utilisera `sourceClipRect` pour afficher une zone de l'atlas,
+Le composant QML utilise `sourceClipRect` pour afficher une zone de l'atlas,
 sans créer plusieurs centaines de petits fichiers PNG.
+
+Le manifeste est également généré sous forme de module JavaScript
+`Animations.js`. Cela évite `XMLHttpRequest`, auquel Qt interdit par défaut de
+lire des fichiers locaux.
+
+Un aperçu autonome est disponible dans `tests/Preview.qml`. Avec le paquet
+`qmlscene-qt6` installé, il peut être lancé sans modifier le bureau :
+
+```bash
+qmlscene-qt6 --software --resize-to-root tests/Preview.qml
+```
+
+Le prototype a été validé en 1280 × 720 avec le rendu logiciel Qt : les
+24 personnages sont répartis sur toute la surface noire, leurs cycles sont
+animés et leurs positions restent dans les limites de l'écran.
 
 ### 8. Réimplémenter la simulation
 
@@ -371,6 +412,11 @@ Vérification :
 ```bash
 kpackagetool6 --type Plasma/Wallpaper --list
 ```
+
+État sur la machine de développement : le plugin
+`org.poptheme.populous` est installé dans
+`~/.local/share/plasma/wallpapers/org.poptheme.populous/`. Une mise à niveau
+avec `--upgrade` doit être exécutée après chaque modification du paquet.
 
 Désinstallation :
 

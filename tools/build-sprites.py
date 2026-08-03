@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the reviewed animation manifest from detected atlas frames."""
+"""Build the reviewed animation manifest from the native sprite-cell table."""
 
 from __future__ import annotations
 
@@ -17,9 +17,9 @@ def parse_args() -> argparse.Namespace:
         description="Build the curated Populous animation manifest."
     )
     parser.add_argument(
-        "--detected",
+        "--native",
         type=Path,
-        default=project / "research/sprites-detected.json",
+        default=project / "research/sprites-native.json",
     )
     parser.add_argument(
         "--layout",
@@ -42,6 +42,12 @@ def parse_args() -> argparse.Namespace:
         default=project / "package/contents/data/sprites.json",
     )
     parser.add_argument(
+        "--qml-output",
+        type=Path,
+        default=project / "package/contents/ui/Animations.js",
+        help="Generated JavaScript manifest importable without local-file XHR",
+    )
+    parser.add_argument(
         "--preview",
         type=Path,
         default=project / "research/walk-cycles.gif",
@@ -58,22 +64,24 @@ def read_json(path: Path) -> dict:
         raise SystemExit(f"Invalid JSON in {path}: {error}") from error
 
 
-def collect_stream_frames(detected: dict, stream: dict) -> list[dict]:
-    rows = detected["rows"]
+def collect_stream_frames(native: dict, stream: dict) -> list[dict]:
+    native_frames = native["frames"]
     collected: list[dict] = []
 
-    for segment in stream["sourceSegments"]:
-        row_index = segment["row"]
-        first = segment["firstFrame"]
-        count = segment["frameCount"]
-        if row_index < 0 or row_index >= len(rows):
-            raise SystemExit(f"Invalid row {row_index} in stream {stream['id']}")
-        row_frames = rows[row_index]["frames"]
-        selected = row_frames[first : first + count]
+    for source_range in stream["sourceRanges"]:
+        first = source_range["firstSprite"]
+        count = source_range["frameCount"]
+        selected = native_frames[first : first + count]
         if len(selected) != count:
             raise SystemExit(
                 f"Stream {stream['id']} requests {count} frames at row "
-                f"{row_index}:{first}, but only {len(selected)} are available"
+                f"native index {first}, but only {len(selected)} are available"
+            )
+        invalid = [frame["id"] for frame in selected if not frame["inAtlasBounds"]]
+        if invalid:
+            raise SystemExit(
+                f"Stream {stream['id']} includes out-of-bounds sprites: "
+                + ", ".join(invalid)
             )
         collected.extend(deepcopy(selected))
 
@@ -93,8 +101,8 @@ def animation_frame(candidate: dict) -> dict:
     }
 
 
-def compile_stream(detected: dict, stream: dict) -> dict[str, dict]:
-    source_frames = collect_stream_frames(detected, stream)
+def compile_stream(native: dict, stream: dict) -> dict[str, dict]:
+    source_frames = collect_stream_frames(native, stream)
     layout = stream["layout"]
     tribes = layout["tribes"]
     directions = layout["directions"]
@@ -138,10 +146,10 @@ def compile_stream(detected: dict, stream: dict) -> dict[str, dict]:
     return animations
 
 
-def compile_manifest(detected: dict, layout: dict) -> dict:
+def compile_manifest(native: dict, layout: dict) -> dict:
     animations: dict[str, dict] = {}
     for stream in layout["streams"]:
-        compiled = compile_stream(detected, stream)
+        compiled = compile_stream(native, stream)
         duplicate_ids = animations.keys() & compiled.keys()
         if duplicate_ids:
             raise SystemExit(
@@ -153,8 +161,8 @@ def compile_manifest(detected: dict, layout: dict) -> dict:
         "formatVersion": 1,
         "atlas": {
             "source": "../images/sprites.png",
-            "width": detected["atlas"]["width"],
-            "height": detected["atlas"]["height"],
+            "width": native["atlas"]["width"],
+            "height": native["atlas"]["height"],
         },
         "coordinateSystem": {
             "origin": "top-left",
@@ -266,19 +274,27 @@ def create_walk_preview(
 
 def main() -> None:
     args = parse_args()
-    detected = read_json(args.detected)
+    native = read_json(args.native)
     layout = read_json(args.layout)
-    manifest = compile_manifest(detected, layout)
+    manifest = compile_manifest(native, layout)
 
     serialized = json.dumps(manifest, indent=2, ensure_ascii=False) + "\n"
     for output in (args.research_output, args.package_output):
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(serialized, encoding="utf-8")
 
+    args.qml_output.parent.mkdir(parents=True, exist_ok=True)
+    args.qml_output.write_text(
+        ".pragma library\n\nvar manifest = "
+        + json.dumps(manifest, indent=2, ensure_ascii=False)
+        + "\n",
+        encoding="utf-8",
+    )
+
     atlas = Image.open(args.atlas).convert("RGBA")
     if atlas.size != (manifest["atlas"]["width"], manifest["atlas"]["height"]):
         raise SystemExit(
-            f"Atlas dimensions {atlas.size} do not match the detected manifest"
+            f"Atlas dimensions {atlas.size} do not match the native manifest"
         )
     create_walk_preview(atlas, manifest, layout, args.preview)
 
@@ -287,6 +303,7 @@ def main() -> None:
     print(f"Unique source frames: {stats['uniqueSourceFrames']}")
     print(f"Research manifest: {args.research_output.resolve()}")
     print(f"Package manifest: {args.package_output.resolve()}")
+    print(f"QML manifest: {args.qml_output.resolve()}")
     print(f"Preview: {args.preview.resolve()}")
 
 
