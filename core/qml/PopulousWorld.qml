@@ -17,7 +17,12 @@ Item {
     property var animationManifest: Animations.manifest
     property string loadError: ""
     property int characterCount: 24
-    property real spriteScale: Math.max(1, Math.min(3, Math.round(height / 540)))
+    property int spriteScaleOverride: 0
+    property bool footprintsEnabled: true
+    readonly property real automaticSpriteScale:
+        Math.max(1, Math.min(3, Math.round(height / 540)))
+    readonly property real spriteScale:
+        spriteScaleOverride > 0 ? spriteScaleOverride : automaticSpriteScale
 
     // 0 draws a seed from the clock, so each run differs. Any other value
     // replays exactly, which is what the golden traces will rely on.
@@ -32,6 +37,7 @@ Item {
     property var simulation: null
     property var worldModel: null
     property double previousTick: 0
+    property bool componentReady: false
 
     function currentRects() {
         if (worldRects && worldRects.length > 0) {
@@ -49,6 +55,18 @@ Item {
     onWidthChanged: rebuildWorld()
     onHeightChanged: rebuildWorld()
     onWorldRectsChanged: rebuildWorld()
+    onRandomSeedChanged: restartSimulation()
+    onSpriteScaleChanged: restartSimulation()
+    onCharacterCountChanged: {
+        if (componentReady) {
+            Qt.callLater(restartSimulation)
+        }
+    }
+    onFootprintsEnabledChanged: {
+        if (!footprintsEnabled) {
+            clearFootprints()
+        }
+    }
 
     function collectCharacters() {
         var list = []
@@ -72,6 +90,28 @@ Item {
         })
     }
 
+    function clearFootprints() {
+        for (var index = trailLayer.children.length - 1; index >= 0; --index) {
+            trailLayer.children[index].destroy()
+        }
+    }
+
+    function restartSimulation() {
+        if (!componentReady) {
+            return
+        }
+
+        clearFootprints()
+        var characterItems = collectCharacters()
+        for (var index = 0; index < characterItems.length; ++index) {
+            characterItems[index].resetState()
+        }
+
+        simulation = Simulation.createSimulation(randomSeed || Date.now())
+        simulation.characters = characterItems
+        previousTick = Date.now()
+    }
+
     function tick() {
         if (!simulation || !worldModel) {
             return
@@ -88,15 +128,17 @@ Item {
         var footprints = Simulation.stepSimulation(
             simulation, worldModel, elapsedSeconds
         )
-        for (var index = 0; index < footprints.length; ++index) {
-            createFootprint(footprints[index])
+        if (footprintsEnabled) {
+            for (var index = 0; index < footprints.length; ++index) {
+                createFootprint(footprints[index])
+            }
         }
     }
 
     Component.onCompleted: {
         rebuildWorld()
-        simulation = Simulation.createSimulation(randomSeed || Date.now())
-        previousTick = Date.now()
+        componentReady = true
+        restartSimulation()
     }
 
     Rectangle {

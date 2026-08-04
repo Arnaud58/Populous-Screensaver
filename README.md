@@ -52,7 +52,7 @@ populous-screensaver/
 │   └── js/            #   Simulation.js, Animations.js (generated)
 ├── spec/              # language-neutral simulation rules
 ├── targets/           # per-target host shells only
-│   ├── plasma/        #   metadata.json + contents/ui/main.qml
+│   ├── plasma/        #   metadata, host QML and configuration page
 │   └── preview/       #   main.qml, a plain window for development
 ├── tests/             # standalone preview, golden traces
 └── build/             # assembled payloads — generated, not versioned
@@ -60,8 +60,8 @@ populous-screensaver/
 
 The rule that shapes this layout: **nothing shared is stored twice.** The atlas
 and the 56 sound files exist once, under `assets/`. Targets contain only what
-is genuinely specific to their host — for Plasma, that is a `metadata.json` and
-a single `main.qml`. Everything else is copied in at build time by
+is genuinely specific to their host — for Plasma, that is its metadata, host
+QML and configuration page. Everything else is copied in at build time by
 `tools/build-targets.py`.
 
 Earlier versions kept a fully assembled `package/` *and* a byte-for-byte
@@ -89,7 +89,7 @@ build/<target>/       installable payload
 
 ## Current status
 
-Version 0.7.0.
+Version 0.8.0.
 
 **Done**
 
@@ -114,12 +114,12 @@ Version 0.7.0.
 - [x] Continuous multi-screen world, with dead zones excluded
 - [x] Spatial partitioning for collision avoidance
 - [x] Golden deterministic traces for single- and multi-screen worlds
+- [x] Plasma configuration for population, scale, footprints and seed
 
 **Next**
 - [ ] Group the remaining atlas frames into named animations
 - [ ] Combat, deaths, conversions, shamans, spells, gathering, Armageddon
 - [ ] Sound playback
-- [ ] Plasma configuration page
 - [ ] Standalone Qt application, Linux then Windows `.scr`
 - [ ] xscreensaver hack
 - [ ] Lock-screen selection and testing
@@ -341,11 +341,18 @@ files by default, so the manifest is also emitted as a JavaScript module.
   anything that gives it a size.
 - `core/js/Animations.js` — generated manifest.
 
-A host shell therefore contains almost nothing. The Plasma one is twelve lines:
+A host shell therefore contains almost nothing. The Plasma one instantiates
+the shared engine and binds its four settings:
 
 ```qml
 WallpaperItem {
-    PopulousWorld { anchors.fill: parent }
+    PopulousWorld {
+        anchors.fill: parent
+        characterCount: root.configuration.CharacterCount
+        spriteScaleOverride: root.configuration.SpriteScale
+        footprintsEnabled: root.configuration.FootprintsEnabled
+        randomSeed: root.configuration.RandomSeed
+    }
 }
 ```
 
@@ -515,15 +522,17 @@ page.
 
 ## Configuration
 
-Planned settings, following the original:
+The Plasma target currently exposes:
 
-- number of characters;
-- delay before Armageddon;
-- sound on or off, and volume;
-- footprint intensity;
-- sprite size;
-- optional random seed, for testing;
-- multi-monitor mode: continuous world or one world per screen.
+- number of characters, from 1 to 100;
+- automatic, 1×, 2× or 3× sprite size;
+- footprints on or off;
+- an optional deterministic seed, with 0 selecting a new run each time.
+
+Changing the population, sprite size or seed immediately starts a fresh world.
+Disabling footprints clears the existing trail without interrupting movement.
+Sound, Armageddon timing and multi-monitor mode will be added when their
+corresponding simulation features exist.
 
 The background always stays black.
 

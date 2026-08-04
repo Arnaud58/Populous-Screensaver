@@ -41,7 +41,7 @@ one loop calling `stepSimulation`.
 
 ## Status
 
-Written against version 0.7.0. Sections marked **planned** are not implemented
+Written against version 0.8.0. Sections marked **planned** are not implemented
 in any target yet.
 
 ## Coordinate system and world geometry

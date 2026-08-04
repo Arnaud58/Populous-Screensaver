@@ -53,6 +53,22 @@ Item {
     height: 0
     visible: initialized
 
+    function resetState() {
+        initialized = false
+        tribe = "blue"
+        directionId = "south"
+        directionX = 0
+        directionY = 1
+        worldX = 0
+        worldY = 0
+        speed = 0
+        frameIndex = 0
+        animationElapsedMs = 0
+        distanceSinceFootprint = 0
+        collisionCooldownMs = 0
+        wanderRemainingMs = 0
+    }
+
     Image {
         id: sprite
 

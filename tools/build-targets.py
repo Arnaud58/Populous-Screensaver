@@ -21,6 +21,7 @@ PROJECT = Path(__file__).resolve().parent.parent
 # the target payload root.
 PLASMA_LAYOUT = [
     ("targets/plasma/metadata.json", "metadata.json"),
+    ("targets/plasma/contents/config", "contents/config"),
     ("targets/plasma/contents/ui", "contents/ui"),
     ("core/qml", "contents/ui"),
     ("core/js", "contents/ui"),
