@@ -99,6 +99,149 @@ function createRandom(seed) {
     }
 }
 
+// --- World geometry ------------------------------------------------------
+//
+// The world is a *list* of rectangles, not one rectangle: the union of the
+// screens it spans. A single-screen host passes a list of one, so there is no
+// separate single-screen mode.
+//
+// Monitors of different heights leave dead zones inside the bounding box. On
+// a 1920x1200 next to two 1920x1080 there is a 3840x120 strip along the
+// bottom that belongs to no screen, and a character wandering into it would
+// simply vanish. Validity is therefore membership of the union, never of the
+// bounding box.
+
+function createWorld(rects) {
+    var usable = []
+    var index
+
+    for (index = 0; index < rects.length; ++index) {
+        var rect = rects[index]
+        if (!rect || rect.width <= 0 || rect.height <= 0) {
+            continue
+        }
+        usable.push({
+            x: rect.x === undefined ? 0 : rect.x,
+            y: rect.y === undefined ? 0 : rect.y,
+            width: rect.width,
+            height: rect.height
+        })
+    }
+
+    var bounds = { x: 0, y: 0, width: 0, height: 0 }
+    if (usable.length > 0) {
+        var minX = usable[0].x
+        var minY = usable[0].y
+        var maxX = usable[0].x + usable[0].width
+        var maxY = usable[0].y + usable[0].height
+        for (index = 1; index < usable.length; ++index) {
+            minX = Math.min(minX, usable[index].x)
+            minY = Math.min(minY, usable[index].y)
+            maxX = Math.max(maxX, usable[index].x + usable[index].width)
+            maxY = Math.max(maxY, usable[index].y + usable[index].height)
+        }
+        bounds = { x: minX, y: minY, width: maxX - minX, height: maxY - minY }
+    }
+
+    return { rects: usable, bounds: bounds }
+}
+
+function worldContains(world, x, y) {
+    for (var index = 0; index < world.rects.length; ++index) {
+        var rect = world.rects[index]
+        if (x >= rect.x && x <= rect.x + rect.width
+                && y >= rect.y && y <= rect.y + rect.height) {
+            return true
+        }
+    }
+    return false
+}
+
+// Whether a character may stand at (x, y) without its sprite hanging off the
+// outside of the world.
+//
+// The margins are probed rather than applied per rectangle, which is what
+// keeps the boundary between two screens open. A probe that crosses an
+// internal edge lands in the neighbouring rectangle and is still inside the
+// union, so the character walks through; a probe that crosses an outer edge
+// leaves the union, so the character turns. Insetting each rectangle instead
+// would build an invisible wall down every screen seam.
+function worldAllows(world, x, y, margins) {
+    return worldContains(world, x, y)
+        && worldContains(world, x - margins.x, y)
+        && worldContains(world, x + margins.x, y)
+        && worldContains(world, x, y - margins.top)
+        && worldContains(world, x, y + margins.bottom)
+}
+
+// Pulls a character back to the nearest legal spot.
+//
+// A position can be illegal without anyone doing anything wrong: the spawn
+// inset is smaller than the top margin of a tall sprite, the sprite scale
+// changes with the window, a screen is unplugged. Without this, such a
+// character fails every move, reverses on the spot and is stuck for good.
+function clampIntoWorld(world, x, y, margins) {
+    var best = { x: x, y: y }
+    var bestDistance = Infinity
+
+    for (var index = 0; index < world.rects.length; ++index) {
+        var rect = world.rects[index]
+        var lowX = rect.x + margins.x
+        var highX = rect.x + rect.width - margins.x
+        var lowY = rect.y + margins.top
+        var highY = rect.y + rect.height - margins.bottom
+        // A rectangle narrower than its own margins collapses to its middle
+        // rather than inverting the clamp.
+        var candidateX = lowX > highX
+            ? (rect.x + rect.width / 2)
+            : Math.max(lowX, Math.min(highX, x))
+        var candidateY = lowY > highY
+            ? (rect.y + rect.height / 2)
+            : Math.max(lowY, Math.min(highY, y))
+
+        var differenceX = candidateX - x
+        var differenceY = candidateY - y
+        var distance = differenceX * differenceX + differenceY * differenceY
+        if (distance < bestDistance) {
+            bestDistance = distance
+            best = { x: candidateX, y: candidateY }
+        }
+    }
+
+    return best
+}
+
+function worldHasUsableRect(world) {
+    for (var index = 0; index < world.rects.length; ++index) {
+        if (world.rects[index].width >= tuning.minWorldSize
+                && world.rects[index].height >= tuning.minWorldSize) {
+            return true
+        }
+    }
+    return false
+}
+
+// Picks a rectangle weighted by area, so characters spread evenly over the
+// world rather than clustering on the smallest screen.
+function pickRect(world, random) {
+    var total = 0
+    var index
+
+    for (index = 0; index < world.rects.length; ++index) {
+        total += world.rects[index].width * world.rects[index].height
+    }
+
+    var target = random.nextFloat() * total
+    var running = 0
+    for (index = 0; index < world.rects.length; ++index) {
+        running += world.rects[index].width * world.rects[index].height
+        if (target < running) {
+            return world.rects[index]
+        }
+    }
+    return world.rects[world.rects.length - 1]
+}
+
 // --- Helpers -------------------------------------------------------------
 
 function animationId(tribe, directionId) {
@@ -150,19 +293,24 @@ function setDirection(state, dx, dy) {
 // --- Character rules -----------------------------------------------------
 
 // Populates a character with a random tribe, direction, position and speed.
-// Returns false when the world is too small to place anything, which is how a
-// shell waits for its layout to settle.
+// Returns false when no screen is large enough to place anything, which is how
+// a shell waits for its layout to settle.
+//
+// The draw order is part of the contract: rectangle, direction, tribe, x, y,
+// speed, wander interval. The C port must consume the same values in the same
+// order or the two implementations diverge from the first character.
 function initializeCharacter(state, world, random) {
-    if (!world || world.width < tuning.minWorldSize || world.height < tuning.minWorldSize) {
+    if (!world || !worldHasUsableRect(world)) {
         return false
     }
 
+    var rect = pickRect(world, random)
     var direction = randomDirection(random)
     state.tribe = randomTribe(random)
-    state.worldX = tuning.spawnMarginX
-        + random.nextFloat() * Math.max(1, world.width - tuning.spawnInsetX)
-    state.worldY = tuning.spawnMarginTop
-        + random.nextFloat() * Math.max(1, world.height - tuning.spawnInsetY)
+    state.worldX = rect.x + tuning.spawnMarginX
+        + random.nextFloat() * Math.max(1, rect.width - tuning.spawnInsetX)
+    state.worldY = rect.y + tuning.spawnMarginTop
+        + random.nextFloat() * Math.max(1, rect.height - tuning.spawnInsetY)
     state.speed = (tuning.speedMin + random.nextFloat() * (tuning.speedMax - tuning.speedMin))
         * state.spriteScale
     state.distanceSinceFootprint = 0
@@ -223,19 +371,46 @@ function stepCharacter(state, world, stepSeconds, random) {
     var newDirectionX = state.directionX
     var newDirectionY = state.directionY
 
-    var minX = marginX(state)
-    var maxX = world.width - minX
-    var minY = marginTop(state)
-    var maxY = world.height - tuning.bottomMargin
+    var margins = {
+        x: marginX(state),
+        top: marginTop(state),
+        bottom: tuning.bottomMargin
+    }
 
-    if (nextX < minX || nextX > maxX) {
-        newDirectionX = -newDirectionX
-        nextX = Math.max(minX, Math.min(maxX, nextX))
+    // Rescue a character standing somewhere it should not be before asking it
+    // to move, otherwise every move below is refused and it never recovers.
+    if (!worldAllows(world, state.worldX, state.worldY, margins)) {
+        var rescued = clampIntoWorld(world, state.worldX, state.worldY, margins)
+        state.worldX = rescued.x
+        state.worldY = rescued.y
+        nextX = state.worldX + normalizedX * state.speed * stepSeconds
+        nextY = state.worldY + normalizedY * state.speed * stepSeconds
     }
-    if (nextY < minY || nextY > maxY) {
+
+    // Try the whole move, then each axis alone. Whichever axis is refused is
+    // the one that hit a wall, so that is the one to reflect. Testing the axes
+    // separately is what lets a character slide along an edge instead of
+    // sticking to it, and it needs no special case for the concave corners a
+    // multi-screen world has.
+    var acceptedX = state.worldX
+    var acceptedY = state.worldY
+
+    if (worldAllows(world, nextX, nextY, margins)) {
+        acceptedX = nextX
+        acceptedY = nextY
+    } else if (worldAllows(world, nextX, state.worldY, margins)) {
+        acceptedX = nextX
         newDirectionY = -newDirectionY
-        nextY = Math.max(minY, Math.min(maxY, nextY))
+    } else if (worldAllows(world, state.worldX, nextY, margins)) {
+        acceptedY = nextY
+        newDirectionX = -newDirectionX
+    } else {
+        newDirectionX = -newDirectionX
+        newDirectionY = -newDirectionY
     }
+
+    nextX = acceptedX
+    nextY = acceptedY
 
     if (newDirectionX !== state.directionX || newDirectionY !== state.directionY) {
         setDirection(state, newDirectionX, newDirectionY)

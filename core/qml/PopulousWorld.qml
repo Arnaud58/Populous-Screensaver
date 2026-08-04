@@ -23,12 +23,32 @@ Item {
     // replays exactly, which is what the golden traces will rely on.
     property int randomSeed: 0
 
+    // The screens this world spans, in world coordinates. Null means "just this
+    // item", which is what a single-screen host wants. A multi-monitor host
+    // passes one rectangle per monitor and the world becomes continuous across
+    // them, with the gaps between mismatched screens treated as out of bounds.
+    property var worldRects: null
+
     property var simulation: null
+    property var worldModel: null
     property double previousTick: 0
 
-    function worldGeometry() {
-        return { "width": width, "height": height }
+    function currentRects() {
+        if (worldRects && worldRects.length > 0) {
+            return worldRects
+        }
+        return [{ "x": 0, "y": 0, "width": width, "height": height }]
     }
+
+    // Rebuilt on change rather than per tick: the world is read 60 times a
+    // second and allocating it each time would be pure churn.
+    function rebuildWorld() {
+        worldModel = Simulation.createWorld(currentRects())
+    }
+
+    onWidthChanged: rebuildWorld()
+    onHeightChanged: rebuildWorld()
+    onWorldRectsChanged: rebuildWorld()
 
     function collectCharacters() {
         var list = []
@@ -53,7 +73,7 @@ Item {
     }
 
     function tick() {
-        if (!simulation) {
+        if (!simulation || !worldModel) {
             return
         }
 
@@ -66,7 +86,7 @@ Item {
         previousTick = now
 
         var footprints = Simulation.stepSimulation(
-            simulation, worldGeometry(), elapsedSeconds
+            simulation, worldModel, elapsedSeconds
         )
         for (var index = 0; index < footprints.length; ++index) {
             createFootprint(footprints[index])
@@ -74,6 +94,7 @@ Item {
     }
 
     Component.onCompleted: {
+        rebuildWorld()
         simulation = Simulation.createSimulation(randomSeed || Date.now())
         previousTick = Date.now()
     }

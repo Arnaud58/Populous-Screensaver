@@ -41,13 +41,10 @@ one loop calling `stepSimulation`.
 
 ## Status
 
-Written against version 0.5.1. Sections marked **planned** are not implemented
+Written against version 0.6.0. Sections marked **planned** are not implemented
 in any target yet.
 
 ## Coordinate system and world geometry
-
-The simulation reasons about a **world region** and a list of **viewports**,
-never about a single screen size. See `spec/world-geometry.md` — planned.
 
 - Origin is top-left, `x` grows right, `y` grows down.
 - Units are world pixels before sprite scaling.
@@ -56,16 +53,53 @@ never about a single screen size. See `spec/world-geometry.md` — planned.
   frame anchor from the ground point.
 - `y` doubles as the draw order: a character lower on screen draws in front.
 
-Current shells supply geometry as follows.
+**The world is a list of rectangles**, built with `createWorld`, one per screen
+it spans. A single-screen host passes a list of one, so there is no separate
+single-screen mode — it is the degenerate case of the general one.
 
-| Shell | World region | Viewports |
-| ----- | ------------ | --------- |
-| Plasma wallpaper | the current screen | one |
-| Qt application (planned) | union of all screens | one per monitor |
-| xscreensaver (planned) | the window it is given | one |
+| Shell | World |
+| ----- | ----- |
+| Plasma wallpaper | one rectangle, the current screen |
+| Preview | one rectangle, or a faked layout in rehearsal mode |
+| Qt application (planned) | one rectangle per monitor |
+| xscreensaver (planned) | one rectangle, the window it is given |
 
-The single-viewport case is not a separate mode; it is the degenerate case of
-the general one.
+### Dead zones
+
+Screens of different heights leave parts of the bounding box belonging to no
+monitor. On the development machine — a 1920×1200 beside two 1920×1080, all
+top-aligned — that is a 3840×120 strip along the bottom. A character walking
+in there would simply be invisible.
+
+Validity is therefore membership of the **union**, never of the bounding box.
+`worldContains` tests the union; `bounds` exists only for hosts that need an
+overall size.
+
+### Margins at seams
+
+`worldAllows(world, x, y, margins)` decides whether a character may stand
+somewhere. It **probes** the margins rather than insetting each rectangle:
+it tests `(x ± marginX, y)` and `(x, y − marginTop)` and `(x, y + bottom)` for
+membership of the union.
+
+This is the whole trick of the continuous world. A probe crossing an internal
+seam lands in the neighbouring screen and is still inside the union, so the
+character walks through. A probe crossing an outer edge leaves the union, so
+the character turns. Insetting each rectangle instead would raise an invisible
+wall down every seam, and the world would not be continuous at all.
+
+The lip above a dead zone is an outer edge and behaves as one.
+
+### Recovering an illegal position
+
+`clampIntoWorld` pulls a character back to the nearest legal spot, and
+`stepCharacter` calls it whenever the current position fails `worldAllows`.
+
+This is not defensive padding: a position can become illegal without anyone
+doing anything wrong. The spawn inset (40 px) is smaller than the top margin
+of a tall sprite at scale 2 (52 px); the sprite scale changes when a window
+resizes; a screen is unplugged. Without the rescue such a character fails every
+move, reverses on the spot, and is stuck for good.
 
 ## Determinism
 
@@ -204,13 +238,24 @@ together is **unknown**.
 
 ### Edges
 
-On reaching a world edge the corresponding direction component is negated and
-the position is clamped. Margins are half the frame width horizontally, the
-full frame height at the top, and 4 pixels at the bottom.
+Margins are half the frame width horizontally, the full frame height at the
+top, and 4 pixels at the bottom.
 
-This is the behaviour to replace once the world spans several screens: a
-character reaching the shared edge between two viewports must cross it rather
-than bounce.
+Each step tries the whole move, then each axis on its own:
+
+1. if the full move is allowed, take it;
+2. else if moving in X alone is allowed, take that and negate `directionY`;
+3. else if moving in Y alone is allowed, take that and negate `directionX`;
+4. else negate both and stay put.
+
+Whichever axis is refused is the one that hit a wall, so that is the one to
+reflect. Testing the axes separately is what lets a character slide along an
+edge instead of sticking to it, and it needs no special case for the concave
+corners a multi-screen world has.
+
+A refused move means the character does not advance that step, so no clamping
+arithmetic is needed against a non-convex region. At 1/60 s and roughly
+40 px/s that is under a pixel, so it reads as stopping at the wall.
 
 ### Wandering
 

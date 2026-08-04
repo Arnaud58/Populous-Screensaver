@@ -89,7 +89,7 @@ build/<target>/       installable payload
 
 ## Current status
 
-Version 0.5.1.
+Version 0.6.0.
 
 **Done**
 
@@ -111,10 +111,9 @@ Version 0.5.1.
 - [x] Simulation rules extracted from QML, covered by headless Node tests
 - [x] Seeded PRNG: a given seed replays exactly
 - [x] Single fixed-timestep loop, replacing ~120 per-character timers
+- [x] Continuous multi-screen world, with dead zones excluded
 
 **Next**
-
-- [ ] World-region and viewport geometry in the core
 - [ ] Group the remaining atlas frames into named animations
 - [ ] Combat, deaths, conversions, shamans, spells, gathering, Armageddon
 - [ ] Sound playback
@@ -453,9 +452,9 @@ The work:
   every `Math.random()` call;
 - ✅ a single fixed-timestep loop stepping all characters, with elapsed time
   passed in rather than read inside;
-- world region plus viewport list replacing the implicit single `width` ×
-  `height`, so that a continuous multi-monitor world and a per-screen world are
-  the same code path with a different viewport count;
+- ✅ a world made of one rectangle per screen, replacing the implicit single
+  `width` × `height`, so that a continuous multi-monitor world and a
+  per-screen world are the same code path with a different rectangle count;
 - spatial partitioning to replace the O(n²) avoidance scan;
 - golden traces in `tests/golden/`, generated from the JS core.
 

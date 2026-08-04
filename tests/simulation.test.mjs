@@ -15,6 +15,10 @@ const EXPORTS = [
     "tuning",
     "createRandom",
     "createSimulation",
+    "createWorld",
+    "worldContains",
+    "worldAllows",
+    "clampIntoWorld",
     "stepSimulation",
     "animationId",
     "directionForVector",
@@ -69,7 +73,8 @@ function makeCharacter(overrides = {}) {
     }
 }
 
-const WORLD = { width: 1000, height: 1000 }
+const WORLD = Simulation.createWorld([{ x: 0, y: 0, width: 1000, height: 1000 }])
+const rect = (x, y, width, height) => ({ x, y, width, height })
 
 function neverWander(random) {
     return random
@@ -215,7 +220,7 @@ test("diagonal movement is normalised to the same speed as cardinal", () => {
 })
 
 test("a character bounces off the right edge and is clamped inside", () => {
-    const world = { width: 200, height: 200 }
+    const world = Simulation.createWorld([rect(0, 0, 200, 200)])
     const character = makeCharacter({ worldX: 199, speed: 600 })
     const random = Simulation.createRandom(1)
 
@@ -223,11 +228,11 @@ test("a character bounces off the right edge and is clamped inside", () => {
 
     assert.equal(result.directionChanged, true)
     assert.equal(character.directionId, "west")
-    assert.equal(character.worldX, world.width - character.frameWidth / 2)
+    assert.equal(character.worldX, 200 - character.frameWidth / 2)
 })
 
 test("a character bounces off the bottom edge using the ground margin", () => {
-    const world = { width: 200, height: 200 }
+    const world = Simulation.createWorld([rect(0, 0, 200, 200)])
     const character = makeCharacter({
         directionId: "south",
         directionX: 0,
@@ -241,7 +246,7 @@ test("a character bounces off the bottom edge using the ground margin", () => {
 
     assert.equal(result.directionChanged, true)
     assert.equal(character.directionId, "north")
-    assert.equal(character.worldY, world.height - Simulation.tuning.bottomMargin)
+    assert.equal(character.worldY, 200 - Simulation.tuning.bottomMargin)
 })
 
 test("the walk animation advances on its own frame duration", () => {
@@ -355,13 +360,9 @@ test("initialisation refuses a world smaller than the minimum", () => {
     const character = makeCharacter({ initialized: false })
     const tooSmall = Simulation.tuning.minWorldSize - 1
     const random = Simulation.createRandom(1)
+    const world = Simulation.createWorld([rect(0, 0, tooSmall, tooSmall)])
 
-    assert.equal(
-        Simulation.initializeCharacter(
-            character, { width: tooSmall, height: tooSmall }, random
-        ),
-        false
-    )
+    assert.equal(Simulation.initializeCharacter(character, world, random), false)
     assert.equal(character.initialized, false)
 })
 
@@ -375,9 +376,9 @@ test("initialisation places a character inside the world at a valid speed", () =
         assert.equal(character.initialized, true)
 
         assert.ok(character.worldX >= Simulation.tuning.spawnMarginX)
-        assert.ok(character.worldX <= WORLD.width)
+        assert.ok(character.worldX <= WORLD.bounds.width)
         assert.ok(character.worldY >= Simulation.tuning.spawnMarginTop)
-        assert.ok(character.worldY <= WORLD.height)
+        assert.ok(character.worldY <= WORLD.bounds.height)
         assert.ok(character.speed >= Simulation.tuning.speedMin * 2)
         assert.ok(character.speed <= Simulation.tuning.speedMax * 2)
         assert.ok(Simulation.tribes.includes(character.tribe))
@@ -472,7 +473,7 @@ test("the driver leaves characters alone while the world is too small", () => {
     const simulation = Simulation.createSimulation(5)
     simulation.characters = [makeCharacter({ initialized: false })]
 
-    Simulation.stepSimulation(simulation, { width: 10, height: 10 }, STEP)
+    Simulation.stepSimulation(simulation, Simulation.createWorld([rect(0, 0, 10, 10)]), STEP)
 
     assert.equal(simulation.characters[0].initialized, false)
 })
@@ -488,9 +489,163 @@ test("characters stay inside the world over a long run", () => {
     }
 
     for (const character of simulation.characters) {
-        assert.ok(character.worldX >= 0 && character.worldX <= WORLD.width)
-        assert.ok(character.worldY >= 0 && character.worldY <= WORLD.height)
+        assert.ok(character.worldX >= 0 && character.worldX <= WORLD.bounds.width)
+        assert.ok(character.worldY >= 0 && character.worldY <= WORLD.bounds.height)
         assert.ok(Number.isFinite(character.worldX))
         assert.ok(Number.isFinite(character.worldY))
     }
+})
+
+// --- Multi-screen worlds -------------------------------------------------
+
+// The development machine: a 1920x1200 beside two 1920x1080, all top-aligned.
+// The bottom 120 px under the two shorter screens belong to no monitor, and a
+// character that wandered in there would be invisible.
+const THREE_SCREENS = Simulation.createWorld([
+    rect(0, 0, 1920, 1200),
+    rect(1920, 0, 1920, 1080),
+    rect(3840, 0, 1920, 1080)
+])
+
+const MARGINS = { x: 10, top: 26, bottom: 4 }
+
+test("a world spanning several screens reports its bounding box", () => {
+    assert.equal(THREE_SCREENS.rects.length, 3)
+    assert.deepEqual(THREE_SCREENS.bounds, { x: 0, y: 0, width: 5760, height: 1200 })
+})
+
+test("degenerate rectangles are dropped", () => {
+    const world = Simulation.createWorld([
+        rect(0, 0, 100, 100),
+        rect(0, 0, 0, 100),
+        rect(0, 0, 100, -5),
+        null
+    ])
+
+    assert.equal(world.rects.length, 1)
+})
+
+test("the dead zone between mismatched screens is outside the world", () => {
+    // Same height, under the tall screen: real screen area.
+    assert.equal(Simulation.worldContains(THREE_SCREENS, 1000, 1150), true)
+    // Under the short ones: nothing there, though the bounding box covers it.
+    assert.equal(Simulation.worldContains(THREE_SCREENS, 3000, 1150), false)
+    assert.equal(Simulation.worldContains(THREE_SCREENS, 5000, 1150), false)
+})
+
+test("the seam between two screens is not a wall", () => {
+    for (const x of [1910, 1915, 1920, 1925, 1930, 3835, 3845]) {
+        assert.equal(
+            Simulation.worldAllows(THREE_SCREENS, x, 500, MARGINS),
+            true,
+            `x=${x} should be walkable`
+        )
+    }
+})
+
+test("the outer boundary still keeps sprites inside", () => {
+    assert.equal(Simulation.worldAllows(THREE_SCREENS, 5, 500, MARGINS), false)
+    assert.equal(Simulation.worldAllows(THREE_SCREENS, 5755, 500, MARGINS), false)
+    assert.equal(Simulation.worldAllows(THREE_SCREENS, 500, 10, MARGINS), false)
+})
+
+test("the lip above the dead zone counts as an outer edge", () => {
+    // Deep inside the tall screen, below the short ones: fine.
+    assert.equal(Simulation.worldAllows(THREE_SCREENS, 1000, 1150, MARGINS), true)
+    // Close enough to the seam that the sprite would hang over the void.
+    assert.equal(Simulation.worldAllows(THREE_SCREENS, 1915, 1150, MARGINS), false)
+})
+
+test("a character walks from one screen to the next", () => {
+    const random = Simulation.createRandom(1)
+    const character = makeCharacter({ worldX: 1850, worldY: 500, speed: 300 })
+
+    for (let i = 0; i < 120; ++i) {
+        Simulation.stepCharacter(character, THREE_SCREENS, STEP, random)
+    }
+
+    assert.ok(character.worldX > 1930, `stopped at x=${character.worldX}`)
+    assert.equal(character.directionId, "east")
+})
+
+test("a character standing outside the world is pulled back in", () => {
+    const random = Simulation.createRandom(1)
+    // Dropped straight into the dead zone.
+    const character = makeCharacter({ worldX: 3000, worldY: 1150 })
+
+    Simulation.stepCharacter(character, THREE_SCREENS, STEP, random)
+
+    assert.ok(
+        Simulation.worldContains(THREE_SCREENS, character.worldX, character.worldY),
+        `still outside at (${character.worldX}, ${character.worldY})`
+    )
+})
+
+function runMultiScreen(seed, steps, characterCount = 40) {
+    const simulation = Simulation.createSimulation(seed)
+    simulation.characters = Array.from({ length: characterCount }, () =>
+        makeCharacter({ initialized: false, wanderRemainingMs: 0, spriteScale: 2 })
+    )
+    const start = []
+    for (let i = 0; i < steps; ++i) {
+        Simulation.stepSimulation(simulation, THREE_SCREENS, 0.016)
+        if (i === 0) {
+            for (const c of simulation.characters) {
+                start.push([c.worldX, c.worldY])
+            }
+        }
+    }
+    return { simulation, start }
+}
+
+test("no character ever ends up in the dead zone", () => {
+    const { simulation } = runMultiScreen(7777, 1500)
+
+    for (const character of simulation.characters) {
+        assert.ok(
+            Simulation.worldContains(
+                THREE_SCREENS, character.worldX, character.worldY
+            ),
+            `outside the world at (${character.worldX}, ${character.worldY})`
+        )
+    }
+})
+
+test("characters keep moving instead of sticking to a boundary", () => {
+    const { simulation, start } = runMultiScreen(31337, 1500)
+
+    simulation.characters.forEach((character, index) => {
+        const travelled = Math.hypot(
+            character.worldX - start[index][0],
+            character.worldY - start[index][1]
+        )
+        assert.ok(travelled > 1, `character ${index} barely moved (${travelled})`)
+    })
+})
+
+test("spawning spreads characters over every screen", () => {
+    const random = Simulation.createRandom(4242)
+    const hit = new Set()
+
+    for (let attempt = 0; attempt < 300; ++attempt) {
+        const character = makeCharacter({ initialized: false })
+        Simulation.initializeCharacter(character, THREE_SCREENS, random)
+        THREE_SCREENS.rects.forEach((r, index) => {
+            if (character.worldX >= r.x && character.worldX <= r.x + r.width
+                    && character.worldY >= r.y && character.worldY <= r.y + r.height) {
+                hit.add(index)
+            }
+        })
+    }
+
+    assert.deepEqual([...hit].sort(), [0, 1, 2])
+})
+
+test("a single-screen world is just the one-rectangle case", () => {
+    const single = Simulation.createWorld([rect(0, 0, 800, 600)])
+
+    assert.equal(single.rects.length, 1)
+    assert.deepEqual(single.bounds, { x: 0, y: 0, width: 800, height: 600 })
+    assert.equal(Simulation.worldAllows(single, 400, 300, MARGINS), true)
+    assert.equal(Simulation.worldAllows(single, 797, 300, MARGINS), false)
 })
