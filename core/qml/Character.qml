@@ -2,6 +2,9 @@ import QtQuick
 
 import "Simulation.js" as Simulation
 
+// Renders one character and drives it through the rules in Simulation.js.
+// This item holds no rule of its own: it owns the state, the manifest lookup
+// and the sprite, and calls into the simulation for everything else.
 Item {
     id: character
 
@@ -40,19 +43,27 @@ Item {
     width: 0
     height: 0
 
+    // The world the simulation runs in. Today it is the parent item; phase 4
+    // replaces this with an explicit region spanning several viewports.
+    function worldGeometry() {
+        return { "width": parent.width, "height": parent.height }
+    }
+
+    // Frame-derived distances the simulation needs but must not compute
+    // itself, since they depend on the sprite rather than on the rules.
+    function stepMetrics() {
+        return {
+            "marginX": frame ? frame.width * spriteScale / 2 : 12,
+            "marginTop": frame ? frame.height * spriteScale : 24,
+            "footprintSpacing": Simulation.tuning.footprintSpacing * spriteScale
+        }
+    }
+
     function selectAnimation() {
         var id = Simulation.animationId(tribe, directionId)
         animation = manifest && manifest.animations ? manifest.animations[id] : null
         frameIndex = 0
         updateFrame()
-    }
-
-    function setDirection(dx, dy) {
-        var direction = Simulation.directionForVector(dx, dy)
-        directionX = direction.dx
-        directionY = direction.dy
-        directionId = direction.id
-        selectAnimation()
     }
 
     function updateFrame() {
@@ -65,16 +76,14 @@ Item {
     }
 
     function initialize() {
-        if (!parent || parent.width < 64 || parent.height < 64) {
+        if (!parent) {
             return
         }
-        tribe = Simulation.randomTribe()
-        var direction = Simulation.randomDirection()
-        worldX = 24 + Math.random() * Math.max(1, parent.width - 48)
-        worldY = 40 + Math.random() * Math.max(1, parent.height - 64)
-        speed = (30 + Math.random() * 18) * spriteScale
-        previousTick = Date.now()
-        setDirection(direction.dx, direction.dy)
+        if (!Simulation.initializeCharacter(
+                character, worldGeometry(), spriteScale, Date.now())) {
+            return
+        }
+        selectAnimation()
         initialized = true
     }
 
@@ -82,52 +91,24 @@ Item {
         if (!animation || !parent) {
             return
         }
-        var now = Date.now()
-        var elapsedSeconds = Math.min(0.05, Math.max(0, now - previousTick) / 1000)
-        previousTick = now
 
-        var length = Math.sqrt(directionX * directionX + directionY * directionY)
-        var normalizedX = length > 0 ? directionX / length : 0
-        var normalizedY = length > 0 ? directionY / length : 0
-        var nextX = worldX + normalizedX * speed * elapsedSeconds
-        var nextY = worldY + normalizedY * speed * elapsedSeconds
-        var marginX = frame ? frame.width * spriteScale / 2 : 12
-        var marginTop = frame ? frame.height * spriteScale : 24
-        var newDirectionX = directionX
-        var newDirectionY = directionY
-
-        if (nextX < marginX || nextX > parent.width - marginX) {
-            newDirectionX = -newDirectionX
-            nextX = Math.max(marginX, Math.min(parent.width - marginX, nextX))
-        }
-        if (nextY < marginTop || nextY > parent.height - 4) {
-            newDirectionY = -newDirectionY
-            nextY = Math.max(marginTop, Math.min(parent.height - 4, nextY))
-        }
-        if (newDirectionX !== directionX || newDirectionY !== directionY) {
-            setDirection(newDirectionX, newDirectionY)
-        }
-
-        var traveledX = nextX - worldX
-        var traveledY = nextY - worldY
-        distanceSinceFootprint += Math.sqrt(
-            traveledX * traveledX + traveledY * traveledY
+        var result = Simulation.stepCharacter(
+            character, worldGeometry(), Date.now(), stepMetrics()
         )
-        var footprintSpacing = 12 * spriteScale
-        if (distanceSinceFootprint >= footprintSpacing) {
-            distanceSinceFootprint %= footprintSpacing
+
+        if (result.directionChanged) {
+            selectAnimation()
+        }
+        if (result.footprint) {
             footprintRequested(
-                worldX,
-                worldY - 1,
-                normalizedX,
-                normalizedY,
-                tribe,
+                result.footprint.groundX,
+                result.footprint.groundY,
+                result.footprint.directionX,
+                result.footprint.directionY,
+                result.footprint.tribe,
                 spriteScale
             )
         }
-
-        worldX = nextX
-        worldY = nextY
     }
 
     function avoidCollisions() {
@@ -135,35 +116,19 @@ Item {
             return
         }
 
-        var now = Date.now()
-        if (now - lastCollisionAt < 350) {
-            return
-        }
-
-        var collisionDistance = 14 * spriteScale
+        var others = []
         for (var index = 0; index < characterCount; ++index) {
             if (index === characterIndex) {
                 continue
             }
-
             var other = characterProvider(index)
-            if (!other || !other.initialized) {
-                continue
+            if (other && other.initialized) {
+                others.push(other)
             }
+        }
 
-            var differenceX = worldX - other.worldX
-            var differenceY = worldY - other.worldY
-            var distanceSquared = differenceX * differenceX + differenceY * differenceY
-            if (distanceSquared <= 0 || distanceSquared >= collisionDistance * collisionDistance) {
-                continue
-            }
-
-            var movingTowardOther = directionX * differenceX + directionY * differenceY < 0
-            if (movingTowardOther) {
-                setDirection(differenceX, differenceY)
-                lastCollisionAt = now
-                return
-            }
+        if (Simulation.avoidCollisions(character, others, Date.now(), spriteScale)) {
+            selectAnimation()
         }
     }
 
@@ -171,8 +136,9 @@ Item {
         if (!initialized) {
             return
         }
-        var direction = Simulation.randomDirection()
-        setDirection(direction.dx, direction.dy)
+        if (Simulation.wander(character)) {
+            selectAnimation()
+        }
         wanderTimer.interval = Simulation.randomWanderInterval()
     }
 

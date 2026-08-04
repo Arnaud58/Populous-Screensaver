@@ -1,12 +1,40 @@
 # Simulation specification
 
-This document is the language-neutral reference for the simulation. The
-JavaScript implementation under `core/js/` is the working reference; the C port
-under `core/c/` (planned, for the xscreensaver target) must reproduce this
-document exactly, and the two are compared through golden traces.
+This document is the language-neutral reference for the simulation.
+`core/js/Simulation.js` is the working implementation; the C port under
+`core/c/` (planned, for the xscreensaver target) must reproduce this document
+exactly, and the two are compared through golden traces.
 
 Anything not written here is not settled. Where the original screen saver's
 behaviour is still unknown, that is stated rather than guessed.
+
+## Shape of the implementation
+
+Every rule operates on a **duck-typed character state**: an object carrying
+`tribe`, `directionId`, `directionX`, `directionY`, `worldX`, `worldY`,
+`speed`, `previousTick`, `distanceSinceFootprint` and `lastCollisionAt`.
+
+A QML `Item` exposing those as properties qualifies, and so does a plain
+object. That is what lets the same code drive the Plasma wallpaper and run
+headless under Node:
+
+```bash
+node --test "tests/**/*.test.mjs"
+```
+
+Two constraints keep it that way, and both matter for the C port:
+
+- **no clock access inside the rules** — the caller passes the current time in;
+- **no callbacks** — callers learn what happened from return values, so
+  `stepCharacter` reports `{ directionChanged, footprint }` rather than
+  emitting a signal.
+
+Numeric rules live in the `tuning` object so that this document, the
+implementation and the C port have a single place to agree with. Distances are
+unscaled world pixels; the caller applies the sprite scale.
+
+Rendering stays out: frame-derived distances such as edge margins and footprint
+spacing are computed by the host shell and passed in as `metrics`.
 
 ## Status
 

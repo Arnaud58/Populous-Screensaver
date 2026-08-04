@@ -107,6 +107,7 @@ Version 0.4.0.
 - [x] Temporary footprints tinted per tribe
 - [x] Plasma plugin installs and runs locally
 - [x] Assets separated from targets, payloads assembled on demand
+- [x] Simulation rules extracted from QML, covered by headless Node tests
 
 **Next**
 
@@ -319,13 +320,24 @@ files by default, so the manifest is also emitted as a JavaScript module.
 
 `core/` holds everything that is not host-specific.
 
-- `core/qml/Character.qml` — one character: position, direction, animation
-  frame, edge handling, avoidance, footprint emission. Renders a region of the
-  atlas with `sourceClipRect`, avoiding hundreds of small PNG files.
+- `core/js/Simulation.js` — **the rules**: directions, tribes, tuning values,
+  spawning, stepping, edge bouncing, avoidance, wandering and footprint
+  decisions. A `.pragma library` module with no QML dependency, no clock access
+  and no callbacks.
+- `core/qml/Character.qml` — one character on screen. Owns the state, the
+  manifest lookup and the sprite, and calls into `Simulation.js` for every
+  rule. Renders a region of the atlas with `sourceClipRect`, avoiding hundreds
+  of small PNG files.
 - `core/qml/Footprint.qml` — a fading footprint pair, tinted per tribe.
-- `core/js/Simulation.js` — directions, tribes, colours and helpers. A
-  `.pragma library` module with no QML dependency.
 - `core/js/Animations.js` — generated manifest.
+
+The rules operate on a duck-typed character state, so the same code runs on a
+QML `Item` and on a plain object. That is what makes the simulation testable
+without Qt:
+
+```bash
+node --test "tests/**/*.test.mjs"
+```
 
 A host shell supplies a black background, a character count, a sprite scale and
 the world geometry, then instantiates characters. `targets/plasma/contents/ui/main.qml`
@@ -411,6 +423,9 @@ C; and it scales badly towards dozens of characters across three monitors.
 
 The work:
 
+- ✅ extract the rules out of `Character.qml` into `core/js/Simulation.js`,
+  operating on a duck-typed state so they run headless under Node — this is
+  what makes every step below verifiable without Qt;
 - one seeded PRNG shared by every implementation, replacing every
   `Math.random()` call;
 - a single fixed-timestep loop stepping all characters, with elapsed time
