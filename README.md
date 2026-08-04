@@ -89,7 +89,7 @@ build/<target>/       installable payload
 
 ## Current status
 
-Version 0.6.0.
+Version 0.7.0.
 
 **Done**
 
@@ -112,6 +112,8 @@ Version 0.6.0.
 - [x] Seeded PRNG: a given seed replays exactly
 - [x] Single fixed-timestep loop, replacing ~120 per-character timers
 - [x] Continuous multi-screen world, with dead zones excluded
+- [x] Spatial partitioning for collision avoidance
+- [x] Golden deterministic traces for single- and multi-screen worlds
 
 **Next**
 - [ ] Group the remaining atlas frames into named animations
@@ -131,6 +133,7 @@ sudo apt install \
     7zip \
     ffmpeg \
     python3-pil \
+    qml-qt6 \
     qml6-module-qtquick \
     qml6-module-qtquick-controls \
     qml6-module-qtquick-layouts \
@@ -367,11 +370,13 @@ and no compiler:
 
 ```bash
 python3 tools/build-targets.py preview
-qml build/preview/ui/main.qml
+qml6 build/preview/ui/main.qml
 ```
 
-On Windows, `qml` lives in `C:\Qt\<version>\msvc2022_64\bin\qml.exe`. Escape
-quits, `F` toggles full screen.
+Ubuntu installs the Qt 6 runtime as `qml6`. The unversioned `qml` command may
+instead belong to `qtchooser` and select an older Qt installation. On Windows,
+the executable is `C:\Qt\<version>\msvc2022_64\bin\qml.exe`. Escape quits, `F`
+toggles full screen.
 
 Verified on Windows 11 with Qt 6.11.1 at 1280 × 720: 24 characters spread over
 the black surface, walk cycles animating, direction changes and edge bounces
@@ -437,11 +442,9 @@ removes the unsynchronised `plugin/` copy.
 
 The blocking phase, and the reason it comes before any new platform.
 
-The simulation is currently driven by **per-character QML timers** — animation,
-init, movement, avoidance, wander, five timers times 24 characters, each ticking
-against the wall clock through `Date.now()`. That is three problems at once: it
-is not deterministic, so implementations cannot be compared; it does not port to
-C; and it scales badly towards dozens of characters across three monitors.
+Earlier prototypes were driven by roughly 120 per-character QML timers. The
+rules are now deterministic and paced by one fixed-timestep loop; the remaining
+work in this phase completes the tooling needed to compare future hosts.
 
 The work:
 
@@ -455,10 +458,10 @@ The work:
 - ✅ a world made of one rectangle per screen, replacing the implicit single
   `width` × `height`, so that a continuous multi-monitor world and a
   per-screen world are the same code path with a different rectangle count;
-- spatial partitioning to replace the O(n²) avoidance scan;
-- golden traces in `tests/golden/`, generated from the JS core.
+- ✅ spatial partitioning replacing the O(n²) avoidance scan;
+- ✅ golden traces in `tests/golden/`, generated from the JS core.
 
-The Plasma target must keep working throughout.
+Phase 2 is complete. The Plasma target remained functional throughout.
 
 ### Phase 3 — The standalone Qt application
 

@@ -41,7 +41,7 @@ one loop calling `stepSimulation`.
 
 ## Status
 
-Written against version 0.6.0. Sections marked **planned** are not implemented
+Written against version 0.7.0. Sections marked **planned** are not implemented
 in any target yet.
 
 ## Coordinate system and world geometry
@@ -137,10 +137,19 @@ than teleporting every character, and the loop cannot spiral trying to catch
 up. This is a deliberate difference from the pre-0.5.0 behaviour, which
 clamped each character's movement individually against the wall clock.
 
-Golden traces are **planned**, in `tests/golden/`. Each will be the state of
-every character over N steps from a known seed, serialised deterministically.
-`tests/simulation.test.mjs` already asserts that a seed replays and that two
-seeds diverge.
+Golden traces live in `tests/golden/`. They record the initial state and one
+snapshot per simulated second over 600 fixed steps for both a 1280×720 screen
+and the three-screen development layout. Character state and footprint events
+are rounded to six decimal places so the future C implementation can compare
+language-neutral values.
+
+Regenerate them only after an intentional simulation-rule change, then review
+the JSON diff:
+
+```bash
+node tools/generate-golden.mjs --write
+node tools/generate-golden.mjs --check
+```
 
 ## Tribes
 
@@ -281,8 +290,12 @@ character, so every character is evaluated on the same tick instead of on its
 own phase. The turning rate is unchanged, being governed by the cooldown.
 
 This is a placeholder for combat, not a reproduction of anything observed. The
-scan is O(n²) over all characters; phase 2 replaces it with a spatial
-partition.
+driver has used a uniform spatial grid since 0.7.0. Ground points are assigned
+to 42-pixel cells and a character queries only the cells touched by its scaled
+collision radius. Candidates are restored to their order in the master
+character array before applying the rule. This preserves the historical
+"first neighbour wins" decision and seeded replay while avoiding an O(n²)
+scan over distant characters.
 
 ### Footprints
 

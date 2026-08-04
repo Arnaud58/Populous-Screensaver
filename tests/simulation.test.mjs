@@ -8,6 +8,10 @@
 import { readFileSync } from "node:fs"
 import test from "node:test"
 import assert from "node:assert/strict"
+import {
+    SCENARIOS,
+    generateScenario
+} from "../tools/generate-golden.mjs"
 
 const EXPORTS = [
     "directions",
@@ -26,6 +30,8 @@ const EXPORTS = [
     "initializeCharacter",
     "stepCharacter",
     "avoidCollisions",
+    "createSpatialIndex",
+    "nearbyCharacters",
     "tribeColor",
     "randomDirection",
     "randomTribe",
@@ -354,6 +360,48 @@ test("the collision cooldown drains over time", () => {
     assert.equal(character.collisionCooldownMs, 0)
 })
 
+test("the spatial index finds neighbours across a cell boundary", () => {
+    const character = makeCharacter({ worldX: 41, worldY: 41 })
+    const diagonalNeighbour = makeCharacter({ worldX: 43, worldY: 43 })
+    const far = makeCharacter({ worldX: 500, worldY: 500 })
+    const characters = [character, diagonalNeighbour, far]
+    const index = Simulation.createSpatialIndex(characters, 42)
+    const nearby = Simulation.nearbyCharacters(character, index, 14)
+
+    assert.deepEqual(nearby, [character, diagonalNeighbour])
+})
+
+test("spatial candidates preserve master character order", () => {
+    const first = makeCharacter({ worldX: 43, worldY: 43 })
+    const character = makeCharacter({ worldX: 41, worldY: 41 })
+    const third = makeCharacter({ worldX: 39, worldY: 39 })
+    const characters = [first, character, third]
+    const index = Simulation.createSpatialIndex(characters, 42)
+
+    assert.deepEqual(
+        Simulation.nearbyCharacters(character, index, 14),
+        characters
+    )
+})
+
+test("spatial avoidance makes the same first-neighbour decision as a full scan", () => {
+    const exhaustiveCharacter = makeCharacter()
+    const spatialCharacter = makeCharacter()
+    const firstAhead = makeCharacter({ worldX: 105, worldY: 105 })
+    const secondAhead = makeCharacter({ worldX: 105, worldY: 95 })
+    const exhaustiveCharacters = [exhaustiveCharacter, firstAhead, secondAhead]
+    const spatialCharacters = [spatialCharacter, firstAhead, secondAhead]
+
+    Simulation.avoidCollisions(exhaustiveCharacter, exhaustiveCharacters)
+    const index = Simulation.createSpatialIndex(spatialCharacters, 42)
+    const nearby = Simulation.nearbyCharacters(spatialCharacter, index, 14)
+    Simulation.avoidCollisions(spatialCharacter, nearby)
+
+    assert.equal(spatialCharacter.directionId, exhaustiveCharacter.directionId)
+    assert.equal(spatialCharacter.directionX, exhaustiveCharacter.directionX)
+    assert.equal(spatialCharacter.directionY, exhaustiveCharacter.directionY)
+})
+
 // --- Initialisation ------------------------------------------------------
 
 test("initialisation refuses a world smaller than the minimum", () => {
@@ -649,3 +697,17 @@ test("a single-screen world is just the one-rectangle case", () => {
     assert.equal(Simulation.worldAllows(single, 400, 300, MARGINS), true)
     assert.equal(Simulation.worldAllows(single, 797, 300, MARGINS), false)
 })
+
+// --- Golden traces ------------------------------------------------------
+
+for (const scenario of SCENARIOS) {
+    test(`golden trace: ${scenario.id}`, async () => {
+        const expected = JSON.parse(readFileSync(
+            new URL(`golden/${scenario.filename}`, import.meta.url),
+            "utf8"
+        ))
+        const actual = await generateScenario(scenario)
+
+        assert.deepEqual(actual, expected)
+    })
+}

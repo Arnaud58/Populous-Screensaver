@@ -53,6 +53,9 @@ var tuning = {
     wanderIntervalMinMs: 2000,
     wanderIntervalMaxMs: 7000,
     avoidanceIntervalMs: 100,
+    // Large enough for a scale-3 character's avoidance radius. Queries still
+    // expand over several cells when a host supplies a larger sprite scale.
+    spatialCellSize: 42,
     fallbackMarginX: 12,
     fallbackMarginTop: 24,
     fallbackFrameDurationMs: 120,
@@ -493,6 +496,68 @@ function avoidCollisions(state, others) {
     return false
 }
 
+// --- Spatial partition --------------------------------------------------
+
+// Builds a uniform grid over the character ground points. Cells contain both
+// the state and its index in the original array: sorting query results by that
+// index preserves the old "first neighbour wins" rule and therefore seeded
+// replay, while avoiding a full scan for every character.
+function createSpatialIndex(characters, cellSize) {
+    var size = cellSize > 0 ? cellSize : tuning.spatialCellSize
+    var cells = Object.create(null)
+
+    for (var index = 0; index < characters.length; ++index) {
+        var state = characters[index]
+        if (!state || !state.initialized) {
+            continue
+        }
+
+        var cellX = Math.floor(state.worldX / size)
+        var cellY = Math.floor(state.worldY / size)
+        var key = cellX + "," + cellY
+        if (!cells[key]) {
+            cells[key] = []
+        }
+        cells[key].push({ index: index, state: state })
+    }
+
+    return { cellSize: size, cells: cells }
+}
+
+// Returns only characters from cells touched by the caller's avoidance
+// radius. Results retain the master character-array order so collision
+// decisions are byte-for-byte deterministic with the former exhaustive scan.
+function nearbyCharacters(state, spatialIndex, radius) {
+    var size = spatialIndex.cellSize
+    var minimumX = Math.floor((state.worldX - radius) / size)
+    var maximumX = Math.floor((state.worldX + radius) / size)
+    var minimumY = Math.floor((state.worldY - radius) / size)
+    var maximumY = Math.floor((state.worldY + radius) / size)
+    var entries = []
+
+    for (var cellY = minimumY; cellY <= maximumY; ++cellY) {
+        for (var cellX = minimumX; cellX <= maximumX; ++cellX) {
+            var cell = spatialIndex.cells[cellX + "," + cellY]
+            if (!cell) {
+                continue
+            }
+            for (var index = 0; index < cell.length; ++index) {
+                entries.push(cell[index])
+            }
+        }
+    }
+
+    entries.sort(function (left, right) {
+        return left.index - right.index
+    })
+
+    var result = []
+    for (var entryIndex = 0; entryIndex < entries.length; ++entryIndex) {
+        result.push(entries[entryIndex].state)
+    }
+    return result
+}
+
 // --- Driver --------------------------------------------------------------
 
 // The whole simulation: its random source, its characters and the leftover
@@ -542,9 +607,15 @@ function stepSimulation(simulation, world, elapsedSeconds) {
         simulation.avoidanceElapsedMs += tuning.stepSeconds * 1000
         if (simulation.avoidanceElapsedMs >= tuning.avoidanceIntervalMs) {
             simulation.avoidanceElapsedMs -= tuning.avoidanceIntervalMs
+            var spatialIndex = createSpatialIndex(characters, tuning.spatialCellSize)
             for (index = 0; index < characters.length; ++index) {
                 if (characters[index].initialized) {
-                    avoidCollisions(characters[index], characters)
+                    var collisionRadius =
+                        tuning.collisionDistance * characters[index].spriteScale
+                    avoidCollisions(
+                        characters[index],
+                        nearbyCharacters(characters[index], spatialIndex, collisionRadius)
+                    )
                 }
             }
         }

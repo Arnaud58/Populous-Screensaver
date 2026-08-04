@@ -5,7 +5,7 @@ import QtQuick.Window
 // no compiler:
 //
 //     python tools/build-targets.py preview
-//     qml build/preview/ui/main.qml
+//     qml6 build/preview/ui/main.qml   // Ubuntu
 //
 // This is also the skeleton the standalone screen saver will grow from: the
 // difference is one window per screen instead of one window, plus a C++ entry
