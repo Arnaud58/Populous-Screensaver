@@ -28,16 +28,17 @@ const EXPORTS = [
     "randomWanderInterval"
 ]
 
-function loadSimulation() {
+function loadPragmaLibrary(relativePath, exports) {
     const source = readFileSync(
-        new URL("../core/js/Simulation.js", import.meta.url),
+        new URL(relativePath, import.meta.url),
         "utf8"
     ).replace(/^\s*\.pragma\s+library\s*$/m, "")
 
-    return new Function(`${source}\nreturn { ${EXPORTS.join(", ")} };`)()
+    return new Function(`${source}\nreturn { ${exports.join(", ")} };`)()
 }
 
-const Simulation = loadSimulation()
+const Simulation = loadPragmaLibrary("../core/js/Simulation.js", EXPORTS)
+const { manifest } = loadPragmaLibrary("../core/js/Animations.js", ["manifest"])
 const STEP = Simulation.tuning.stepSeconds
 
 // A character state carrying exactly the fields Character.qml exposes. This is
@@ -135,6 +136,46 @@ test("animation ids match the manifest naming", () => {
         Simulation.animationId("yellow", "north_west"),
         "brave.yellow.walk.north_west"
     )
+})
+
+// The simulation keeps its own direction table; the manifest carries a vector
+// on every compiled animation. If the two ever drift apart, characters move
+// along one vector while displaying the sprite for another — they moonwalk,
+// and nothing else in the suite would notice.
+//
+// Whether the atlas order itself is right is a question about pixels, not
+// code: check research/direction-check.png, which draws each animation beside
+// the arrow it travels along.
+test("the manifest agrees with the simulation on every direction vector", () => {
+    const ids = Object.keys(manifest.animations)
+    assert.ok(ids.length > 0)
+
+    for (const id of ids) {
+        const animation = manifest.animations[id]
+        const { dx, dy } = animation.direction
+        const resolved = Simulation.directionForVector(dx, dy)
+
+        assert.equal(
+            resolved.id,
+            animation.direction.id,
+            `${id}: manifest says (${dx}, ${dy}) is ${animation.direction.id}, ` +
+                `the simulation says ${resolved.id}`
+        )
+        assert.ok(
+            id.endsWith("." + animation.direction.id),
+            `${id}: animation id does not end with its own direction`
+        )
+    }
+})
+
+test("every direction of every tribe is present in the manifest", () => {
+    for (const tribe of Simulation.tribes) {
+        for (const direction of Simulation.directions) {
+            const id = Simulation.animationId(tribe, direction.id)
+            assert.ok(manifest.animations[id], `missing animation ${id}`)
+            assert.equal(manifest.animations[id].frames.length, 4)
+        }
+    }
 })
 
 test("setting a direction restarts the walk cycle", () => {

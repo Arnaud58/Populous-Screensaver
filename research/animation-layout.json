@@ -17,13 +17,13 @@
         "tribes": ["neutral", "blue", "red", "yellow", "green"],
         "directions": [
           { "id": "south", "dx": 0, "dy": 1 },
-          { "id": "south_west", "dx": -1, "dy": 1 },
-          { "id": "west", "dx": -1, "dy": 0 },
-          { "id": "north_west", "dx": -1, "dy": -1 },
-          { "id": "north", "dx": 0, "dy": -1 },
-          { "id": "north_east", "dx": 1, "dy": -1 },
+          { "id": "south_east", "dx": 1, "dy": 1 },
           { "id": "east", "dx": 1, "dy": 0 },
-          { "id": "south_east", "dx": 1, "dy": 1 }
+          { "id": "north_east", "dx": 1, "dy": -1 },
+          { "id": "north", "dx": 0, "dy": -1 },
+          { "id": "north_west", "dx": -1, "dy": -1 },
+          { "id": "west", "dx": -1, "dy": 0 },
+          { "id": "south_west", "dx": -1, "dy": 1 }
         ],
         "framesPerAnimation": 4,
         "order": ["tribe", "direction", "frame"]
@@ -36,8 +36,9 @@
         "Atlas rows 0 to 5 hold five colour variants of the same brave, packed as five consecutive blocks of 40 native cells starting at sprite 0.",
         "Each block is 32 walk cells (8 directions x 4 frames) followed by 8 standing cells that are not part of the walk cycle.",
         "The block colour is carried by the loincloth alone: block 0 has none and is the neutral tribe, then blue, red, yellow and green.",
-        "The direction order was recovered from the cell-width signature, which is mirror-symmetric in blocks of four: south_west mirrors south_east, west mirrors east, and north_west mirrors north_east. South and north are the two self-symmetric axes.",
-        "East and west were then assigned by inspection: direction index 2 leans and strides towards the left of the screen, direction index 6 towards the right.",
+        "The direction order was recovered from the cell-width signature, which is mirror-symmetric in blocks of four: south_east mirrors south_west, east mirrors west, and north_east mirrors north_west. South and north are the two self-symmetric axes, at indices 0 and 4.",
+        "That signature pairs the blocks but cannot say which of a pair faces which way. The sense comes from research/direction-check.png, which draws each compiled animation next to its movement vector: index 2 strides towards the right of the screen, so it is east, and the order runs clockwise from south.",
+        "Do not settle east and west by eyeballing the atlas strip. It was got backwards once that way in 0.5.0, which made six of the eight directions moonwalk.",
         "Sprites 495 onwards, used before, are atlas rows 16 to 19: standing poses with a raised arm, not a walk cycle."
       ]
     }

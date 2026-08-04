@@ -89,7 +89,7 @@ build/<target>/       installable payload
 
 ## Current status
 
-Version 0.5.0.
+Version 0.5.1.
 
 **Done**
 
@@ -277,21 +277,24 @@ only the first 32 form the walk cycle; the last 8 are standing poses.
 | 3 | 120 | yellow |
 | 4 | 160 | green |
 
-The direction order was recovered from the cell-width signature, which is
-mirror-symmetric in blocks of four: `south_west` mirrors `south_east`, `west`
-mirrors `east`, `north_west` mirrors `north_east`, and `south` and `north` are
-the two self-symmetric axes. East and west were then told apart by inspection —
-direction index 2 leans and strides towards the left of the screen, index 6
-towards the right. The correct order is:
+Within a block, the direction order was recovered from the cell-width
+signature, which is mirror-symmetric in blocks of four: index 1 mirrors index
+7, index 2 mirrors index 6, index 3 mirrors index 5, and indices 0 and 4 are
+the two self-symmetric axes — south and north. The order is:
 
 ```text
-south, south_west, west, north_west, north, north_east, east, south_east
+south, south_east, east, north_east, north, north_west, west, south_west
 ```
+
+That signature pairs the directions but **cannot say which member of a pair
+faces which way**. Only seeing a sprite next to the vector it travels along
+settles it, which is what `research/direction-check.png` is for. Getting it
+backwards makes six of the eight directions moonwalk, and it is invisible in a
+plain contact sheet — it happened once, in 0.5.0.
 
 Versions before 0.4.0 read 128 frames starting at sprite 495. Those cells are
 atlas rows 16 to 19: standing poses with a raised arm and no leg cycle at all.
-They were also walked in the reverse direction order, which swapped east and
-west. Both bugs are fixed.
+That is fixed.
 
 `research/sprite-groups.json` holds the first visual classification of the rest
 of the sheet: shamans, gold and green figures, falls and rolls, fires,

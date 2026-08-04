@@ -41,7 +41,7 @@ one loop calling `stepSimulation`.
 
 ## Status
 
-Written against version 0.5.0. Sections marked **planned** are not implemented
+Written against version 0.5.1. Sections marked **planned** are not implemented
 in any target yet.
 
 ## Coordinate system and world geometry
@@ -127,20 +127,30 @@ original used the neutral variant, and for what, is **unknown**.
 ## Directions
 
 Eight directions, in the atlas's own order. The order matters: it is the order
-the manifest is compiled in, and getting it wrong swaps east and west.
+the manifest is compiled in, and reversing it swaps east and west.
 
 | Index | Id | dx | dy |
 | ----- | -- | -- | -- |
 | 0 | `south` | 0 | 1 |
-| 1 | `south_west` | -1 | 1 |
-| 2 | `west` | -1 | 0 |
-| 3 | `north_west` | -1 | -1 |
+| 1 | `south_east` | 1 | 1 |
+| 2 | `east` | 1 | 0 |
+| 3 | `north_east` | 1 | -1 |
 | 4 | `north` | 0 | -1 |
-| 5 | `north_east` | 1 | -1 |
-| 6 | `east` | 1 | 0 |
-| 7 | `south_east` | 1 | 1 |
+| 5 | `north_west` | -1 | -1 |
+| 6 | `west` | -1 | 0 |
+| 7 | `south_west` | -1 | 1 |
 
 Diagonal movement is normalised, so diagonal speed equals cardinal speed.
+
+`Simulation.js` lists the same eight pairs in a different order, which is
+harmless: `directionForVector` matches on the vector, and `tests/` asserts that
+the two tables agree on every animation in the manifest.
+
+What no test can check is whether the **frames** behind each id face the right
+way. That is a claim about pixels. `research/direction-check.png` draws each
+compiled animation beside the arrow it moves along; it is the only thing that
+catches a character walking backwards, and it should be re-read whenever the
+direction order or the source range changes.
 
 ## Character state
 

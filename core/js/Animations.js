@@ -69,13 +69,13 @@ var manifest = {
       ],
       "sourceStream": "brave_walk"
     },
-    "brave.neutral.walk.south_west": {
+    "brave.neutral.walk.south_east": {
       "entity": "brave",
       "tribe": "neutral",
       "action": "walk",
       "direction": {
-        "id": "south_west",
-        "dx": -1,
+        "id": "south_east",
+        "dx": 1,
         "dy": 1
       },
       "loop": true,
@@ -120,13 +120,13 @@ var manifest = {
       ],
       "sourceStream": "brave_walk"
     },
-    "brave.neutral.walk.west": {
+    "brave.neutral.walk.east": {
       "entity": "brave",
       "tribe": "neutral",
       "action": "walk",
       "direction": {
-        "id": "west",
-        "dx": -1,
+        "id": "east",
+        "dx": 1,
         "dy": 0
       },
       "loop": true,
@@ -171,13 +171,13 @@ var manifest = {
       ],
       "sourceStream": "brave_walk"
     },
-    "brave.neutral.walk.north_west": {
+    "brave.neutral.walk.north_east": {
       "entity": "brave",
       "tribe": "neutral",
       "action": "walk",
       "direction": {
-        "id": "north_west",
-        "dx": -1,
+        "id": "north_east",
+        "dx": 1,
         "dy": -1
       },
       "loop": true,
@@ -273,13 +273,13 @@ var manifest = {
       ],
       "sourceStream": "brave_walk"
     },
-    "brave.neutral.walk.north_east": {
+    "brave.neutral.walk.north_west": {
       "entity": "brave",
       "tribe": "neutral",
       "action": "walk",
       "direction": {
-        "id": "north_east",
-        "dx": 1,
+        "id": "north_west",
+        "dx": -1,
         "dy": -1
       },
       "loop": true,
@@ -324,13 +324,13 @@ var manifest = {
       ],
       "sourceStream": "brave_walk"
     },
-    "brave.neutral.walk.east": {
+    "brave.neutral.walk.west": {
       "entity": "brave",
       "tribe": "neutral",
       "action": "walk",
       "direction": {
-        "id": "east",
-        "dx": 1,
+        "id": "west",
+        "dx": -1,
         "dy": 0
       },
       "loop": true,
@@ -375,13 +375,13 @@ var manifest = {
       ],
       "sourceStream": "brave_walk"
     },
-    "brave.neutral.walk.south_east": {
+    "brave.neutral.walk.south_west": {
       "entity": "brave",
       "tribe": "neutral",
       "action": "walk",
       "direction": {
-        "id": "south_east",
-        "dx": 1,
+        "id": "south_west",
+        "dx": -1,
         "dy": 1
       },
       "loop": true,
@@ -477,13 +477,13 @@ var manifest = {
       ],
       "sourceStream": "brave_walk"
     },
-    "brave.blue.walk.south_west": {
+    "brave.blue.walk.south_east": {
       "entity": "brave",
       "tribe": "blue",
       "action": "walk",
       "direction": {
-        "id": "south_west",
-        "dx": -1,
+        "id": "south_east",
+        "dx": 1,
         "dy": 1
       },
       "loop": true,
@@ -528,13 +528,13 @@ var manifest = {
       ],
       "sourceStream": "brave_walk"
     },
-    "brave.blue.walk.west": {
+    "brave.blue.walk.east": {
       "entity": "brave",
       "tribe": "blue",
       "action": "walk",
       "direction": {
-        "id": "west",
-        "dx": -1,
+        "id": "east",
+        "dx": 1,
         "dy": 0
       },
       "loop": true,
@@ -579,13 +579,13 @@ var manifest = {
       ],
       "sourceStream": "brave_walk"
     },
-    "brave.blue.walk.north_west": {
+    "brave.blue.walk.north_east": {
       "entity": "brave",
       "tribe": "blue",
       "action": "walk",
       "direction": {
-        "id": "north_west",
-        "dx": -1,
+        "id": "north_east",
+        "dx": 1,
         "dy": -1
       },
       "loop": true,
@@ -681,13 +681,13 @@ var manifest = {
       ],
       "sourceStream": "brave_walk"
     },
-    "brave.blue.walk.north_east": {
+    "brave.blue.walk.north_west": {
       "entity": "brave",
       "tribe": "blue",
       "action": "walk",
       "direction": {
-        "id": "north_east",
-        "dx": 1,
+        "id": "north_west",
+        "dx": -1,
         "dy": -1
       },
       "loop": true,
@@ -732,13 +732,13 @@ var manifest = {
       ],
       "sourceStream": "brave_walk"
     },
-    "brave.blue.walk.east": {
+    "brave.blue.walk.west": {
       "entity": "brave",
       "tribe": "blue",
       "action": "walk",
       "direction": {
-        "id": "east",
-        "dx": 1,
+        "id": "west",
+        "dx": -1,
         "dy": 0
       },
       "loop": true,
@@ -783,13 +783,13 @@ var manifest = {
       ],
       "sourceStream": "brave_walk"
     },
-    "brave.blue.walk.south_east": {
+    "brave.blue.walk.south_west": {
       "entity": "brave",
       "tribe": "blue",
       "action": "walk",
       "direction": {
-        "id": "south_east",
-        "dx": 1,
+        "id": "south_west",
+        "dx": -1,
         "dy": 1
       },
       "loop": true,
@@ -885,13 +885,13 @@ var manifest = {
       ],
       "sourceStream": "brave_walk"
     },
-    "brave.red.walk.south_west": {
+    "brave.red.walk.south_east": {
       "entity": "brave",
       "tribe": "red",
       "action": "walk",
       "direction": {
-        "id": "south_west",
-        "dx": -1,
+        "id": "south_east",
+        "dx": 1,
         "dy": 1
       },
       "loop": true,
@@ -936,13 +936,13 @@ var manifest = {
       ],
       "sourceStream": "brave_walk"
     },
-    "brave.red.walk.west": {
+    "brave.red.walk.east": {
       "entity": "brave",
       "tribe": "red",
       "action": "walk",
       "direction": {
-        "id": "west",
-        "dx": -1,
+        "id": "east",
+        "dx": 1,
         "dy": 0
       },
       "loop": true,
@@ -987,13 +987,13 @@ var manifest = {
       ],
       "sourceStream": "brave_walk"
     },
-    "brave.red.walk.north_west": {
+    "brave.red.walk.north_east": {
       "entity": "brave",
       "tribe": "red",
       "action": "walk",
       "direction": {
-        "id": "north_west",
-        "dx": -1,
+        "id": "north_east",
+        "dx": 1,
         "dy": -1
       },
       "loop": true,
@@ -1089,13 +1089,13 @@ var manifest = {
       ],
       "sourceStream": "brave_walk"
     },
-    "brave.red.walk.north_east": {
+    "brave.red.walk.north_west": {
       "entity": "brave",
       "tribe": "red",
       "action": "walk",
       "direction": {
-        "id": "north_east",
-        "dx": 1,
+        "id": "north_west",
+        "dx": -1,
         "dy": -1
       },
       "loop": true,
@@ -1140,13 +1140,13 @@ var manifest = {
       ],
       "sourceStream": "brave_walk"
     },
-    "brave.red.walk.east": {
+    "brave.red.walk.west": {
       "entity": "brave",
       "tribe": "red",
       "action": "walk",
       "direction": {
-        "id": "east",
-        "dx": 1,
+        "id": "west",
+        "dx": -1,
         "dy": 0
       },
       "loop": true,
@@ -1191,13 +1191,13 @@ var manifest = {
       ],
       "sourceStream": "brave_walk"
     },
-    "brave.red.walk.south_east": {
+    "brave.red.walk.south_west": {
       "entity": "brave",
       "tribe": "red",
       "action": "walk",
       "direction": {
-        "id": "south_east",
-        "dx": 1,
+        "id": "south_west",
+        "dx": -1,
         "dy": 1
       },
       "loop": true,
@@ -1293,13 +1293,13 @@ var manifest = {
       ],
       "sourceStream": "brave_walk"
     },
-    "brave.yellow.walk.south_west": {
+    "brave.yellow.walk.south_east": {
       "entity": "brave",
       "tribe": "yellow",
       "action": "walk",
       "direction": {
-        "id": "south_west",
-        "dx": -1,
+        "id": "south_east",
+        "dx": 1,
         "dy": 1
       },
       "loop": true,
@@ -1344,13 +1344,13 @@ var manifest = {
       ],
       "sourceStream": "brave_walk"
     },
-    "brave.yellow.walk.west": {
+    "brave.yellow.walk.east": {
       "entity": "brave",
       "tribe": "yellow",
       "action": "walk",
       "direction": {
-        "id": "west",
-        "dx": -1,
+        "id": "east",
+        "dx": 1,
         "dy": 0
       },
       "loop": true,
@@ -1395,13 +1395,13 @@ var manifest = {
       ],
       "sourceStream": "brave_walk"
     },
-    "brave.yellow.walk.north_west": {
+    "brave.yellow.walk.north_east": {
       "entity": "brave",
       "tribe": "yellow",
       "action": "walk",
       "direction": {
-        "id": "north_west",
-        "dx": -1,
+        "id": "north_east",
+        "dx": 1,
         "dy": -1
       },
       "loop": true,
@@ -1497,13 +1497,13 @@ var manifest = {
       ],
       "sourceStream": "brave_walk"
     },
-    "brave.yellow.walk.north_east": {
+    "brave.yellow.walk.north_west": {
       "entity": "brave",
       "tribe": "yellow",
       "action": "walk",
       "direction": {
-        "id": "north_east",
-        "dx": 1,
+        "id": "north_west",
+        "dx": -1,
         "dy": -1
       },
       "loop": true,
@@ -1548,13 +1548,13 @@ var manifest = {
       ],
       "sourceStream": "brave_walk"
     },
-    "brave.yellow.walk.east": {
+    "brave.yellow.walk.west": {
       "entity": "brave",
       "tribe": "yellow",
       "action": "walk",
       "direction": {
-        "id": "east",
-        "dx": 1,
+        "id": "west",
+        "dx": -1,
         "dy": 0
       },
       "loop": true,
@@ -1599,13 +1599,13 @@ var manifest = {
       ],
       "sourceStream": "brave_walk"
     },
-    "brave.yellow.walk.south_east": {
+    "brave.yellow.walk.south_west": {
       "entity": "brave",
       "tribe": "yellow",
       "action": "walk",
       "direction": {
-        "id": "south_east",
-        "dx": 1,
+        "id": "south_west",
+        "dx": -1,
         "dy": 1
       },
       "loop": true,
@@ -1701,13 +1701,13 @@ var manifest = {
       ],
       "sourceStream": "brave_walk"
     },
-    "brave.green.walk.south_west": {
+    "brave.green.walk.south_east": {
       "entity": "brave",
       "tribe": "green",
       "action": "walk",
       "direction": {
-        "id": "south_west",
-        "dx": -1,
+        "id": "south_east",
+        "dx": 1,
         "dy": 1
       },
       "loop": true,
@@ -1752,13 +1752,13 @@ var manifest = {
       ],
       "sourceStream": "brave_walk"
     },
-    "brave.green.walk.west": {
+    "brave.green.walk.east": {
       "entity": "brave",
       "tribe": "green",
       "action": "walk",
       "direction": {
-        "id": "west",
-        "dx": -1,
+        "id": "east",
+        "dx": 1,
         "dy": 0
       },
       "loop": true,
@@ -1803,13 +1803,13 @@ var manifest = {
       ],
       "sourceStream": "brave_walk"
     },
-    "brave.green.walk.north_west": {
+    "brave.green.walk.north_east": {
       "entity": "brave",
       "tribe": "green",
       "action": "walk",
       "direction": {
-        "id": "north_west",
-        "dx": -1,
+        "id": "north_east",
+        "dx": 1,
         "dy": -1
       },
       "loop": true,
@@ -1905,13 +1905,13 @@ var manifest = {
       ],
       "sourceStream": "brave_walk"
     },
-    "brave.green.walk.north_east": {
+    "brave.green.walk.north_west": {
       "entity": "brave",
       "tribe": "green",
       "action": "walk",
       "direction": {
-        "id": "north_east",
-        "dx": 1,
+        "id": "north_west",
+        "dx": -1,
         "dy": -1
       },
       "loop": true,
@@ -1956,13 +1956,13 @@ var manifest = {
       ],
       "sourceStream": "brave_walk"
     },
-    "brave.green.walk.east": {
+    "brave.green.walk.west": {
       "entity": "brave",
       "tribe": "green",
       "action": "walk",
       "direction": {
-        "id": "east",
-        "dx": 1,
+        "id": "west",
+        "dx": -1,
         "dy": 0
       },
       "loop": true,
@@ -2007,13 +2007,13 @@ var manifest = {
       ],
       "sourceStream": "brave_walk"
     },
-    "brave.green.walk.south_east": {
+    "brave.green.walk.south_west": {
       "entity": "brave",
       "tribe": "green",
       "action": "walk",
       "direction": {
-        "id": "south_east",
-        "dx": 1,
+        "id": "south_west",
+        "dx": -1,
         "dy": 1
       },
       "loop": true,

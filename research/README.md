@@ -31,7 +31,16 @@ python3 tools/build-sprites.py
 
 This creates `research/sprites.json`, writes the canonical manifest to
 `assets/data/sprites.json`, generates the QML-importable
-`core/js/Animations.js`, and renders `research/walk-cycles.gif`.
+`core/js/Animations.js`, and renders two review artefacts:
+`research/walk-cycles.gif` for the cycles themselves, and
+`research/direction-check.png`, which draws each compiled animation beside
+the vector it travels along.
+
+Read `direction-check.png` whenever the direction order or a source range
+changes. Mirror symmetry in the atlas says which directions pair up but not
+which member of a pair faces which way, and no code test can judge sprite
+orientation. Getting it backwards makes six of the eight directions
+moonwalk, which is invisible in a plain contact sheet.
 
 `sprites-native.json` is recovered from the 1,180-record cell table initialized
 by the original executable. Regenerate it with:

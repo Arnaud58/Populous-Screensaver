@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from copy import deepcopy
 from pathlib import Path
 
@@ -52,6 +53,12 @@ def parse_args() -> argparse.Namespace:
         "--preview",
         type=Path,
         default=project / "research/walk-cycles.gif",
+    )
+    parser.add_argument(
+        "--direction-check",
+        type=Path,
+        default=project / "research/direction-check.png",
+        help="Compass sheet pairing each animation with its movement vector",
     )
     return parser.parse_args()
 
@@ -273,6 +280,101 @@ def create_walk_preview(
     )
 
 
+COMPASS_GRID = {
+    "north_west": (0, 0),
+    "north": (1, 0),
+    "north_east": (2, 0),
+    "west": (0, 1),
+    "east": (2, 1),
+    "south_west": (0, 2),
+    "south": (1, 2),
+    "south_east": (2, 2),
+}
+
+
+def create_direction_check(atlas: Image.Image, manifest: dict, output: Path) -> None:
+    """Lay every direction out on a compass, next to the vector it moves along.
+
+    Mirror symmetry in the atlas tells you which directions pair up, but not
+    which of a pair faces which way. Only seeing the sprite beside its arrow
+    settles that. Getting it backwards makes characters moonwalk, and it is
+    invisible in a plain contact sheet, so this render is worth regenerating
+    whenever the direction order is touched.
+    """
+    tribe = "blue"
+    scale = 6
+    cell_width, cell_height = 340, 300
+    font = ImageFont.load_default()
+
+    canvas = Image.new("RGBA", (cell_width * 3, cell_height * 3), (16, 16, 20, 255))
+    draw = ImageDraw.Draw(canvas)
+
+    for direction_id, (column, row) in COMPASS_GRID.items():
+        animation = manifest["animations"].get(f"brave.{tribe}.walk.{direction_id}")
+        if animation is None:
+            continue
+
+        dx = animation["direction"]["dx"]
+        dy = animation["direction"]["dy"]
+        cell_x, cell_y = column * cell_width, row * cell_height
+
+        draw.rectangle(
+            (cell_x, cell_y, cell_x + cell_width - 1, cell_y + cell_height - 1),
+            outline=(70, 70, 80, 255),
+        )
+        draw.text(
+            (cell_x + 8, cell_y + 6),
+            f"{direction_id}   (dx={dx}, dy={dy})",
+            fill=(255, 220, 90, 255),
+            font=font,
+        )
+
+        # Screen coordinates: positive dy points down.
+        length = math.hypot(dx, dy)
+        unit_x, unit_y = dx / length, dy / length
+        centre_x, centre_y = cell_x + cell_width // 2, cell_y + 62
+        arrow_length = 42
+        tip_x = centre_x + unit_x * arrow_length
+        tip_y = centre_y + unit_y * arrow_length
+        draw.line(
+            (
+                centre_x - unit_x * arrow_length,
+                centre_y - unit_y * arrow_length,
+                tip_x,
+                tip_y,
+            ),
+            fill=(90, 200, 255, 255),
+            width=7,
+        )
+        for side in (1, -1):
+            draw.line(
+                (
+                    tip_x,
+                    tip_y,
+                    tip_x - unit_x * 16 + unit_y * 10 * side,
+                    tip_y - unit_y * 16 - unit_x * 10 * side,
+                ),
+                fill=(90, 200, 255, 255),
+                width=6,
+            )
+
+        for position, frame in enumerate(animation["frames"]):
+            sprite = sprite_from_frame(atlas, frame)
+            sprite = sprite.resize(
+                (sprite.width * scale, sprite.height * scale), Image.Resampling.NEAREST
+            )
+            canvas.alpha_composite(
+                sprite,
+                (
+                    cell_x + 14 + position * 80 + (70 - sprite.width) // 2,
+                    cell_y + 118,
+                ),
+            )
+
+    output.parent.mkdir(parents=True, exist_ok=True)
+    canvas.save(output)
+
+
 def main() -> None:
     args = parse_args()
     native = read_json(args.native)
@@ -298,6 +400,7 @@ def main() -> None:
             f"Atlas dimensions {atlas.size} do not match the native manifest"
         )
     create_walk_preview(atlas, manifest, layout, args.preview)
+    create_direction_check(atlas, manifest, args.direction_check)
 
     stats = manifest["statistics"]
     print(f"Animations: {stats['animations']}")
@@ -306,6 +409,7 @@ def main() -> None:
     print(f"Assets manifest: {args.assets_output.resolve()}")
     print(f"QML manifest: {args.qml_output.resolve()}")
     print(f"Preview: {args.preview.resolve()}")
+    print(f"Direction check: {args.direction_check.resolve()}")
 
 
 if __name__ == "__main__":
