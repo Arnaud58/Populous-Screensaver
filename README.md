@@ -89,7 +89,7 @@ build/<target>/       installable payload
 
 ## Current status
 
-Version 0.8.0.
+Version 0.8.1.
 
 **Done**
 
@@ -122,7 +122,7 @@ Version 0.8.0.
 - [ ] Sound playback
 - [ ] Standalone Qt application, Linux then Windows `.scr`
 - [ ] xscreensaver hack
-- [ ] Lock-screen selection and testing
+- [x] Lock-screen selection, configuration and live testing
 
 ## Dependencies
 
@@ -432,6 +432,17 @@ System Settings
 ```
 
 Quick test: `Ctrl + Alt + L`.
+
+For development, KDE's real lock-screen shell can be launched without locking
+the session:
+
+```bash
+/usr/lib/x86_64-linux-gnu/libexec/kscreenlocker_greet --testing
+```
+
+The password interface deliberately blurs and darkens animated wallpapers.
+After it fades away, the Populous world remains visible until Plasma turns the
+monitor off according to the current power-management policy.
 
 ## The plan
 

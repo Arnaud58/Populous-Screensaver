@@ -18,6 +18,11 @@ const expected = {
     RandomSeed: "0"
 }
 
+test("Plasma configuration accepts the host integration properties", () => {
+    assert.match(configUi, /property\s+var\s+configDialog\b/)
+    assert.match(configUi, /property\s+var\s+wallpaperConfiguration\b/)
+})
+
 for (const [name, defaultValue] of Object.entries(expected)) {
     test(`Plasma configuration declares ${name}`, () => {
         const entry = schema.match(

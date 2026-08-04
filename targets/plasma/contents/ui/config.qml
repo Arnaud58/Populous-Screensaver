@@ -5,6 +5,11 @@ import org.kde.kirigami as Kirigami
 Kirigami.FormLayout {
     id: root
 
+    // Plasma injects these properties when the page is loaded from both the
+    // desktop wallpaper dialog and the screen-locker appearance KCM.
+    property var configDialog
+    property var wallpaperConfiguration
+
     property alias cfg_CharacterCount: characterCount.value
     property int cfg_SpriteScale: 0
     property alias cfg_FootprintsEnabled: footprintsEnabled.checked
