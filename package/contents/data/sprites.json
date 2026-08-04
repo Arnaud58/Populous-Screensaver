@@ -12,10 +12,418 @@
     "anchor": "relative-to-cropped-frame"
   },
   "statistics": {
-    "animations": 32,
-    "uniqueSourceFrames": 128
+    "animations": 40,
+    "uniqueSourceFrames": 160
   },
   "animations": {
+    "brave.neutral.walk.south": {
+      "entity": "brave",
+      "tribe": "neutral",
+      "action": "walk",
+      "direction": {
+        "id": "south",
+        "dx": 0,
+        "dy": 1
+      },
+      "loop": true,
+      "frameDurationMs": 120,
+      "frames": [
+        {
+          "sourceId": "sprite_0000",
+          "x": 1,
+          "y": 0,
+          "width": 17,
+          "height": 27,
+          "anchorX": 8.5,
+          "anchorY": 27
+        },
+        {
+          "sourceId": "sprite_0001",
+          "x": 20,
+          "y": 0,
+          "width": 19,
+          "height": 27,
+          "anchorX": 9.5,
+          "anchorY": 27
+        },
+        {
+          "sourceId": "sprite_0002",
+          "x": 43,
+          "y": 0,
+          "width": 17,
+          "height": 27,
+          "anchorX": 8.5,
+          "anchorY": 27
+        },
+        {
+          "sourceId": "sprite_0003",
+          "x": 62,
+          "y": 0,
+          "width": 19,
+          "height": 27,
+          "anchorX": 9.5,
+          "anchorY": 27
+        }
+      ],
+      "sourceStream": "brave_walk"
+    },
+    "brave.neutral.walk.south_west": {
+      "entity": "brave",
+      "tribe": "neutral",
+      "action": "walk",
+      "direction": {
+        "id": "south_west",
+        "dx": -1,
+        "dy": 1
+      },
+      "loop": true,
+      "frameDurationMs": 120,
+      "frames": [
+        {
+          "sourceId": "sprite_0004",
+          "x": 87,
+          "y": 0,
+          "width": 17,
+          "height": 27,
+          "anchorX": 8.5,
+          "anchorY": 27
+        },
+        {
+          "sourceId": "sprite_0005",
+          "x": 106,
+          "y": 0,
+          "width": 16,
+          "height": 27,
+          "anchorX": 8.0,
+          "anchorY": 27
+        },
+        {
+          "sourceId": "sprite_0006",
+          "x": 126,
+          "y": 0,
+          "width": 16,
+          "height": 27,
+          "anchorX": 8.0,
+          "anchorY": 27
+        },
+        {
+          "sourceId": "sprite_0007",
+          "x": 146,
+          "y": 0,
+          "width": 15,
+          "height": 27,
+          "anchorX": 7.5,
+          "anchorY": 27
+        }
+      ],
+      "sourceStream": "brave_walk"
+    },
+    "brave.neutral.walk.west": {
+      "entity": "brave",
+      "tribe": "neutral",
+      "action": "walk",
+      "direction": {
+        "id": "west",
+        "dx": -1,
+        "dy": 0
+      },
+      "loop": true,
+      "frameDurationMs": 120,
+      "frames": [
+        {
+          "sourceId": "sprite_0008",
+          "x": 163,
+          "y": 0,
+          "width": 19,
+          "height": 27,
+          "anchorX": 9.5,
+          "anchorY": 27
+        },
+        {
+          "sourceId": "sprite_0009",
+          "x": 185,
+          "y": 0,
+          "width": 11,
+          "height": 27,
+          "anchorX": 5.5,
+          "anchorY": 27
+        },
+        {
+          "sourceId": "sprite_0010",
+          "x": 198,
+          "y": 0,
+          "width": 22,
+          "height": 27,
+          "anchorX": 11.0,
+          "anchorY": 27
+        },
+        {
+          "sourceId": "sprite_0011",
+          "x": 221,
+          "y": 0,
+          "width": 11,
+          "height": 27,
+          "anchorX": 5.5,
+          "anchorY": 27
+        }
+      ],
+      "sourceStream": "brave_walk"
+    },
+    "brave.neutral.walk.north_west": {
+      "entity": "brave",
+      "tribe": "neutral",
+      "action": "walk",
+      "direction": {
+        "id": "north_west",
+        "dx": -1,
+        "dy": -1
+      },
+      "loop": true,
+      "frameDurationMs": 120,
+      "frames": [
+        {
+          "sourceId": "sprite_0012",
+          "x": 238,
+          "y": 0,
+          "width": 18,
+          "height": 27,
+          "anchorX": 9.0,
+          "anchorY": 27
+        },
+        {
+          "sourceId": "sprite_0013",
+          "x": 258,
+          "y": 0,
+          "width": 11,
+          "height": 27,
+          "anchorX": 5.5,
+          "anchorY": 27
+        },
+        {
+          "sourceId": "sprite_0014",
+          "x": 271,
+          "y": 0,
+          "width": 19,
+          "height": 27,
+          "anchorX": 9.5,
+          "anchorY": 27
+        },
+        {
+          "sourceId": "sprite_0015",
+          "x": 291,
+          "y": 0,
+          "width": 14,
+          "height": 27,
+          "anchorX": 7.0,
+          "anchorY": 27
+        }
+      ],
+      "sourceStream": "brave_walk"
+    },
+    "brave.neutral.walk.north": {
+      "entity": "brave",
+      "tribe": "neutral",
+      "action": "walk",
+      "direction": {
+        "id": "north",
+        "dx": 0,
+        "dy": -1
+      },
+      "loop": true,
+      "frameDurationMs": 120,
+      "frames": [
+        {
+          "sourceId": "sprite_0016",
+          "x": 309,
+          "y": 0,
+          "width": 15,
+          "height": 27,
+          "anchorX": 7.5,
+          "anchorY": 27
+        },
+        {
+          "sourceId": "sprite_0017",
+          "x": 328,
+          "y": 0,
+          "width": 15,
+          "height": 27,
+          "anchorX": 7.5,
+          "anchorY": 27
+        },
+        {
+          "sourceId": "sprite_0018",
+          "x": 346,
+          "y": 0,
+          "width": 15,
+          "height": 27,
+          "anchorX": 7.5,
+          "anchorY": 27
+        },
+        {
+          "sourceId": "sprite_0019",
+          "x": 367,
+          "y": 0,
+          "width": 15,
+          "height": 27,
+          "anchorX": 7.5,
+          "anchorY": 27
+        }
+      ],
+      "sourceStream": "brave_walk"
+    },
+    "brave.neutral.walk.north_east": {
+      "entity": "brave",
+      "tribe": "neutral",
+      "action": "walk",
+      "direction": {
+        "id": "north_east",
+        "dx": 1,
+        "dy": -1
+      },
+      "loop": true,
+      "frameDurationMs": 120,
+      "frames": [
+        {
+          "sourceId": "sprite_0020",
+          "x": 384,
+          "y": 0,
+          "width": 14,
+          "height": 27,
+          "anchorX": 7.0,
+          "anchorY": 27
+        },
+        {
+          "sourceId": "sprite_0021",
+          "x": 399,
+          "y": 0,
+          "width": 19,
+          "height": 27,
+          "anchorX": 9.5,
+          "anchorY": 27
+        },
+        {
+          "sourceId": "sprite_0022",
+          "x": 420,
+          "y": 0,
+          "width": 11,
+          "height": 27,
+          "anchorX": 5.5,
+          "anchorY": 27
+        },
+        {
+          "sourceId": "sprite_0023",
+          "x": 433,
+          "y": 0,
+          "width": 18,
+          "height": 27,
+          "anchorX": 9.0,
+          "anchorY": 27
+        }
+      ],
+      "sourceStream": "brave_walk"
+    },
+    "brave.neutral.walk.east": {
+      "entity": "brave",
+      "tribe": "neutral",
+      "action": "walk",
+      "direction": {
+        "id": "east",
+        "dx": 1,
+        "dy": 0
+      },
+      "loop": true,
+      "frameDurationMs": 120,
+      "frames": [
+        {
+          "sourceId": "sprite_0024",
+          "x": 457,
+          "y": 0,
+          "width": 11,
+          "height": 27,
+          "anchorX": 5.5,
+          "anchorY": 27
+        },
+        {
+          "sourceId": "sprite_0025",
+          "x": 469,
+          "y": 0,
+          "width": 22,
+          "height": 27,
+          "anchorX": 11.0,
+          "anchorY": 27
+        },
+        {
+          "sourceId": "sprite_0026",
+          "x": 493,
+          "y": 0,
+          "width": 11,
+          "height": 27,
+          "anchorX": 5.5,
+          "anchorY": 27
+        },
+        {
+          "sourceId": "sprite_0027",
+          "x": 507,
+          "y": 0,
+          "width": 19,
+          "height": 27,
+          "anchorX": 9.5,
+          "anchorY": 27
+        }
+      ],
+      "sourceStream": "brave_walk"
+    },
+    "brave.neutral.walk.south_east": {
+      "entity": "brave",
+      "tribe": "neutral",
+      "action": "walk",
+      "direction": {
+        "id": "south_east",
+        "dx": 1,
+        "dy": 1
+      },
+      "loop": true,
+      "frameDurationMs": 120,
+      "frames": [
+        {
+          "sourceId": "sprite_0028",
+          "x": 528,
+          "y": 0,
+          "width": 15,
+          "height": 27,
+          "anchorX": 7.5,
+          "anchorY": 27
+        },
+        {
+          "sourceId": "sprite_0029",
+          "x": 547,
+          "y": 0,
+          "width": 16,
+          "height": 27,
+          "anchorX": 8.0,
+          "anchorY": 27
+        },
+        {
+          "sourceId": "sprite_0030",
+          "x": 567,
+          "y": 0,
+          "width": 16,
+          "height": 27,
+          "anchorX": 8.0,
+          "anchorY": 27
+        },
+        {
+          "sourceId": "sprite_0031",
+          "x": 585,
+          "y": 0,
+          "width": 17,
+          "height": 27,
+          "anchorX": 8.5,
+          "anchorY": 27
+        }
+      ],
+      "sourceStream": "brave_walk"
+    },
     "brave.blue.walk.south": {
       "entity": "brave",
       "tribe": "blue",
@@ -29,346 +437,40 @@
       "frameDurationMs": 120,
       "frames": [
         {
-          "sourceId": "sprite_0495",
-          "x": 1,
-          "y": 547,
-          "width": 20,
-          "height": 29,
-          "anchorX": 10.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0496",
-          "x": 21,
-          "y": 547,
-          "width": 21,
-          "height": 29,
-          "anchorX": 10.5,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0497",
-          "x": 42,
-          "y": 547,
-          "width": 21,
-          "height": 29,
-          "anchorX": 10.5,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0498",
-          "x": 63,
-          "y": 547,
-          "width": 19,
-          "height": 29,
-          "anchorX": 9.5,
-          "anchorY": 29
-        }
-      ],
-      "sourceStream": "brave_walk"
-    },
-    "brave.blue.walk.south_east": {
-      "entity": "brave",
-      "tribe": "blue",
-      "action": "walk",
-      "direction": {
-        "id": "south_east",
-        "dx": 1,
-        "dy": 1
-      },
-      "loop": true,
-      "frameDurationMs": 120,
-      "frames": [
-        {
-          "sourceId": "sprite_0499",
-          "x": 83,
-          "y": 547,
+          "sourceId": "sprite_0040",
+          "x": 105,
+          "y": 28,
           "width": 17,
-          "height": 29,
+          "height": 26,
           "anchorX": 8.5,
-          "anchorY": 29
+          "anchorY": 26
         },
         {
-          "sourceId": "sprite_0500",
-          "x": 100,
-          "y": 547,
-          "width": 20,
-          "height": 29,
-          "anchorX": 10.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0501",
-          "x": 120,
-          "y": 547,
-          "width": 20,
-          "height": 29,
-          "anchorX": 10.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0502",
-          "x": 140,
-          "y": 547,
-          "width": 15,
-          "height": 29,
-          "anchorX": 7.5,
-          "anchorY": 29
-        }
-      ],
-      "sourceStream": "brave_walk"
-    },
-    "brave.blue.walk.east": {
-      "entity": "brave",
-      "tribe": "blue",
-      "action": "walk",
-      "direction": {
-        "id": "east",
-        "dx": 1,
-        "dy": 0
-      },
-      "loop": true,
-      "frameDurationMs": 120,
-      "frames": [
-        {
-          "sourceId": "sprite_0503",
-          "x": 155,
-          "y": 547,
-          "width": 12,
-          "height": 29,
-          "anchorX": 6.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0504",
-          "x": 167,
-          "y": 547,
-          "width": 11,
-          "height": 29,
-          "anchorX": 5.5,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0505",
-          "x": 178,
-          "y": 547,
-          "width": 11,
-          "height": 29,
-          "anchorX": 5.5,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0506",
-          "x": 189,
-          "y": 547,
-          "width": 10,
-          "height": 29,
-          "anchorX": 5.0,
-          "anchorY": 29
-        }
-      ],
-      "sourceStream": "brave_walk"
-    },
-    "brave.blue.walk.north_east": {
-      "entity": "brave",
-      "tribe": "blue",
-      "action": "walk",
-      "direction": {
-        "id": "north_east",
-        "dx": 1,
-        "dy": -1
-      },
-      "loop": true,
-      "frameDurationMs": 120,
-      "frames": [
-        {
-          "sourceId": "sprite_0507",
-          "x": 199,
-          "y": 547,
-          "width": 11,
-          "height": 29,
-          "anchorX": 5.5,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0508",
-          "x": 211,
-          "y": 547,
-          "width": 12,
-          "height": 29,
-          "anchorX": 6.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0509",
-          "x": 224,
-          "y": 547,
-          "width": 12,
-          "height": 29,
-          "anchorX": 6.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0510",
-          "x": 237,
-          "y": 547,
-          "width": 13,
-          "height": 29,
-          "anchorX": 6.5,
-          "anchorY": 29
-        }
-      ],
-      "sourceStream": "brave_walk"
-    },
-    "brave.blue.walk.north": {
-      "entity": "brave",
-      "tribe": "blue",
-      "action": "walk",
-      "direction": {
-        "id": "north",
-        "dx": 0,
-        "dy": -1
-      },
-      "loop": true,
-      "frameDurationMs": 120,
-      "frames": [
-        {
-          "sourceId": "sprite_0511",
-          "x": 250,
-          "y": 547,
-          "width": 20,
-          "height": 29,
-          "anchorX": 10.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0512",
-          "x": 270,
-          "y": 547,
-          "width": 21,
-          "height": 29,
-          "anchorX": 10.5,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0513",
-          "x": 291,
-          "y": 547,
-          "width": 21,
-          "height": 29,
-          "anchorX": 10.5,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0514",
-          "x": 312,
-          "y": 547,
+          "sourceId": "sprite_0041",
+          "x": 126,
+          "y": 28,
           "width": 19,
-          "height": 29,
+          "height": 26,
           "anchorX": 9.5,
-          "anchorY": 29
-        }
-      ],
-      "sourceStream": "brave_walk"
-    },
-    "brave.blue.walk.north_west": {
-      "entity": "brave",
-      "tribe": "blue",
-      "action": "walk",
-      "direction": {
-        "id": "north_west",
-        "dx": -1,
-        "dy": -1
-      },
-      "loop": true,
-      "frameDurationMs": 120,
-      "frames": [
-        {
-          "sourceId": "sprite_0515",
-          "x": 331,
-          "y": 547,
-          "width": 13,
-          "height": 29,
-          "anchorX": 6.5,
-          "anchorY": 29
+          "anchorY": 26
         },
         {
-          "sourceId": "sprite_0516",
-          "x": 345,
-          "y": 547,
-          "width": 12,
-          "height": 29,
-          "anchorX": 6.0,
-          "anchorY": 29
+          "sourceId": "sprite_0042",
+          "x": 148,
+          "y": 28,
+          "width": 17,
+          "height": 26,
+          "anchorX": 8.5,
+          "anchorY": 26
         },
         {
-          "sourceId": "sprite_0517",
-          "x": 358,
-          "y": 547,
-          "width": 12,
-          "height": 29,
-          "anchorX": 6.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0518",
-          "x": 371,
-          "y": 547,
-          "width": 11,
-          "height": 29,
-          "anchorX": 5.5,
-          "anchorY": 29
-        }
-      ],
-      "sourceStream": "brave_walk"
-    },
-    "brave.blue.walk.west": {
-      "entity": "brave",
-      "tribe": "blue",
-      "action": "walk",
-      "direction": {
-        "id": "west",
-        "dx": -1,
-        "dy": 0
-      },
-      "loop": true,
-      "frameDurationMs": 120,
-      "frames": [
-        {
-          "sourceId": "sprite_0519",
-          "x": 382,
-          "y": 547,
-          "width": 10,
-          "height": 29,
-          "anchorX": 5.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0520",
-          "x": 392,
-          "y": 547,
-          "width": 11,
-          "height": 29,
-          "anchorX": 5.5,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0521",
-          "x": 403,
-          "y": 547,
-          "width": 11,
-          "height": 29,
-          "anchorX": 5.5,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0522",
-          "x": 414,
-          "y": 547,
-          "width": 12,
-          "height": 29,
-          "anchorX": 6.0,
-          "anchorY": 29
+          "sourceId": "sprite_0043",
+          "x": 167,
+          "y": 28,
+          "width": 19,
+          "height": 26,
+          "anchorX": 9.5,
+          "anchorY": 26
         }
       ],
       "sourceStream": "brave_walk"
@@ -386,40 +488,346 @@
       "frameDurationMs": 120,
       "frames": [
         {
-          "sourceId": "sprite_0523",
-          "x": 426,
-          "y": 547,
-          "width": 16,
-          "height": 29,
-          "anchorX": 8.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0524",
-          "x": 442,
-          "y": 547,
-          "width": 20,
-          "height": 29,
-          "anchorX": 10.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0525",
-          "x": 462,
-          "y": 547,
-          "width": 20,
-          "height": 29,
-          "anchorX": 10.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0526",
-          "x": 482,
-          "y": 547,
+          "sourceId": "sprite_0044",
+          "x": 189,
+          "y": 28,
           "width": 17,
-          "height": 29,
+          "height": 26,
           "anchorX": 8.5,
-          "anchorY": 29
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0045",
+          "x": 208,
+          "y": 28,
+          "width": 16,
+          "height": 26,
+          "anchorX": 8.0,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0046",
+          "x": 227,
+          "y": 28,
+          "width": 16,
+          "height": 26,
+          "anchorX": 8.0,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0047",
+          "x": 246,
+          "y": 28,
+          "width": 15,
+          "height": 26,
+          "anchorX": 7.5,
+          "anchorY": 26
+        }
+      ],
+      "sourceStream": "brave_walk"
+    },
+    "brave.blue.walk.west": {
+      "entity": "brave",
+      "tribe": "blue",
+      "action": "walk",
+      "direction": {
+        "id": "west",
+        "dx": -1,
+        "dy": 0
+      },
+      "loop": true,
+      "frameDurationMs": 120,
+      "frames": [
+        {
+          "sourceId": "sprite_0048",
+          "x": 264,
+          "y": 28,
+          "width": 19,
+          "height": 26,
+          "anchorX": 9.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0049",
+          "x": 287,
+          "y": 28,
+          "width": 10,
+          "height": 26,
+          "anchorX": 5.0,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0050",
+          "x": 300,
+          "y": 28,
+          "width": 22,
+          "height": 26,
+          "anchorX": 11.0,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0051",
+          "x": 325,
+          "y": 28,
+          "width": 11,
+          "height": 26,
+          "anchorX": 5.5,
+          "anchorY": 26
+        }
+      ],
+      "sourceStream": "brave_walk"
+    },
+    "brave.blue.walk.north_west": {
+      "entity": "brave",
+      "tribe": "blue",
+      "action": "walk",
+      "direction": {
+        "id": "north_west",
+        "dx": -1,
+        "dy": -1
+      },
+      "loop": true,
+      "frameDurationMs": 120,
+      "frames": [
+        {
+          "sourceId": "sprite_0052",
+          "x": 340,
+          "y": 28,
+          "width": 18,
+          "height": 26,
+          "anchorX": 9.0,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0053",
+          "x": 361,
+          "y": 28,
+          "width": 11,
+          "height": 26,
+          "anchorX": 5.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0054",
+          "x": 374,
+          "y": 28,
+          "width": 19,
+          "height": 26,
+          "anchorX": 9.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0055",
+          "x": 394,
+          "y": 28,
+          "width": 15,
+          "height": 26,
+          "anchorX": 7.5,
+          "anchorY": 26
+        }
+      ],
+      "sourceStream": "brave_walk"
+    },
+    "brave.blue.walk.north": {
+      "entity": "brave",
+      "tribe": "blue",
+      "action": "walk",
+      "direction": {
+        "id": "north",
+        "dx": 0,
+        "dy": -1
+      },
+      "loop": true,
+      "frameDurationMs": 120,
+      "frames": [
+        {
+          "sourceId": "sprite_0056",
+          "x": 412,
+          "y": 28,
+          "width": 15,
+          "height": 26,
+          "anchorX": 7.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0057",
+          "x": 431,
+          "y": 28,
+          "width": 15,
+          "height": 26,
+          "anchorX": 7.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0058",
+          "x": 452,
+          "y": 28,
+          "width": 15,
+          "height": 26,
+          "anchorX": 7.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0059",
+          "x": 475,
+          "y": 28,
+          "width": 15,
+          "height": 26,
+          "anchorX": 7.5,
+          "anchorY": 26
+        }
+      ],
+      "sourceStream": "brave_walk"
+    },
+    "brave.blue.walk.north_east": {
+      "entity": "brave",
+      "tribe": "blue",
+      "action": "walk",
+      "direction": {
+        "id": "north_east",
+        "dx": 1,
+        "dy": -1
+      },
+      "loop": true,
+      "frameDurationMs": 120,
+      "frames": [
+        {
+          "sourceId": "sprite_0060",
+          "x": 492,
+          "y": 28,
+          "width": 15,
+          "height": 26,
+          "anchorX": 7.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0061",
+          "x": 508,
+          "y": 28,
+          "width": 19,
+          "height": 26,
+          "anchorX": 9.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0062",
+          "x": 529,
+          "y": 28,
+          "width": 11,
+          "height": 26,
+          "anchorX": 5.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0063",
+          "x": 543,
+          "y": 28,
+          "width": 18,
+          "height": 26,
+          "anchorX": 9.0,
+          "anchorY": 26
+        }
+      ],
+      "sourceStream": "brave_walk"
+    },
+    "brave.blue.walk.east": {
+      "entity": "brave",
+      "tribe": "blue",
+      "action": "walk",
+      "direction": {
+        "id": "east",
+        "dx": 1,
+        "dy": 0
+      },
+      "loop": true,
+      "frameDurationMs": 120,
+      "frames": [
+        {
+          "sourceId": "sprite_0064",
+          "x": 566,
+          "y": 28,
+          "width": 12,
+          "height": 26,
+          "anchorX": 6.0,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0065",
+          "x": 580,
+          "y": 28,
+          "width": 22,
+          "height": 26,
+          "anchorX": 11.0,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0066",
+          "x": 605,
+          "y": 28,
+          "width": 10,
+          "height": 26,
+          "anchorX": 5.0,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0067",
+          "x": 619,
+          "y": 28,
+          "width": 19,
+          "height": 26,
+          "anchorX": 9.5,
+          "anchorY": 26
+        }
+      ],
+      "sourceStream": "brave_walk"
+    },
+    "brave.blue.walk.south_east": {
+      "entity": "brave",
+      "tribe": "blue",
+      "action": "walk",
+      "direction": {
+        "id": "south_east",
+        "dx": 1,
+        "dy": 1
+      },
+      "loop": true,
+      "frameDurationMs": 120,
+      "frames": [
+        {
+          "sourceId": "sprite_0068",
+          "x": 1,
+          "y": 55,
+          "width": 15,
+          "height": 26,
+          "anchorX": 7.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0069",
+          "x": 19,
+          "y": 55,
+          "width": 16,
+          "height": 26,
+          "anchorX": 8.0,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0070",
+          "x": 38,
+          "y": 55,
+          "width": 16,
+          "height": 26,
+          "anchorX": 8.0,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0071",
+          "x": 56,
+          "y": 55,
+          "width": 17,
+          "height": 26,
+          "anchorX": 8.5,
+          "anchorY": 26
         }
       ],
       "sourceStream": "brave_walk"
@@ -437,346 +845,40 @@
       "frameDurationMs": 120,
       "frames": [
         {
-          "sourceId": "sprite_0527",
-          "x": 500,
-          "y": 547,
-          "width": 20,
-          "height": 29,
-          "anchorX": 10.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0528",
-          "x": 520,
-          "y": 547,
-          "width": 21,
-          "height": 29,
-          "anchorX": 10.5,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0529",
-          "x": 541,
-          "y": 547,
-          "width": 21,
-          "height": 29,
-          "anchorX": 10.5,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0530",
-          "x": 562,
-          "y": 547,
-          "width": 19,
-          "height": 29,
-          "anchorX": 9.5,
-          "anchorY": 29
-        }
-      ],
-      "sourceStream": "brave_walk"
-    },
-    "brave.red.walk.south_east": {
-      "entity": "brave",
-      "tribe": "red",
-      "action": "walk",
-      "direction": {
-        "id": "south_east",
-        "dx": 1,
-        "dy": 1
-      },
-      "loop": true,
-      "frameDurationMs": 120,
-      "frames": [
-        {
-          "sourceId": "sprite_0531",
-          "x": 582,
-          "y": 547,
+          "sourceId": "sprite_0080",
+          "x": 220,
+          "y": 55,
           "width": 17,
-          "height": 29,
+          "height": 26,
           "anchorX": 8.5,
-          "anchorY": 29
+          "anchorY": 26
         },
         {
-          "sourceId": "sprite_0532",
-          "x": 599,
-          "y": 547,
-          "width": 20,
-          "height": 29,
-          "anchorX": 10.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0533",
-          "x": 619,
-          "y": 547,
-          "width": 20,
-          "height": 29,
-          "anchorX": 10.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0534",
-          "x": 1,
-          "y": 577,
-          "width": 15,
-          "height": 29,
-          "anchorX": 7.5,
-          "anchorY": 29
-        }
-      ],
-      "sourceStream": "brave_walk"
-    },
-    "brave.red.walk.east": {
-      "entity": "brave",
-      "tribe": "red",
-      "action": "walk",
-      "direction": {
-        "id": "east",
-        "dx": 1,
-        "dy": 0
-      },
-      "loop": true,
-      "frameDurationMs": 120,
-      "frames": [
-        {
-          "sourceId": "sprite_0535",
-          "x": 16,
-          "y": 577,
-          "width": 12,
-          "height": 29,
-          "anchorX": 6.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0536",
-          "x": 28,
-          "y": 577,
-          "width": 11,
-          "height": 29,
-          "anchorX": 5.5,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0537",
-          "x": 39,
-          "y": 577,
-          "width": 11,
-          "height": 29,
-          "anchorX": 5.5,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0538",
-          "x": 50,
-          "y": 577,
-          "width": 10,
-          "height": 29,
-          "anchorX": 5.0,
-          "anchorY": 29
-        }
-      ],
-      "sourceStream": "brave_walk"
-    },
-    "brave.red.walk.north_east": {
-      "entity": "brave",
-      "tribe": "red",
-      "action": "walk",
-      "direction": {
-        "id": "north_east",
-        "dx": 1,
-        "dy": -1
-      },
-      "loop": true,
-      "frameDurationMs": 120,
-      "frames": [
-        {
-          "sourceId": "sprite_0539",
-          "x": 60,
-          "y": 577,
-          "width": 11,
-          "height": 29,
-          "anchorX": 5.5,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0540",
-          "x": 72,
-          "y": 577,
-          "width": 12,
-          "height": 29,
-          "anchorX": 6.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0541",
-          "x": 85,
-          "y": 577,
-          "width": 12,
-          "height": 29,
-          "anchorX": 6.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0542",
-          "x": 98,
-          "y": 577,
-          "width": 13,
-          "height": 29,
-          "anchorX": 6.5,
-          "anchorY": 29
-        }
-      ],
-      "sourceStream": "brave_walk"
-    },
-    "brave.red.walk.north": {
-      "entity": "brave",
-      "tribe": "red",
-      "action": "walk",
-      "direction": {
-        "id": "north",
-        "dx": 0,
-        "dy": -1
-      },
-      "loop": true,
-      "frameDurationMs": 120,
-      "frames": [
-        {
-          "sourceId": "sprite_0543",
-          "x": 111,
-          "y": 577,
+          "sourceId": "sprite_0081",
+          "x": 241,
+          "y": 55,
           "width": 19,
-          "height": 29,
+          "height": 26,
           "anchorX": 9.5,
-          "anchorY": 29
+          "anchorY": 26
         },
         {
-          "sourceId": "sprite_0544",
-          "x": 130,
-          "y": 577,
-          "width": 21,
-          "height": 29,
-          "anchorX": 10.5,
-          "anchorY": 29
+          "sourceId": "sprite_0082",
+          "x": 263,
+          "y": 55,
+          "width": 17,
+          "height": 26,
+          "anchorX": 8.5,
+          "anchorY": 26
         },
         {
-          "sourceId": "sprite_0545",
-          "x": 151,
-          "y": 577,
-          "width": 21,
-          "height": 29,
-          "anchorX": 10.5,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0546",
-          "x": 172,
-          "y": 577,
+          "sourceId": "sprite_0083",
+          "x": 282,
+          "y": 55,
           "width": 19,
-          "height": 29,
+          "height": 26,
           "anchorX": 9.5,
-          "anchorY": 29
-        }
-      ],
-      "sourceStream": "brave_walk"
-    },
-    "brave.red.walk.north_west": {
-      "entity": "brave",
-      "tribe": "red",
-      "action": "walk",
-      "direction": {
-        "id": "north_west",
-        "dx": -1,
-        "dy": -1
-      },
-      "loop": true,
-      "frameDurationMs": 120,
-      "frames": [
-        {
-          "sourceId": "sprite_0547",
-          "x": 191,
-          "y": 577,
-          "width": 13,
-          "height": 29,
-          "anchorX": 6.5,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0548",
-          "x": 205,
-          "y": 577,
-          "width": 12,
-          "height": 29,
-          "anchorX": 6.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0549",
-          "x": 218,
-          "y": 577,
-          "width": 12,
-          "height": 29,
-          "anchorX": 6.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0550",
-          "x": 231,
-          "y": 577,
-          "width": 11,
-          "height": 29,
-          "anchorX": 5.5,
-          "anchorY": 29
-        }
-      ],
-      "sourceStream": "brave_walk"
-    },
-    "brave.red.walk.west": {
-      "entity": "brave",
-      "tribe": "red",
-      "action": "walk",
-      "direction": {
-        "id": "west",
-        "dx": -1,
-        "dy": 0
-      },
-      "loop": true,
-      "frameDurationMs": 120,
-      "frames": [
-        {
-          "sourceId": "sprite_0551",
-          "x": 242,
-          "y": 577,
-          "width": 10,
-          "height": 29,
-          "anchorX": 5.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0552",
-          "x": 252,
-          "y": 577,
-          "width": 12,
-          "height": 29,
-          "anchorX": 6.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0553",
-          "x": 264,
-          "y": 577,
-          "width": 11,
-          "height": 29,
-          "anchorX": 5.5,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0554",
-          "x": 275,
-          "y": 577,
-          "width": 12,
-          "height": 29,
-          "anchorX": 6.0,
-          "anchorY": 29
+          "anchorY": 26
         }
       ],
       "sourceStream": "brave_walk"
@@ -794,40 +896,346 @@
       "frameDurationMs": 120,
       "frames": [
         {
-          "sourceId": "sprite_0555",
-          "x": 287,
-          "y": 577,
-          "width": 15,
-          "height": 29,
-          "anchorX": 7.5,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0556",
-          "x": 302,
-          "y": 577,
-          "width": 20,
-          "height": 29,
-          "anchorX": 10.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0557",
-          "x": 322,
-          "y": 577,
-          "width": 20,
-          "height": 29,
-          "anchorX": 10.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0558",
-          "x": 342,
-          "y": 577,
+          "sourceId": "sprite_0084",
+          "x": 304,
+          "y": 55,
           "width": 17,
-          "height": 29,
+          "height": 26,
           "anchorX": 8.5,
-          "anchorY": 29
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0085",
+          "x": 323,
+          "y": 55,
+          "width": 16,
+          "height": 26,
+          "anchorX": 8.0,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0086",
+          "x": 342,
+          "y": 55,
+          "width": 16,
+          "height": 26,
+          "anchorX": 8.0,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0087",
+          "x": 361,
+          "y": 55,
+          "width": 15,
+          "height": 26,
+          "anchorX": 7.5,
+          "anchorY": 26
+        }
+      ],
+      "sourceStream": "brave_walk"
+    },
+    "brave.red.walk.west": {
+      "entity": "brave",
+      "tribe": "red",
+      "action": "walk",
+      "direction": {
+        "id": "west",
+        "dx": -1,
+        "dy": 0
+      },
+      "loop": true,
+      "frameDurationMs": 120,
+      "frames": [
+        {
+          "sourceId": "sprite_0088",
+          "x": 379,
+          "y": 55,
+          "width": 19,
+          "height": 26,
+          "anchorX": 9.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0089",
+          "x": 402,
+          "y": 55,
+          "width": 10,
+          "height": 26,
+          "anchorX": 5.0,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0090",
+          "x": 413,
+          "y": 55,
+          "width": 22,
+          "height": 26,
+          "anchorX": 11.0,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0091",
+          "x": 437,
+          "y": 55,
+          "width": 11,
+          "height": 26,
+          "anchorX": 5.5,
+          "anchorY": 26
+        }
+      ],
+      "sourceStream": "brave_walk"
+    },
+    "brave.red.walk.north_west": {
+      "entity": "brave",
+      "tribe": "red",
+      "action": "walk",
+      "direction": {
+        "id": "north_west",
+        "dx": -1,
+        "dy": -1
+      },
+      "loop": true,
+      "frameDurationMs": 120,
+      "frames": [
+        {
+          "sourceId": "sprite_0092",
+          "x": 452,
+          "y": 55,
+          "width": 18,
+          "height": 26,
+          "anchorX": 9.0,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0093",
+          "x": 473,
+          "y": 55,
+          "width": 11,
+          "height": 26,
+          "anchorX": 5.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0094",
+          "x": 486,
+          "y": 55,
+          "width": 19,
+          "height": 26,
+          "anchorX": 9.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0095",
+          "x": 506,
+          "y": 55,
+          "width": 15,
+          "height": 26,
+          "anchorX": 7.5,
+          "anchorY": 26
+        }
+      ],
+      "sourceStream": "brave_walk"
+    },
+    "brave.red.walk.north": {
+      "entity": "brave",
+      "tribe": "red",
+      "action": "walk",
+      "direction": {
+        "id": "north",
+        "dx": 0,
+        "dy": -1
+      },
+      "loop": true,
+      "frameDurationMs": 120,
+      "frames": [
+        {
+          "sourceId": "sprite_0096",
+          "x": 524,
+          "y": 55,
+          "width": 15,
+          "height": 26,
+          "anchorX": 7.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0097",
+          "x": 543,
+          "y": 55,
+          "width": 15,
+          "height": 26,
+          "anchorX": 7.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0098",
+          "x": 564,
+          "y": 55,
+          "width": 15,
+          "height": 26,
+          "anchorX": 7.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0099",
+          "x": 587,
+          "y": 55,
+          "width": 15,
+          "height": 26,
+          "anchorX": 7.5,
+          "anchorY": 26
+        }
+      ],
+      "sourceStream": "brave_walk"
+    },
+    "brave.red.walk.north_east": {
+      "entity": "brave",
+      "tribe": "red",
+      "action": "walk",
+      "direction": {
+        "id": "north_east",
+        "dx": 1,
+        "dy": -1
+      },
+      "loop": true,
+      "frameDurationMs": 120,
+      "frames": [
+        {
+          "sourceId": "sprite_0100",
+          "x": 602,
+          "y": 55,
+          "width": 15,
+          "height": 26,
+          "anchorX": 7.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0101",
+          "x": 618,
+          "y": 55,
+          "width": 19,
+          "height": 26,
+          "anchorX": 9.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0102",
+          "x": 2,
+          "y": 82,
+          "width": 11,
+          "height": 26,
+          "anchorX": 5.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0103",
+          "x": 16,
+          "y": 82,
+          "width": 18,
+          "height": 26,
+          "anchorX": 9.0,
+          "anchorY": 26
+        }
+      ],
+      "sourceStream": "brave_walk"
+    },
+    "brave.red.walk.east": {
+      "entity": "brave",
+      "tribe": "red",
+      "action": "walk",
+      "direction": {
+        "id": "east",
+        "dx": 1,
+        "dy": 0
+      },
+      "loop": true,
+      "frameDurationMs": 120,
+      "frames": [
+        {
+          "sourceId": "sprite_0104",
+          "x": 39,
+          "y": 82,
+          "width": 11,
+          "height": 26,
+          "anchorX": 5.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0105",
+          "x": 52,
+          "y": 82,
+          "width": 22,
+          "height": 26,
+          "anchorX": 11.0,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0106",
+          "x": 75,
+          "y": 82,
+          "width": 10,
+          "height": 26,
+          "anchorX": 5.0,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0107",
+          "x": 89,
+          "y": 82,
+          "width": 19,
+          "height": 26,
+          "anchorX": 9.5,
+          "anchorY": 26
+        }
+      ],
+      "sourceStream": "brave_walk"
+    },
+    "brave.red.walk.south_east": {
+      "entity": "brave",
+      "tribe": "red",
+      "action": "walk",
+      "direction": {
+        "id": "south_east",
+        "dx": 1,
+        "dy": 1
+      },
+      "loop": true,
+      "frameDurationMs": 120,
+      "frames": [
+        {
+          "sourceId": "sprite_0108",
+          "x": 111,
+          "y": 82,
+          "width": 15,
+          "height": 26,
+          "anchorX": 7.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0109",
+          "x": 129,
+          "y": 82,
+          "width": 16,
+          "height": 26,
+          "anchorX": 8.0,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0110",
+          "x": 148,
+          "y": 82,
+          "width": 16,
+          "height": 26,
+          "anchorX": 8.0,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0111",
+          "x": 166,
+          "y": 82,
+          "width": 17,
+          "height": 26,
+          "anchorX": 8.5,
+          "anchorY": 26
         }
       ],
       "sourceStream": "brave_walk"
@@ -845,346 +1253,40 @@
       "frameDurationMs": 120,
       "frames": [
         {
-          "sourceId": "sprite_0559",
-          "x": 360,
-          "y": 577,
-          "width": 20,
-          "height": 29,
-          "anchorX": 10.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0560",
-          "x": 380,
-          "y": 577,
-          "width": 21,
-          "height": 29,
-          "anchorX": 10.5,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0561",
-          "x": 401,
-          "y": 577,
-          "width": 21,
-          "height": 29,
-          "anchorX": 10.5,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0562",
-          "x": 422,
-          "y": 577,
-          "width": 19,
-          "height": 29,
-          "anchorX": 9.5,
-          "anchorY": 29
-        }
-      ],
-      "sourceStream": "brave_walk"
-    },
-    "brave.yellow.walk.south_east": {
-      "entity": "brave",
-      "tribe": "yellow",
-      "action": "walk",
-      "direction": {
-        "id": "south_east",
-        "dx": 1,
-        "dy": 1
-      },
-      "loop": true,
-      "frameDurationMs": 120,
-      "frames": [
-        {
-          "sourceId": "sprite_0563",
-          "x": 442,
-          "y": 577,
+          "sourceId": "sprite_0120",
+          "x": 326,
+          "y": 82,
           "width": 17,
-          "height": 29,
+          "height": 26,
           "anchorX": 8.5,
-          "anchorY": 29
+          "anchorY": 26
         },
         {
-          "sourceId": "sprite_0564",
-          "x": 459,
-          "y": 577,
-          "width": 20,
-          "height": 29,
-          "anchorX": 10.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0565",
-          "x": 479,
-          "y": 577,
-          "width": 20,
-          "height": 29,
-          "anchorX": 10.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0566",
-          "x": 499,
-          "y": 577,
-          "width": 15,
-          "height": 29,
-          "anchorX": 7.5,
-          "anchorY": 29
-        }
-      ],
-      "sourceStream": "brave_walk"
-    },
-    "brave.yellow.walk.east": {
-      "entity": "brave",
-      "tribe": "yellow",
-      "action": "walk",
-      "direction": {
-        "id": "east",
-        "dx": 1,
-        "dy": 0
-      },
-      "loop": true,
-      "frameDurationMs": 120,
-      "frames": [
-        {
-          "sourceId": "sprite_0567",
-          "x": 514,
-          "y": 577,
-          "width": 12,
-          "height": 29,
-          "anchorX": 6.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0568",
-          "x": 526,
-          "y": 577,
-          "width": 11,
-          "height": 29,
-          "anchorX": 5.5,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0569",
-          "x": 537,
-          "y": 577,
-          "width": 11,
-          "height": 29,
-          "anchorX": 5.5,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0570",
-          "x": 548,
-          "y": 577,
-          "width": 10,
-          "height": 29,
-          "anchorX": 5.0,
-          "anchorY": 29
-        }
-      ],
-      "sourceStream": "brave_walk"
-    },
-    "brave.yellow.walk.north_east": {
-      "entity": "brave",
-      "tribe": "yellow",
-      "action": "walk",
-      "direction": {
-        "id": "north_east",
-        "dx": 1,
-        "dy": -1
-      },
-      "loop": true,
-      "frameDurationMs": 120,
-      "frames": [
-        {
-          "sourceId": "sprite_0571",
-          "x": 558,
-          "y": 577,
-          "width": 11,
-          "height": 29,
-          "anchorX": 5.5,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0572",
-          "x": 570,
-          "y": 577,
-          "width": 12,
-          "height": 29,
-          "anchorX": 6.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0573",
-          "x": 583,
-          "y": 577,
-          "width": 12,
-          "height": 29,
-          "anchorX": 6.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0574",
-          "x": 596,
-          "y": 577,
-          "width": 13,
-          "height": 29,
-          "anchorX": 6.5,
-          "anchorY": 29
-        }
-      ],
-      "sourceStream": "brave_walk"
-    },
-    "brave.yellow.walk.north": {
-      "entity": "brave",
-      "tribe": "yellow",
-      "action": "walk",
-      "direction": {
-        "id": "north",
-        "dx": 0,
-        "dy": -1
-      },
-      "loop": true,
-      "frameDurationMs": 120,
-      "frames": [
-        {
-          "sourceId": "sprite_0575",
-          "x": 616,
-          "y": 577,
-          "width": 20,
-          "height": 29,
-          "anchorX": 10.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0576",
-          "x": 0,
-          "y": 607,
-          "width": 21,
-          "height": 29,
-          "anchorX": 10.5,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0577",
-          "x": 21,
-          "y": 607,
-          "width": 21,
-          "height": 29,
-          "anchorX": 10.5,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0578",
-          "x": 42,
-          "y": 607,
+          "sourceId": "sprite_0121",
+          "x": 347,
+          "y": 82,
           "width": 19,
-          "height": 29,
+          "height": 26,
           "anchorX": 9.5,
-          "anchorY": 29
-        }
-      ],
-      "sourceStream": "brave_walk"
-    },
-    "brave.yellow.walk.north_west": {
-      "entity": "brave",
-      "tribe": "yellow",
-      "action": "walk",
-      "direction": {
-        "id": "north_west",
-        "dx": -1,
-        "dy": -1
-      },
-      "loop": true,
-      "frameDurationMs": 120,
-      "frames": [
-        {
-          "sourceId": "sprite_0579",
-          "x": 61,
-          "y": 607,
-          "width": 13,
-          "height": 29,
-          "anchorX": 6.5,
-          "anchorY": 29
+          "anchorY": 26
         },
         {
-          "sourceId": "sprite_0580",
-          "x": 75,
-          "y": 607,
-          "width": 12,
-          "height": 29,
-          "anchorX": 6.0,
-          "anchorY": 29
+          "sourceId": "sprite_0122",
+          "x": 369,
+          "y": 82,
+          "width": 17,
+          "height": 26,
+          "anchorX": 8.5,
+          "anchorY": 26
         },
         {
-          "sourceId": "sprite_0581",
-          "x": 88,
-          "y": 607,
-          "width": 12,
-          "height": 29,
-          "anchorX": 6.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0582",
-          "x": 101,
-          "y": 607,
-          "width": 11,
-          "height": 29,
-          "anchorX": 5.5,
-          "anchorY": 29
-        }
-      ],
-      "sourceStream": "brave_walk"
-    },
-    "brave.yellow.walk.west": {
-      "entity": "brave",
-      "tribe": "yellow",
-      "action": "walk",
-      "direction": {
-        "id": "west",
-        "dx": -1,
-        "dy": 0
-      },
-      "loop": true,
-      "frameDurationMs": 120,
-      "frames": [
-        {
-          "sourceId": "sprite_0583",
-          "x": 112,
-          "y": 607,
-          "width": 10,
-          "height": 29,
-          "anchorX": 5.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0584",
-          "x": 122,
-          "y": 607,
-          "width": 11,
-          "height": 29,
-          "anchorX": 5.5,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0585",
-          "x": 133,
-          "y": 607,
-          "width": 11,
-          "height": 29,
-          "anchorX": 5.5,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0586",
-          "x": 144,
-          "y": 607,
-          "width": 12,
-          "height": 29,
-          "anchorX": 6.0,
-          "anchorY": 29
+          "sourceId": "sprite_0123",
+          "x": 388,
+          "y": 82,
+          "width": 19,
+          "height": 26,
+          "anchorX": 9.5,
+          "anchorY": 26
         }
       ],
       "sourceStream": "brave_walk"
@@ -1202,40 +1304,346 @@
       "frameDurationMs": 120,
       "frames": [
         {
-          "sourceId": "sprite_0587",
-          "x": 156,
-          "y": 607,
+          "sourceId": "sprite_0124",
+          "x": 410,
+          "y": 82,
+          "width": 17,
+          "height": 26,
+          "anchorX": 8.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0125",
+          "x": 429,
+          "y": 82,
+          "width": 16,
+          "height": 26,
+          "anchorX": 8.0,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0126",
+          "x": 448,
+          "y": 82,
+          "width": 16,
+          "height": 26,
+          "anchorX": 8.0,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0127",
+          "x": 467,
+          "y": 82,
           "width": 15,
-          "height": 29,
+          "height": 26,
           "anchorX": 7.5,
-          "anchorY": 29
+          "anchorY": 26
+        }
+      ],
+      "sourceStream": "brave_walk"
+    },
+    "brave.yellow.walk.west": {
+      "entity": "brave",
+      "tribe": "yellow",
+      "action": "walk",
+      "direction": {
+        "id": "west",
+        "dx": -1,
+        "dy": 0
+      },
+      "loop": true,
+      "frameDurationMs": 120,
+      "frames": [
+        {
+          "sourceId": "sprite_0128",
+          "x": 484,
+          "y": 82,
+          "width": 19,
+          "height": 26,
+          "anchorX": 9.5,
+          "anchorY": 26
         },
         {
-          "sourceId": "sprite_0588",
-          "x": 171,
-          "y": 607,
-          "width": 20,
-          "height": 29,
-          "anchorX": 10.0,
-          "anchorY": 29
+          "sourceId": "sprite_0129",
+          "x": 507,
+          "y": 82,
+          "width": 10,
+          "height": 26,
+          "anchorX": 5.0,
+          "anchorY": 26
         },
         {
-          "sourceId": "sprite_0589",
-          "x": 191,
-          "y": 607,
-          "width": 20,
-          "height": 29,
-          "anchorX": 10.0,
-          "anchorY": 29
+          "sourceId": "sprite_0130",
+          "x": 518,
+          "y": 82,
+          "width": 22,
+          "height": 26,
+          "anchorX": 11.0,
+          "anchorY": 26
         },
         {
-          "sourceId": "sprite_0590",
-          "x": 211,
-          "y": 607,
+          "sourceId": "sprite_0131",
+          "x": 542,
+          "y": 82,
+          "width": 11,
+          "height": 26,
+          "anchorX": 5.5,
+          "anchorY": 26
+        }
+      ],
+      "sourceStream": "brave_walk"
+    },
+    "brave.yellow.walk.north_west": {
+      "entity": "brave",
+      "tribe": "yellow",
+      "action": "walk",
+      "direction": {
+        "id": "north_west",
+        "dx": -1,
+        "dy": -1
+      },
+      "loop": true,
+      "frameDurationMs": 120,
+      "frames": [
+        {
+          "sourceId": "sprite_0132",
+          "x": 557,
+          "y": 82,
           "width": 18,
-          "height": 29,
+          "height": 26,
           "anchorX": 9.0,
-          "anchorY": 29
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0133",
+          "x": 577,
+          "y": 82,
+          "width": 11,
+          "height": 26,
+          "anchorX": 5.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0134",
+          "x": 589,
+          "y": 82,
+          "width": 19,
+          "height": 26,
+          "anchorX": 9.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0135",
+          "x": 609,
+          "y": 82,
+          "width": 15,
+          "height": 26,
+          "anchorX": 7.5,
+          "anchorY": 26
+        }
+      ],
+      "sourceStream": "brave_walk"
+    },
+    "brave.yellow.walk.north": {
+      "entity": "brave",
+      "tribe": "yellow",
+      "action": "walk",
+      "direction": {
+        "id": "north",
+        "dx": 0,
+        "dy": -1
+      },
+      "loop": true,
+      "frameDurationMs": 120,
+      "frames": [
+        {
+          "sourceId": "sprite_0136",
+          "x": 3,
+          "y": 109,
+          "width": 15,
+          "height": 26,
+          "anchorX": 7.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0137",
+          "x": 22,
+          "y": 109,
+          "width": 15,
+          "height": 26,
+          "anchorX": 7.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0138",
+          "x": 43,
+          "y": 109,
+          "width": 15,
+          "height": 26,
+          "anchorX": 7.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0139",
+          "x": 61,
+          "y": 109,
+          "width": 15,
+          "height": 26,
+          "anchorX": 7.5,
+          "anchorY": 26
+        }
+      ],
+      "sourceStream": "brave_walk"
+    },
+    "brave.yellow.walk.north_east": {
+      "entity": "brave",
+      "tribe": "yellow",
+      "action": "walk",
+      "direction": {
+        "id": "north_east",
+        "dx": 1,
+        "dy": -1
+      },
+      "loop": true,
+      "frameDurationMs": 120,
+      "frames": [
+        {
+          "sourceId": "sprite_0140",
+          "x": 76,
+          "y": 109,
+          "width": 15,
+          "height": 26,
+          "anchorX": 7.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0141",
+          "x": 92,
+          "y": 109,
+          "width": 19,
+          "height": 26,
+          "anchorX": 9.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0142",
+          "x": 113,
+          "y": 109,
+          "width": 11,
+          "height": 26,
+          "anchorX": 5.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0143",
+          "x": 127,
+          "y": 109,
+          "width": 18,
+          "height": 26,
+          "anchorX": 9.0,
+          "anchorY": 26
+        }
+      ],
+      "sourceStream": "brave_walk"
+    },
+    "brave.yellow.walk.east": {
+      "entity": "brave",
+      "tribe": "yellow",
+      "action": "walk",
+      "direction": {
+        "id": "east",
+        "dx": 1,
+        "dy": 0
+      },
+      "loop": true,
+      "frameDurationMs": 120,
+      "frames": [
+        {
+          "sourceId": "sprite_0144",
+          "x": 148,
+          "y": 109,
+          "width": 11,
+          "height": 26,
+          "anchorX": 5.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0145",
+          "x": 161,
+          "y": 109,
+          "width": 22,
+          "height": 26,
+          "anchorX": 11.0,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0146",
+          "x": 184,
+          "y": 109,
+          "width": 10,
+          "height": 26,
+          "anchorX": 5.0,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0147",
+          "x": 198,
+          "y": 109,
+          "width": 19,
+          "height": 26,
+          "anchorX": 9.5,
+          "anchorY": 26
+        }
+      ],
+      "sourceStream": "brave_walk"
+    },
+    "brave.yellow.walk.south_east": {
+      "entity": "brave",
+      "tribe": "yellow",
+      "action": "walk",
+      "direction": {
+        "id": "south_east",
+        "dx": 1,
+        "dy": 1
+      },
+      "loop": true,
+      "frameDurationMs": 120,
+      "frames": [
+        {
+          "sourceId": "sprite_0148",
+          "x": 220,
+          "y": 109,
+          "width": 15,
+          "height": 26,
+          "anchorX": 7.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0149",
+          "x": 238,
+          "y": 109,
+          "width": 16,
+          "height": 26,
+          "anchorX": 8.0,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0150",
+          "x": 257,
+          "y": 109,
+          "width": 16,
+          "height": 26,
+          "anchorX": 8.0,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0151",
+          "x": 275,
+          "y": 109,
+          "width": 17,
+          "height": 26,
+          "anchorX": 8.5,
+          "anchorY": 26
         }
       ],
       "sourceStream": "brave_walk"
@@ -1253,346 +1661,40 @@
       "frameDurationMs": 120,
       "frames": [
         {
-          "sourceId": "sprite_0591",
-          "x": 254,
-          "y": 607,
-          "width": 19,
-          "height": 29,
-          "anchorX": 9.5,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0592",
-          "x": 274,
-          "y": 607,
-          "width": 21,
-          "height": 29,
-          "anchorX": 10.5,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0593",
-          "x": 295,
-          "y": 607,
-          "width": 21,
-          "height": 29,
-          "anchorX": 10.5,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0594",
-          "x": 316,
-          "y": 607,
-          "width": 19,
-          "height": 29,
-          "anchorX": 9.5,
-          "anchorY": 29
-        }
-      ],
-      "sourceStream": "brave_walk"
-    },
-    "brave.green.walk.south_east": {
-      "entity": "brave",
-      "tribe": "green",
-      "action": "walk",
-      "direction": {
-        "id": "south_east",
-        "dx": 1,
-        "dy": 1
-      },
-      "loop": true,
-      "frameDurationMs": 120,
-      "frames": [
-        {
-          "sourceId": "sprite_0595",
-          "x": 336,
-          "y": 607,
+          "sourceId": "sprite_0160",
+          "x": 437,
+          "y": 109,
           "width": 17,
-          "height": 29,
+          "height": 26,
           "anchorX": 8.5,
-          "anchorY": 29
+          "anchorY": 26
         },
         {
-          "sourceId": "sprite_0596",
-          "x": 353,
-          "y": 607,
-          "width": 20,
-          "height": 29,
-          "anchorX": 10.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0597",
-          "x": 373,
-          "y": 607,
-          "width": 20,
-          "height": 29,
-          "anchorX": 10.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0598",
-          "x": 393,
-          "y": 607,
-          "width": 15,
-          "height": 29,
-          "anchorX": 7.5,
-          "anchorY": 29
-        }
-      ],
-      "sourceStream": "brave_walk"
-    },
-    "brave.green.walk.east": {
-      "entity": "brave",
-      "tribe": "green",
-      "action": "walk",
-      "direction": {
-        "id": "east",
-        "dx": 1,
-        "dy": 0
-      },
-      "loop": true,
-      "frameDurationMs": 120,
-      "frames": [
-        {
-          "sourceId": "sprite_0599",
-          "x": 408,
-          "y": 607,
-          "width": 12,
-          "height": 29,
-          "anchorX": 6.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0600",
-          "x": 420,
-          "y": 607,
-          "width": 11,
-          "height": 29,
-          "anchorX": 5.5,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0601",
-          "x": 431,
-          "y": 607,
-          "width": 11,
-          "height": 29,
-          "anchorX": 5.5,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0602",
-          "x": 442,
-          "y": 607,
-          "width": 10,
-          "height": 29,
-          "anchorX": 5.0,
-          "anchorY": 29
-        }
-      ],
-      "sourceStream": "brave_walk"
-    },
-    "brave.green.walk.north_east": {
-      "entity": "brave",
-      "tribe": "green",
-      "action": "walk",
-      "direction": {
-        "id": "north_east",
-        "dx": 1,
-        "dy": -1
-      },
-      "loop": true,
-      "frameDurationMs": 120,
-      "frames": [
-        {
-          "sourceId": "sprite_0603",
-          "x": 452,
-          "y": 607,
-          "width": 11,
-          "height": 29,
-          "anchorX": 5.5,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0604",
-          "x": 464,
-          "y": 607,
-          "width": 12,
-          "height": 29,
-          "anchorX": 6.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0605",
-          "x": 477,
-          "y": 607,
-          "width": 12,
-          "height": 29,
-          "anchorX": 6.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0606",
-          "x": 490,
-          "y": 607,
-          "width": 13,
-          "height": 29,
-          "anchorX": 6.5,
-          "anchorY": 29
-        }
-      ],
-      "sourceStream": "brave_walk"
-    },
-    "brave.green.walk.north": {
-      "entity": "brave",
-      "tribe": "green",
-      "action": "walk",
-      "direction": {
-        "id": "north",
-        "dx": 0,
-        "dy": -1
-      },
-      "loop": true,
-      "frameDurationMs": 120,
-      "frames": [
-        {
-          "sourceId": "sprite_0607",
-          "x": 503,
-          "y": 607,
-          "width": 20,
-          "height": 29,
-          "anchorX": 10.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0608",
-          "x": 523,
-          "y": 607,
-          "width": 21,
-          "height": 29,
-          "anchorX": 10.5,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0609",
-          "x": 544,
-          "y": 607,
-          "width": 21,
-          "height": 29,
-          "anchorX": 10.5,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0610",
-          "x": 565,
-          "y": 607,
+          "sourceId": "sprite_0161",
+          "x": 458,
+          "y": 109,
           "width": 19,
-          "height": 29,
+          "height": 26,
           "anchorX": 9.5,
-          "anchorY": 29
-        }
-      ],
-      "sourceStream": "brave_walk"
-    },
-    "brave.green.walk.north_west": {
-      "entity": "brave",
-      "tribe": "green",
-      "action": "walk",
-      "direction": {
-        "id": "north_west",
-        "dx": -1,
-        "dy": -1
-      },
-      "loop": true,
-      "frameDurationMs": 120,
-      "frames": [
-        {
-          "sourceId": "sprite_0611",
-          "x": 584,
-          "y": 607,
-          "width": 13,
-          "height": 29,
-          "anchorX": 6.5,
-          "anchorY": 29
+          "anchorY": 26
         },
         {
-          "sourceId": "sprite_0612",
-          "x": 598,
-          "y": 607,
-          "width": 12,
-          "height": 29,
-          "anchorX": 6.0,
-          "anchorY": 29
+          "sourceId": "sprite_0162",
+          "x": 480,
+          "y": 109,
+          "width": 17,
+          "height": 26,
+          "anchorX": 8.5,
+          "anchorY": 26
         },
         {
-          "sourceId": "sprite_0613",
-          "x": 611,
-          "y": 607,
-          "width": 12,
-          "height": 29,
-          "anchorX": 6.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0614",
-          "x": 624,
-          "y": 607,
-          "width": 12,
-          "height": 29,
-          "anchorX": 6.0,
-          "anchorY": 29
-        }
-      ],
-      "sourceStream": "brave_walk"
-    },
-    "brave.green.walk.west": {
-      "entity": "brave",
-      "tribe": "green",
-      "action": "walk",
-      "direction": {
-        "id": "west",
-        "dx": -1,
-        "dy": 0
-      },
-      "loop": true,
-      "frameDurationMs": 120,
-      "frames": [
-        {
-          "sourceId": "sprite_0615",
-          "x": 21,
-          "y": 637,
-          "width": 10,
-          "height": 29,
-          "anchorX": 5.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0616",
-          "x": 31,
-          "y": 637,
-          "width": 11,
-          "height": 29,
-          "anchorX": 5.5,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0617",
-          "x": 42,
-          "y": 637,
-          "width": 11,
-          "height": 29,
-          "anchorX": 5.5,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0618",
-          "x": 56,
-          "y": 637,
-          "width": 12,
-          "height": 29,
-          "anchorX": 6.0,
-          "anchorY": 29
+          "sourceId": "sprite_0163",
+          "x": 499,
+          "y": 109,
+          "width": 19,
+          "height": 26,
+          "anchorX": 9.5,
+          "anchorY": 26
         }
       ],
       "sourceStream": "brave_walk"
@@ -1610,40 +1712,346 @@
       "frameDurationMs": 120,
       "frames": [
         {
-          "sourceId": "sprite_0619",
-          "x": 69,
-          "y": 637,
-          "width": 15,
-          "height": 29,
-          "anchorX": 7.5,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0620",
-          "x": 84,
-          "y": 637,
-          "width": 20,
-          "height": 29,
-          "anchorX": 10.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0621",
-          "x": 104,
-          "y": 637,
-          "width": 20,
-          "height": 29,
-          "anchorX": 10.0,
-          "anchorY": 29
-        },
-        {
-          "sourceId": "sprite_0622",
-          "x": 124,
-          "y": 637,
+          "sourceId": "sprite_0164",
+          "x": 521,
+          "y": 109,
           "width": 17,
-          "height": 29,
+          "height": 26,
           "anchorX": 8.5,
-          "anchorY": 29
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0165",
+          "x": 540,
+          "y": 109,
+          "width": 16,
+          "height": 26,
+          "anchorX": 8.0,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0166",
+          "x": 559,
+          "y": 109,
+          "width": 16,
+          "height": 26,
+          "anchorX": 8.0,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0167",
+          "x": 578,
+          "y": 109,
+          "width": 15,
+          "height": 26,
+          "anchorX": 7.5,
+          "anchorY": 26
+        }
+      ],
+      "sourceStream": "brave_walk"
+    },
+    "brave.green.walk.west": {
+      "entity": "brave",
+      "tribe": "green",
+      "action": "walk",
+      "direction": {
+        "id": "west",
+        "dx": -1,
+        "dy": 0
+      },
+      "loop": true,
+      "frameDurationMs": 120,
+      "frames": [
+        {
+          "sourceId": "sprite_0168",
+          "x": 594,
+          "y": 109,
+          "width": 19,
+          "height": 26,
+          "anchorX": 9.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0169",
+          "x": 617,
+          "y": 109,
+          "width": 10,
+          "height": 26,
+          "anchorX": 5.0,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0170",
+          "x": 1,
+          "y": 136,
+          "width": 22,
+          "height": 26,
+          "anchorX": 11.0,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0171",
+          "x": 25,
+          "y": 136,
+          "width": 11,
+          "height": 26,
+          "anchorX": 5.5,
+          "anchorY": 26
+        }
+      ],
+      "sourceStream": "brave_walk"
+    },
+    "brave.green.walk.north_west": {
+      "entity": "brave",
+      "tribe": "green",
+      "action": "walk",
+      "direction": {
+        "id": "north_west",
+        "dx": -1,
+        "dy": -1
+      },
+      "loop": true,
+      "frameDurationMs": 120,
+      "frames": [
+        {
+          "sourceId": "sprite_0172",
+          "x": 40,
+          "y": 136,
+          "width": 18,
+          "height": 26,
+          "anchorX": 9.0,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0173",
+          "x": 60,
+          "y": 136,
+          "width": 11,
+          "height": 26,
+          "anchorX": 5.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0174",
+          "x": 72,
+          "y": 136,
+          "width": 19,
+          "height": 26,
+          "anchorX": 9.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0175",
+          "x": 92,
+          "y": 136,
+          "width": 15,
+          "height": 26,
+          "anchorX": 7.5,
+          "anchorY": 26
+        }
+      ],
+      "sourceStream": "brave_walk"
+    },
+    "brave.green.walk.north": {
+      "entity": "brave",
+      "tribe": "green",
+      "action": "walk",
+      "direction": {
+        "id": "north",
+        "dx": 0,
+        "dy": -1
+      },
+      "loop": true,
+      "frameDurationMs": 120,
+      "frames": [
+        {
+          "sourceId": "sprite_0176",
+          "x": 110,
+          "y": 136,
+          "width": 15,
+          "height": 26,
+          "anchorX": 7.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0177",
+          "x": 129,
+          "y": 136,
+          "width": 15,
+          "height": 26,
+          "anchorX": 7.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0178",
+          "x": 150,
+          "y": 136,
+          "width": 15,
+          "height": 26,
+          "anchorX": 7.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0179",
+          "x": 168,
+          "y": 136,
+          "width": 15,
+          "height": 26,
+          "anchorX": 7.5,
+          "anchorY": 26
+        }
+      ],
+      "sourceStream": "brave_walk"
+    },
+    "brave.green.walk.north_east": {
+      "entity": "brave",
+      "tribe": "green",
+      "action": "walk",
+      "direction": {
+        "id": "north_east",
+        "dx": 1,
+        "dy": -1
+      },
+      "loop": true,
+      "frameDurationMs": 120,
+      "frames": [
+        {
+          "sourceId": "sprite_0180",
+          "x": 183,
+          "y": 136,
+          "width": 15,
+          "height": 26,
+          "anchorX": 7.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0181",
+          "x": 199,
+          "y": 136,
+          "width": 19,
+          "height": 26,
+          "anchorX": 9.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0182",
+          "x": 219,
+          "y": 136,
+          "width": 11,
+          "height": 26,
+          "anchorX": 5.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0183",
+          "x": 232,
+          "y": 136,
+          "width": 18,
+          "height": 26,
+          "anchorX": 9.0,
+          "anchorY": 26
+        }
+      ],
+      "sourceStream": "brave_walk"
+    },
+    "brave.green.walk.east": {
+      "entity": "brave",
+      "tribe": "green",
+      "action": "walk",
+      "direction": {
+        "id": "east",
+        "dx": 1,
+        "dy": 0
+      },
+      "loop": true,
+      "frameDurationMs": 120,
+      "frames": [
+        {
+          "sourceId": "sprite_0184",
+          "x": 253,
+          "y": 136,
+          "width": 11,
+          "height": 26,
+          "anchorX": 5.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0185",
+          "x": 266,
+          "y": 136,
+          "width": 22,
+          "height": 26,
+          "anchorX": 11.0,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0186",
+          "x": 290,
+          "y": 136,
+          "width": 10,
+          "height": 26,
+          "anchorX": 5.0,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0187",
+          "x": 304,
+          "y": 136,
+          "width": 19,
+          "height": 26,
+          "anchorX": 9.5,
+          "anchorY": 26
+        }
+      ],
+      "sourceStream": "brave_walk"
+    },
+    "brave.green.walk.south_east": {
+      "entity": "brave",
+      "tribe": "green",
+      "action": "walk",
+      "direction": {
+        "id": "south_east",
+        "dx": 1,
+        "dy": 1
+      },
+      "loop": true,
+      "frameDurationMs": 120,
+      "frames": [
+        {
+          "sourceId": "sprite_0188",
+          "x": 323,
+          "y": 136,
+          "width": 15,
+          "height": 26,
+          "anchorX": 7.5,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0189",
+          "x": 341,
+          "y": 136,
+          "width": 16,
+          "height": 26,
+          "anchorX": 8.0,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0190",
+          "x": 360,
+          "y": 136,
+          "width": 16,
+          "height": 26,
+          "anchorX": 8.0,
+          "anchorY": 26
+        },
+        {
+          "sourceId": "sprite_0191",
+          "x": 378,
+          "y": 136,
+          "width": 17,
+          "height": 26,
+          "anchorX": 8.5,
+          "anchorY": 26
         }
       ],
       "sourceStream": "brave_walk"

@@ -45,6 +45,15 @@ bounds, they retain the transparent padding chosen by the original author and
 therefore keep the character anchor stable. The heuristic detection remains
 useful for visual classification and cross-checking.
 
+Rows 0 to 5 are the brave walk cycles: five consecutive blocks of 40 native
+cells from sprite 0, one block per tribe colour, each block being 32 walk cells
+(8 directions x 4 frames) followed by 8 standing cells. Only the loincloth
+carries the tribe colour, and the first block has none, so a naive colour
+classifier reports it as uncoloured rather than as a fifth variant.
+
+Rows 16 to 19 look superficially similar but are standing poses with a raised
+arm. They contain no leg cycle and must not be used for locomotion.
+
 Known limitations:
 
 - a frame made of visually disconnected parts may produce several candidates;

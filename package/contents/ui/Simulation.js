@@ -14,6 +14,7 @@ var directions = [
 var tribes = ["blue", "red", "yellow", "green"]
 
 var tribeColors = {
+    neutral: "#b9b0a2",
     blue: "#45d7ff",
     red: "#ff5545",
     yellow: "#ffe35a",

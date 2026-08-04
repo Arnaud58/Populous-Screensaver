@@ -27,7 +27,7 @@ QML et JavaScript.
 - [x] Première détection automatique des frames
 - [x] Génération d'une carte annotée de l'atlas
 - [x] Première classification visuelle des familles de sprites
-- [x] Regroupement des 32 cycles de marche des quatre tribus
+- [x] Regroupement des 40 cycles de marche des cinq variantes de tribu
 - [x] Extraction des 1 180 cellules définies par le code original
 - [ ] Regroupement des autres frames en animations cohérentes
 - [x] Création du prototype QML sur fond noir
@@ -227,9 +227,41 @@ séquences.
 
 ### 6. Construire le manifeste d'animations
 
-Cette étape est en cours. Les 128 frames de marche ont été identifiées et
-regroupées en 32 animations : quatre tribus, huit directions et quatre poses
-par cycle.
+Cette étape est en cours. Les 160 frames de marche ont été identifiées et
+regroupées en 40 animations : cinq variantes de tribu, huit directions et
+quatre poses par cycle.
+
+Les rangées 0 à 5 de l'atlas contiennent cinq blocs consécutifs de 40 cellules
+natives, à partir du sprite 0. Chaque bloc est le même personnage dans une
+couleur différente : le pagne seul porte la couleur, et le premier bloc n'en a
+aucune. Sur les 40 cellules d'un bloc, seules les 32 premières forment le cycle
+de marche ; les 8 dernières sont des poses debout.
+
+| Bloc | Premier sprite | Tribu |
+| ---- | -------------- | ------ |
+| 0 | 0 | neutre |
+| 1 | 40 | bleu |
+| 2 | 80 | rouge |
+| 3 | 120 | jaune |
+| 4 | 160 | vert |
+
+L'ordre des directions a été retrouvé grâce à la signature des largeurs de
+cellules, qui est symétrique en miroir par blocs de quatre : `south_west` est le
+miroir de `south_east`, `west` celui de `east` et `north_west` celui de
+`north_east`. `south` et `north` sont les deux axes auto-symétriques. L'est et
+l'ouest ont ensuite été départagés à l'œil : la direction d'indice 2 se penche
+et avance vers la gauche de l'écran, celle d'indice 6 vers la droite.
+
+L'ordre correct est donc :
+
+```text
+south, south_west, west, north_west, north, north_east, east, south_east
+```
+
+Les versions antérieures à 0.4.0 lisaient 128 frames à partir du sprite 495.
+Ces cellules sont celles des rangées 16 à 19 : des poses debout avec un bras
+tendu, sans aucun cycle de jambes. Elles étaient de plus parcourues dans
+l'ordre de directions inverse, ce qui échangeait l'est et l'ouest.
 
 Le fichier `research/sprite-groups.json` contient une première classification
 visuelle :
@@ -297,8 +329,9 @@ Cette commande génère également :
 ### 7. Créer le prototype QML
 
 Une première version est maintenant disponible dans `package/contents/ui`.
-Elle charge les 32 cycles de marche natifs et affiche 24 personnages des quatre
-tribus sur un fond noir. Les personnages choisissent l'une des huit directions,
+Elle charge les 40 cycles de marche natifs et affiche 24 personnages des quatre
+tribus colorées sur un fond noir. La variante neutre est présente dans le
+manifeste mais n'est pas encore utilisée par la simulation. Les personnages choisissent l'une des huit directions,
 se déplacent à des vitesses légèrement différentes et changent de direction
 aux limites de l'écran.
 
@@ -436,7 +469,7 @@ avec `--upgrade` doit être exécutée après chaque modification du paquet.
 
 Le dépôt contient aussi un instantané autonome dans
 `plugin/org.poptheme.populous/`. Il est identique au dossier `package/` à la
-version 0.3.0 et peut être copié ou installé sans les outils de recherche :
+version 0.4.0 et peut être copié ou installé sans les outils de recherche :
 
 ```bash
 kpackagetool6 \
