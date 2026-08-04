@@ -1,85 +1,128 @@
-# Populous Screen Saver pour KDE Plasma 6
+# Populous Screen Saver
 
-Portage expérimental du screensaver Windows **Populous: The Beginning** de
-Bullfrog vers un fond d'écran animé compatible avec KDE Plasma 6.
+A port of Bullfrog's 1998 Windows screen saver for **Populous: The Beginning**
+to modern systems.
 
-Le rendu utilisera un fond noir, comme la version connue sous Windows XP. Les
-sprites et les effets sonores sont récupérés depuis le fichier original
-`Populous Screen Saver.scr`, tandis que la logique d'animation sera réécrite en
-QML et JavaScript.
+The original `.scr` is preserved untouched as the source of truth. Its sprites
+and sound effects are extracted from it; the simulation is rewritten from
+scratch. Rendering is on a black background, like the version most people
+remember from Windows XP.
 
-## Objectifs
+The project builds **two versions from one engine**:
 
-- reproduire les personnages animés sur un fond noir ;
-- reproduire les déplacements, combats, sorts et l'Armageddon ;
-- conserver les graphismes et effets sonores originaux ;
-- fonctionner comme plugin de fond d'écran Plasma 6 ;
-- pouvoir utiliser le plugin sur l'écran de verrouillage ;
-- prendre en charge différentes résolutions et plusieurs écrans.
+- a **faithful port**, reproducing the 1998 behaviour on one screen;
+- a **modern version**, which the original could not do: a single continuous
+  world spanning every monitor, high-DPI aware, with a seeded deterministic
+  simulation.
 
-## État actuel
+## Deliverables
 
-- [x] Copie et identification du fichier `.scr` original
-- [x] Extraction des ressources Windows
-- [x] Conversion de la planche de sprites en PNG RGBA
-- [x] Conversion du bandeau Populous
-- [x] Extraction et conversion des 28 sons WAV
-- [x] Première détection automatique des frames
-- [x] Génération d'une carte annotée de l'atlas
-- [x] Première classification visuelle des familles de sprites
-- [x] Regroupement des 40 cycles de marche des cinq variantes de tribu
-- [x] Extraction des 1 180 cellules définies par le code original
-- [ ] Regroupement des autres frames en animations cohérentes
-- [x] Création du prototype QML sur fond noir
-- [x] Marche, changements de direction et évitement des collisions
-- [x] Traces de pas temporaires colorées par tribu
-- [ ] Réimplémentation de la simulation
-- [ ] Ajout des sons
-- [ ] Création de la configuration Plasma
-- [x] Installation locale du plugin Plasma
-- [x] Test autonome du moteur QML
-- [ ] Sélection et test sur l'écran verrouillé
+| Target | Host | Renderer | Multi-monitor | Status |
+| ------ | ---- | -------- | ------------- | ------ |
+| `plasma` | KDE Plasma 6 wallpaper plugin | QML | one world per screen | working |
+| `qt-app` (Linux) | standalone executable | QML | continuous world | planned |
+| `qt-app` (Windows) | `.scr` screen saver | QML | continuous world | planned |
+| `xscreensaver` | X11 screen saver hack | C / OpenGL | one world per window | planned |
 
-## Arborescence
+The Plasma wallpaper plugin is also what KDE's **lock screen** consumes, so it
+covers the screen-saver use case on KDE without being a screen saver in the
+X11 sense.
+
+Three of the four targets share the QML engine verbatim. The xscreensaver hack
+cannot: it is a C binary drawing into an X11 window handed to it on the command
+line. That target is the one deliberate duplication in the project, and the
+measures that keep it from silently diverging are described under
+[Determinism](#determinism-and-the-c-port).
+
+## Repository layout
 
 ```text
-populous-plasma/
-├── README.md
-├── original/
-│   └── Populous Screen Saver.scr
-├── extracted/
-│   ├── .text
-│   ├── .data
-│   └── .rsrc/
-│       ├── BITMAP/
-│       ├── ICON/
-│       └── WAVE/
-├── tools/
-│   ├── build-atlas.py
-│   ├── build-sprites.py
-│   └── extract-native-sprites.py
-├── research/
-│   ├── README.md
-│   ├── animation-layout.json
-│   ├── sprites-detected.json
-│   ├── sprites-detected.png
-│   ├── sprites-native.json
-│   ├── sprites.json
-│   └── sprite-groups.json
-├── plugin/
-│   └── org.poptheme.populous/   # copie autonome directement installable
-└── package/
-    └── contents/
-        ├── images/
-        │   ├── sprites.png
-        │   └── plinth.png
-        ├── sounds/
-        └── sounds-converted/
+populous-screensaver/
+├── original/          # the 1998 .scr, never modified
+├── extracted/         # raw Windows resources unpacked from it
+├── tools/             # Python pipeline: extract, analyse, build, assemble
+├── research/          # atlas analysis and review artefacts
+├── assets/            # canonical output of the pipeline, stored once
+│   ├── images/        #   sprites.png, plinth.png
+│   ├── data/          #   sprites.json — the animation manifest
+│   ├── sounds/        #   28 original PCM effects
+│   └── sounds-converted/
+├── core/              # the engine, shared by every QML target
+│   ├── qml/           #   Character.qml, Footprint.qml
+│   └── js/            #   Simulation.js, Animations.js (generated)
+├── spec/              # language-neutral simulation rules
+├── targets/           # per-target host shells only
+│   └── plasma/        #   metadata.json + contents/ui/main.qml
+├── tests/             # standalone preview, golden traces
+└── build/             # assembled payloads — generated, not versioned
 ```
 
-## Dépendances
+The rule that shapes this layout: **nothing shared is stored twice.** The atlas
+and the 56 sound files exist once, under `assets/`. Targets contain only what
+is genuinely specific to their host — for Plasma, that is a `metadata.json` and
+a single `main.qml`. Everything else is copied in at build time by
+`tools/build-targets.py`.
 
-Sous Ubuntu et les distributions dérivées :
+Earlier versions kept a fully assembled `package/` *and* a byte-for-byte
+duplicate in `plugin/`, which meant 3.6 MB of assets stored twice with nothing
+keeping them in sync. Both are gone.
+
+## How it fits together
+
+```text
+original/*.scr
+    │  7z, ffmpeg
+    ▼
+extracted/            raw bitmaps, mask, 28 WAV resources
+    │  tools/build-atlas.py, tools/extract-native-sprites.py
+    ▼
+research/             frame coordinates, groupings, reviewed layout
+    │  tools/build-sprites.py
+    ▼
+assets/               atlas + manifest + sounds        ─┐
+core/                 engine (QML + JS)                 ├─ tools/build-targets.py
+targets/<name>/       host shell                       ─┘
+    ▼
+build/<target>/       installable payload
+```
+
+## Current status
+
+Version 0.4.0.
+
+**Done**
+
+- [x] Original `.scr` preserved and identified
+- [x] Windows resources extracted
+- [x] Sprite sheet converted to RGBA using the transparency mask
+- [x] Populous plinth banner converted
+- [x] 28 WAV effects extracted and converted
+- [x] Automatic frame detection over the atlas
+- [x] Annotated atlas map for visual review
+- [x] First visual classification of sprite families
+- [x] 1,180 native cells recovered from the original binary
+- [x] 40 walk cycles grouped: five tribe variants, eight directions
+- [x] QML prototype on a black background
+- [x] Walking, direction changes, collision avoidance
+- [x] Temporary footprints tinted per tribe
+- [x] Plasma plugin installs and runs locally
+- [x] Assets separated from targets, payloads assembled on demand
+
+**Next**
+
+- [ ] Seeded PRNG and fixed timestep
+- [ ] World-region and viewport geometry in the core
+- [ ] Group the remaining atlas frames into named animations
+- [ ] Combat, deaths, conversions, shamans, spells, gathering, Armageddon
+- [ ] Sound playback
+- [ ] Plasma configuration page
+- [ ] Standalone Qt application, Linux then Windows `.scr`
+- [ ] xscreensaver hack
+- [ ] Lock-screen selection and testing
+
+## Dependencies
+
+On Ubuntu and derivatives:
 
 ```bash
 sudo apt install \
@@ -93,16 +136,16 @@ sudo apt install \
     qml6-module-qtqml-workerscript
 ```
 
-La première version sera entièrement réalisée en QML et JavaScript. Elle ne
-nécessite donc pas de compilateur C++, de CMake ou de bibliothèques Qt de
-développement.
+The pipeline needs Python 3 with Pillow. The Plasma target needs no C++
+compiler, no CMake and no Qt development libraries — it is QML and JavaScript
+only. The Qt application and the xscreensaver hack will need a toolchain; that
+is confined to those targets.
 
-## Pipeline
+## Asset pipeline
 
-### 1. Préserver le fichier original
+### 1. Preserve the original
 
-Le fichier original est conservé séparément afin que toutes les ressources
-puissent être régénérées :
+The original file is kept separate so every derived resource can be rebuilt:
 
 ```bash
 mkdir -p original
@@ -110,32 +153,32 @@ cp "../Populous Screen Saver.scr" original/
 sha256sum "original/Populous Screen Saver.scr"
 ```
 
-Somme SHA-256 connue :
+Known SHA-256:
 
 ```text
 a25f7f7d219018fcf1888891738a706dff5f39f72de103a21dde3945f7097e0b
 ```
 
-### 2. Extraire les ressources Windows
+### 2. Extract the Windows resources
 
 ```bash
 mkdir -p extracted
 7z x "original/Populous Screen Saver.scr" -oextracted
 ```
 
-Les ressources importantes sont :
+The resources that matter:
 
-- `IDB_POPSAVER.bmp` : planche de sprites couleur, 640 × 1277 pixels ;
-- `IDB_POPSAVERMASK.bmp` : masque de transparence ;
-- `IDB_PLINTH2.bmp` : bandeau Populous ;
-- `WAVE/*` : 28 effets sonores PCM.
+- `IDB_POPSAVER.bmp` — colour sprite sheet, 640 × 1277 pixels;
+- `IDB_POPSAVERMASK.bmp` — transparency mask;
+- `IDB_PLINTH2.bmp` — Populous banner;
+- `WAVE/*` — 28 PCM sound effects.
 
-### 3. Construire l'atlas transparent
+### 3. Build the transparent atlas
 
-Le masque noir et blanc est inversé puis utilisé comme canal alpha :
+The black-and-white mask is inverted and used as the alpha channel:
 
 ```bash
-mkdir -p package/contents/images
+mkdir -p assets/images
 
 ffmpeg \
     -i extracted/.rsrc/BITMAP/IDB_POPSAVER.bmp \
@@ -143,385 +186,326 @@ ffmpeg \
     -filter_complex \
     "[1:v]format=gray,negate[alpha];[0:v][alpha]alphamerge,format=rgba" \
     -frames:v 1 \
-    package/contents/images/sprites.png
-```
+    assets/images/sprites.png
 
-Conversion du bandeau :
-
-```bash
 ffmpeg \
     -i extracted/.rsrc/BITMAP/IDB_PLINTH2.bmp \
     -frames:v 1 \
-    package/contents/images/plinth.png
+    assets/images/plinth.png
 ```
 
-### 4. Récupérer les sons
+### 4. Recover the sounds
 
-Les ressources sont déjà des fichiers WAV, mais elles ne portent pas
-d'extension :
+The resources are already WAV files, but carry no extension:
 
 ```bash
-mkdir -p package/contents/sounds
+mkdir -p assets/sounds
 
 for source_file in extracted/.rsrc/WAVE/*; do
     sound_name="$(basename "$source_file")"
     sound_name="${sound_name#WAV_}"
-    cp "$source_file" "package/contents/sounds/${sound_name,,}.wav"
+    cp "$source_file" "assets/sounds/${sound_name,,}.wav"
 done
 ```
 
-Une version PCM 16 bits à 44,1 kHz est également conservée pour améliorer la
-compatibilité avec Qt Multimedia :
+A 16-bit 44.1 kHz PCM version is kept alongside for Qt Multimedia
+compatibility:
 
 ```bash
-mkdir -p package/contents/sounds-converted
+mkdir -p assets/sounds-converted
 
-for source_file in package/contents/sounds/*.wav; do
+for source_file in assets/sounds/*.wav; do
     sound_name="$(basename "$source_file")"
     ffmpeg -i "$source_file" \
         -ar 44100 \
         -ac 1 \
         -c:a pcm_s16le \
-        "package/contents/sounds-converted/$sound_name"
+        "assets/sounds-converted/$sound_name"
 done
 ```
 
-### 5. Cartographier les sprites
+### 5. Map the sprites
 
-La planche contient des lignes guides horizontales opaques. Le script de
-recherche détecte ces guides, puis les colonnes transparentes qui séparent les
-poses candidates :
+The sheet contains opaque horizontal guide lines. The detector finds those
+guides, then the transparent column runs that separate candidate poses:
 
 ```bash
 python3 tools/build-atlas.py
 ```
 
-Le script génère :
-
-- `research/sprites-detected.json` : coordonnées des rectangles candidats ;
-- `research/sprites-detected.png` : planche annotée pour vérification visuelle.
-
-Résultat actuel :
+It writes `research/sprites-detected.json` and an annotated
+`research/sprites-detected.png` for visual checking. Current result:
 
 ```text
-39 lignes guides utiles
-39 bandes de sprites
-1179 rectangles candidats
+39 usable guide lines
+39 sprite bands
+1179 candidate rectangles
 ```
 
-Ces rectangles ne correspondent pas encore tous à une frame complète. Les
-particules et les effets constitués de plusieurs éléments peuvent produire
-plusieurs rectangles pour une seule frame logique.
+Not every rectangle is a complete frame. Particles and multi-part effects can
+produce several rectangles for one logical frame.
 
-Le binaire contient aussi une table native de 1 180 cellules avec largeur,
-hauteur, position X et position Y. Elle conserve les marges transparentes
-nécessaires pour éviter les tremblements pendant une animation :
+The binary also contains a native table of 1,180 cells with width, height and
+position. It preserves the transparent padding that keeps a character from
+jittering during an animation:
 
 ```bash
 python3 tools/extract-native-sprites.py
 ```
 
-Le résultat `research/sprites-native.json` devient la source prioritaire des
-coordonnées. La détection visuelle reste utile pour nommer et regrouper les
-séquences.
+`research/sprites-native.json` is the authoritative source of coordinates.
+Visual detection remains useful for naming and grouping sequences.
 
-### 6. Construire le manifeste d'animations
+### 6. Build the animation manifest
 
-Cette étape est en cours. Les 160 frames de marche ont été identifiées et
-regroupées en 40 animations : cinq variantes de tribu, huit directions et
-quatre poses par cycle.
+In progress. 160 walk frames are identified and grouped into 40 animations:
+five tribe variants, eight directions, four poses per cycle.
 
-Les rangées 0 à 5 de l'atlas contiennent cinq blocs consécutifs de 40 cellules
-natives, à partir du sprite 0. Chaque bloc est le même personnage dans une
-couleur différente : le pagne seul porte la couleur, et le premier bloc n'en a
-aucune. Sur les 40 cellules d'un bloc, seules les 32 premières forment le cycle
-de marche ; les 8 dernières sont des poses debout.
+Atlas rows 0 to 5 hold five consecutive blocks of 40 native cells starting at
+sprite 0. Each block is the same character in a different colour — only the
+loincloth carries it, and the first block has none. Of the 40 cells in a block,
+only the first 32 form the walk cycle; the last 8 are standing poses.
 
-| Bloc | Premier sprite | Tribu |
-| ---- | -------------- | ------ |
-| 0 | 0 | neutre |
-| 1 | 40 | bleu |
-| 2 | 80 | rouge |
-| 3 | 120 | jaune |
-| 4 | 160 | vert |
+| Block | First sprite | Tribe |
+| ----- | ------------ | ----- |
+| 0 | 0 | neutral |
+| 1 | 40 | blue |
+| 2 | 80 | red |
+| 3 | 120 | yellow |
+| 4 | 160 | green |
 
-L'ordre des directions a été retrouvé grâce à la signature des largeurs de
-cellules, qui est symétrique en miroir par blocs de quatre : `south_west` est le
-miroir de `south_east`, `west` celui de `east` et `north_west` celui de
-`north_east`. `south` et `north` sont les deux axes auto-symétriques. L'est et
-l'ouest ont ensuite été départagés à l'œil : la direction d'indice 2 se penche
-et avance vers la gauche de l'écran, celle d'indice 6 vers la droite.
-
-L'ordre correct est donc :
+The direction order was recovered from the cell-width signature, which is
+mirror-symmetric in blocks of four: `south_west` mirrors `south_east`, `west`
+mirrors `east`, `north_west` mirrors `north_east`, and `south` and `north` are
+the two self-symmetric axes. East and west were then told apart by inspection —
+direction index 2 leans and strides towards the left of the screen, index 6
+towards the right. The correct order is:
 
 ```text
 south, south_west, west, north_west, north, north_east, east, south_east
 ```
 
-Les versions antérieures à 0.4.0 lisaient 128 frames à partir du sprite 495.
-Ces cellules sont celles des rangées 16 à 19 : des poses debout avec un bras
-tendu, sans aucun cycle de jambes. Elles étaient de plus parcourues dans
-l'ordre de directions inverse, ce qui échangeait l'est et l'ouest.
+Versions before 0.4.0 read 128 frames starting at sprite 495. Those cells are
+atlas rows 16 to 19: standing poses with a raised arm and no leg cycle at all.
+They were also walked in the reverse direction order, which swapped east and
+west. Both bugs are fixed.
 
-Le fichier `research/sprite-groups.json` contient une première classification
-visuelle :
+`research/sprite-groups.json` holds the first visual classification of the rest
+of the sheet: shamans, gold and green figures, falls and rolls, fires,
+particles, combatants, probable Armageddon sequences and a circular spell
+effect. None of these are grouped into named animations yet.
 
-- grand personnage brun ;
-- shamans bleu et rouge ;
-- personnages dorés et verts ;
-- petits marcheurs de plusieurs tribus ;
-- chutes, roulades et personnages au sol ;
-- flammes ;
-- particules ;
-- combattants ;
-- séquences probablement associées à l'Armageddon ;
-- effet circulaire de sort.
+For each sequence still to be reviewed, the checks are: where it starts and
+ends, frame order, direction, tribe or character type, approximate duration,
+ground anchor, and any associated sound. The default anchor is the bottom
+centre of the rectangle and must be corrected for sequences that jitter.
 
-La suite consiste à créer un manifeste révisé `research/sprites.json` avec des
-animations nommées :
-
-```json
-{
-  "animations": {
-    "brave_blue_walk_east": {
-      "frameDuration": 120,
-      "loop": true,
-      "frames": [
-        {
-          "x": 0,
-          "y": 0,
-          "width": 18,
-          "height": 26,
-          "anchorX": 9,
-          "anchorY": 26
-        }
-      ]
-    }
-  }
-}
-```
-
-Pour chaque séquence, il faudra vérifier :
-
-1. son début et sa fin dans l'atlas ;
-2. l'ordre des frames ;
-3. sa direction ;
-4. sa tribu ou son type de personnage ;
-5. sa durée approximative ;
-6. son point d'ancrage au sol ;
-7. son éventuel effet sonore.
-
-Le point d'ancrage par défaut est le milieu inférieur du rectangle. Il devra
-être corrigé pour les animations qui tremblent ou se décalent.
-
-Les animations révisées sont construites avec :
+Reviewed sequences are described in `research/animation-layout.json` and
+compiled with:
 
 ```bash
 python3 tools/build-sprites.py
 ```
 
-Cette commande génère également :
+This writes `assets/data/sprites.json` (canonical), `research/sprites.json`
+(same content, for review), `core/js/Animations.js` (importable from QML) and
+`research/walk-cycles.gif` for visually checking cycles, directions and
+anchors.
 
-- `package/contents/data/sprites.json`, destiné au plugin QML ;
-- `research/walk-cycles.gif`, pour contrôler visuellement les cycles, les
-  directions et les points d'ancrage.
+`Animations.js` exists because Qt forbids `XMLHttpRequest` from reading local
+files by default, so the manifest is also emitted as a JavaScript module.
 
-### 7. Créer le prototype QML
+## The engine
 
-Une première version est maintenant disponible dans `package/contents/ui`.
-Elle charge les 40 cycles de marche natifs et affiche 24 personnages des quatre
-tribus colorées sur un fond noir. La variante neutre est présente dans le
-manifeste mais n'est pas encore utilisée par la simulation. Les personnages choisissent l'une des huit directions,
-se déplacent à des vitesses légèrement différentes et changent de direction
-aux limites de l'écran.
+`core/` holds everything that is not host-specific.
 
-Le premier prototype contiendra :
+- `core/qml/Character.qml` — one character: position, direction, animation
+  frame, edge handling, avoidance, footprint emission. Renders a region of the
+  atlas with `sourceClipRect`, avoiding hundreds of small PNG files.
+- `core/qml/Footprint.qml` — a fading footprint pair, tinted per tribe.
+- `core/js/Simulation.js` — directions, tribes, colours and helpers. A
+  `.pragma library` module with no QML dependency.
+- `core/js/Animations.js` — generated manifest.
 
-- un rectangle noir couvrant tout l'écran ;
-- un chargeur pour `sprites.json` ;
-- un composant `Character.qml` ;
-- une animation de marche ;
-- plusieurs personnages placés aléatoirement ;
-- un changement de direction aux bords de l'écran ;
-- une adaptation à la résolution et au facteur d'échelle.
+A host shell supplies a black background, a character count, a sprite scale and
+the world geometry, then instantiates characters. `targets/plasma/contents/ui/main.qml`
+is that shell for Plasma, in 81 lines. The Qt application will be a second one.
 
-Structure prévue :
+The rules the engine implements, and the ones still missing, are written down
+in [spec/simulation.md](spec/simulation.md).
 
-```text
-package/
-├── metadata.json
-└── contents/
-    ├── ui/
-    │   ├── main.qml
-    │   ├── Character.qml
-    │   ├── Footprint.qml
-    │   └── Simulation.js
-    ├── images/
-    ├── sounds/
-    └── config/
-```
+## Building and installing
 
-Le composant QML utilise `sourceClipRect` pour afficher une zone de l'atlas,
-sans créer plusieurs centaines de petits fichiers PNG.
-
-Le manifeste est également généré sous forme de module JavaScript
-`Animations.js`. Cela évite `XMLHttpRequest`, auquel Qt interdit par défaut de
-lire des fichiers locaux.
-
-Un aperçu autonome est disponible dans `tests/Preview.qml`. Avec le paquet
-`qmlscene-qt6` installé, il peut être lancé sans modifier le bureau :
+Assemble every target payload:
 
 ```bash
-qmlscene-qt6 --software --resize-to-root tests/Preview.qml
+python3 tools/build-targets.py --clean
 ```
 
-Le prototype a été validé en 1280 × 720 avec le rendu logiciel Qt : les
-24 personnages sont répartis sur toute la surface noire, leurs cycles sont
-animés et leurs positions restent dans les limites de l'écran.
-
-### 8. Réimplémenter la simulation
-
-La simulation sera ajoutée progressivement :
-
-1. ~~marche et changements de direction~~ ;
-2. ~~différentes tribus~~ ;
-3. ~~traces de pas~~ ;
-4. ~~évitement des collisions~~ ;
-5. combats et morts ;
-6. conversions ;
-7. shamans et sorts ;
-8. rassemblement au centre ;
-9. Armageddon.
-
-Depuis la version 0.2.0, chaque personnage change spontanément de direction
-toutes les 2 à 7 secondes et se détourne d'un autre personnage trop proche.
-Ce premier système d'évitement prépare les interactions plus avancées sans
-encore déclencher de combat.
-
-La version 0.3.0 ajoute des paires de traces pixelisées colorées selon la
-tribu. Elles sont espacées selon la distance réellement parcourue, restent
-visibles brièvement puis disparaissent progressivement. Les cellules natives
-de particules de la rangée 27 ne seront utilisées qu'après confirmation de
-leur correspondance exacte avec les orientations des pas.
-
-Le comportement visible sera reproduit en priorité. Le désassemblage des
-129 Ko de code original servira seulement pour retrouver les règles,
-probabilités ou temporisations ambiguës.
-
-### 9. Ajouter les sons
-
-Les effets seront joués avec Qt Multimedia. Ils seront associés aux événements
-de la simulation, avec une limite du nombre de sons simultanés.
-
-Les premiers sons à intégrer seront :
-
-- attaques et coups ;
-- conversion ;
-- lancement de sort ;
-- éclairs et tourbillon ;
-- épées ;
-- boucle de guerre pour l'Armageddon.
-
-Le fonctionnement du son devra être vérifié séparément sur l'écran verrouillé.
-
-### 10. Créer la configuration
-
-Les réglages envisagés sont inspirés du screensaver original :
-
-- nombre de personnages ;
-- délai avant Armageddon ;
-- activation des sons ;
-- volume ;
-- intensité des traces de pas ;
-- taille des sprites ;
-- graine aléatoire facultative pour les tests.
-
-Le fond restera toujours noir.
-
-### 11. Installer dans Plasma
-
-Installation locale :
+Then install the Plasma wallpaper plugin:
 
 ```bash
-kpackagetool6 \
-    --type Plasma/Wallpaper \
-    --install package
+kpackagetool6 --type Plasma/Wallpaper --install build/plasma/org.poptheme.populous
 ```
 
-Mise à jour pendant le développement :
+During development, after each change:
 
 ```bash
-kpackagetool6 \
-    --type Plasma/Wallpaper \
-    --upgrade package
+python3 tools/build-targets.py
+kpackagetool6 --type Plasma/Wallpaper --upgrade build/plasma/org.poptheme.populous
 ```
 
-Vérification :
+Check and remove:
 
 ```bash
 kpackagetool6 --type Plasma/Wallpaper --list
+kpackagetool6 --type Plasma/Wallpaper --remove org.poptheme.populous
 ```
 
-État sur la machine de développement : le plugin
-`org.poptheme.populous` est installé dans
-`~/.local/share/plasma/wallpapers/org.poptheme.populous/`. Une mise à niveau
-avec `--upgrade` doit être exécutée après chaque modification du paquet.
-
-Le dépôt contient aussi un instantané autonome dans
-`plugin/org.poptheme.populous/`. Il est identique au dossier `package/` à la
-version 0.4.0 et peut être copié ou installé sans les outils de recherche :
+A standalone preview is available without touching the desktop, once the
+payload is built and `qmlscene-qt6` is installed:
 
 ```bash
-kpackagetool6 \
-    --type Plasma/Wallpaper \
-    --install plugin/org.poptheme.populous
+python3 tools/build-targets.py
+qmlscene-qt6 --software --resize-to-root tests/Preview.qml
 ```
 
-Désinstallation :
+The prototype was validated at 1280 × 720 with Qt software rendering: 24
+characters spread over the black surface, cycles animating, positions staying
+inside the bounds.
 
-```bash
-kpackagetool6 \
-    --type Plasma/Wallpaper \
-    --remove org.poptheme.populous
-```
-
-### 12. Activer sur l'écran verrouillé
-
-Dans Plasma :
+### Enabling it on the lock screen
 
 ```text
-Configuration du système
-→ Sécurité et confidentialité
-→ Verrouillage de l'écran
-→ Configurer l'apparence
-→ Type de fond d'écran
+System Settings
+→ Security & Privacy
+→ Screen Locking
+→ Configure Appearance
+→ Wallpaper type
 → Populous Screen Saver
 ```
 
-Test rapide :
+Quick test: `Ctrl + Alt + L`.
 
-```text
-Ctrl + Alt + L
-```
+## The plan
+
+Five phases. Each one is ordered so that it unblocks the next, rather than by
+how visible the result is.
+
+### Phase 1 — Separate assets from targets ✅
+
+Done in 0.4.0. Assets live once under `assets/`, the engine under `core/`, host
+shells under `targets/`, and payloads are assembled into `build/`. This is what
+makes a second and third target possible without duplicating megabytes, and it
+removes the unsynchronised `plugin/` copy.
+
+### Phase 2 — Make the core deterministic and geometry-aware
+
+The blocking phase, and the reason it comes before any new platform.
+
+The simulation is currently driven by **per-character QML timers** — animation,
+init, movement, avoidance, wander, five timers times 24 characters, each ticking
+against the wall clock through `Date.now()`. That is three problems at once: it
+is not deterministic, so implementations cannot be compared; it does not port to
+C; and it scales badly towards dozens of characters across three monitors.
+
+The work:
+
+- one seeded PRNG shared by every implementation, replacing every
+  `Math.random()` call;
+- a single fixed-timestep loop stepping all characters, with elapsed time
+  passed in rather than read inside;
+- world region plus viewport list replacing the implicit single `width` ×
+  `height`, so that a continuous multi-monitor world and a per-screen world are
+  the same code path with a different viewport count;
+- spatial partitioning to replace the O(n²) avoidance scan;
+- golden traces in `tests/golden/`, generated from the JS core.
+
+The Plasma target must keep working throughout.
+
+### Phase 3 — The standalone Qt application
+
+A second host shell over the same `core/`. Linux first, because iteration is
+faster there, then the Windows `.scr`.
+
+A `.scr` is an ordinary executable with a different extension, invoked with
+`/s` to run, `/c` to configure and `/p <hwnd>` to preview in the Windows
+settings dialog. Qt enumerates monitors through `QScreen`, so the continuous
+world from phase 2 maps directly onto one window per monitor.
+
+This is the target that gives the modern version its reason to exist.
+
+### Phase 4 — The rest of the simulation
+
+Grouping the remaining atlas frames, then implementing behaviour, in
+dependency order: combat and deaths, conversions, shamans and spells, gathering
+at the centre, Armageddon. Sound comes with it, wired to simulation events with
+a cap on simultaneous effects.
+
+`spec/simulation.md` is written **as** each rule is implemented, while the
+reasoning is fresh, not reconstructed afterwards.
+
+Observed behaviour is reproduced first. Disassembling the original's 129 KB of
+code is a fallback, used only to settle ambiguous rules, probabilities or
+timings.
+
+### Phase 5 — The xscreensaver hack
+
+Last, deliberately. It is a C and OpenGL renderer that shares no code with the
+QML targets, so it should be written against a frozen spec and an existing set
+of golden traces rather than against a moving one.
+
+X11 only, and therefore not usable under Wayland. It exists for non-KDE and
+X11 setups, not as the Linux path — on KDE, the wallpaper plugin is.
+
+## Determinism and the C port
+
+The xscreensaver target forces the simulation to exist in two languages. Two
+measures keep that from turning into silent divergence:
+
+1. **A shared seeded PRNG.** Identical algorithm, identical draw order,
+   identical output for a given seed. Without this, nothing below is possible.
+2. **Golden traces.** Both implementations run from the same seed, dump the
+   state of every character over N fixed steps, and the traces are diffed. A
+   behavioural difference becomes a failing comparison instead of something
+   noticed months later on screen.
+
+This also gives the optional test seed already planned for the configuration
+page.
+
+## Configuration
+
+Planned settings, following the original:
+
+- number of characters;
+- delay before Armageddon;
+- sound on or off, and volume;
+- footprint intensity;
+- sprite size;
+- optional random seed, for testing;
+- multi-monitor mode: continuous world or one world per screen.
+
+The background always stays black.
 
 ## Validation
 
-Avant de considérer le portage comme terminé, il faudra vérifier :
+Before the port can be called finished:
 
-- le rendu sans bordures ni lignes guides ;
-- la stabilité des personnages au sol ;
-- les performances avec plusieurs dizaines de personnages ;
-- les écrans à haute densité de pixels ;
-- les configurations multi-écrans ;
-- la session X11 actuelle ;
-- une session Wayland ;
-- le verrouillage et le déverrouillage répétés ;
-- l'arrêt correct des sons au déverrouillage ;
-- l'absence de processus ou de ressources conservés après la fermeture.
+- rendering with no borders or guide lines;
+- characters stable on the ground, no jitter;
+- performance with several dozen characters;
+- high-DPI displays;
+- multi-monitor layouts, including mixed resolutions and non-rectangular
+  arrangements;
+- an X11 session and a Wayland session;
+- repeated lock and unlock;
+- sound stopping correctly on unlock;
+- no process or resource left behind after shutdown;
+- Windows: `/s`, `/c` and `/p` behaving as the settings dialog expects.
 
-## Ressources et diffusion
+## Resources and distribution
 
-Les images, sons, noms et marques Populous/Bullfrog restent la propriété de
-leurs ayants droit. Les ressources extraites sont destinées à un usage local.
-Le code du portage devra être conservé séparément des ressources originales si
-le projet est publié.
+The images, sounds, names and trademarks of Populous and Bullfrog remain the
+property of their rights holders. The extracted resources are for local use.
+If the project is published, the port's code must be kept separate from the
+original resources.

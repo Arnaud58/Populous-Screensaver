@@ -29,7 +29,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--atlas",
         type=Path,
-        default=project / "package/contents/images/sprites.png",
+        default=project / "assets/images/sprites.png",
     )
     parser.add_argument(
         "--research-output",
@@ -37,14 +37,15 @@ def parse_args() -> argparse.Namespace:
         default=project / "research/sprites.json",
     )
     parser.add_argument(
-        "--package-output",
+        "--assets-output",
         type=Path,
-        default=project / "package/contents/data/sprites.json",
+        default=project / "assets/data/sprites.json",
+        help="Canonical manifest consumed by every target",
     )
     parser.add_argument(
         "--qml-output",
         type=Path,
-        default=project / "package/contents/ui/Animations.js",
+        default=project / "core/js/Animations.js",
         help="Generated JavaScript manifest importable without local-file XHR",
     )
     parser.add_argument(
@@ -279,7 +280,7 @@ def main() -> None:
     manifest = compile_manifest(native, layout)
 
     serialized = json.dumps(manifest, indent=2, ensure_ascii=False) + "\n"
-    for output in (args.research_output, args.package_output):
+    for output in (args.research_output, args.assets_output):
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(serialized, encoding="utf-8")
 
@@ -302,7 +303,7 @@ def main() -> None:
     print(f"Animations: {stats['animations']}")
     print(f"Unique source frames: {stats['uniqueSourceFrames']}")
     print(f"Research manifest: {args.research_output.resolve()}")
-    print(f"Package manifest: {args.package_output.resolve()}")
+    print(f"Assets manifest: {args.assets_output.resolve()}")
     print(f"QML manifest: {args.qml_output.resolve()}")
     print(f"Preview: {args.preview.resolve()}")
 

@@ -51,7 +51,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--atlas",
         type=Path,
-        default=project_dir / "package/contents/images/sprites.png",
+        default=project_dir / "assets/images/sprites.png",
         help="RGBA sprite atlas generated from the original BMP and mask",
     )
     parser.add_argument(

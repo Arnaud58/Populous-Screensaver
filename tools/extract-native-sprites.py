@@ -45,7 +45,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--atlas",
         type=Path,
-        default=project / "package/contents/images/sprites.png",
+        default=project / "assets/images/sprites.png",
     )
     parser.add_argument(
         "--output",

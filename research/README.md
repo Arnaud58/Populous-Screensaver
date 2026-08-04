@@ -29,9 +29,9 @@ with:
 python3 tools/build-sprites.py
 ```
 
-This creates `research/sprites.json`, copies the same manifest to
-`package/contents/data/sprites.json`, generates the QML-importable
-`package/contents/ui/Animations.js`, and renders `research/walk-cycles.gif`.
+This creates `research/sprites.json`, writes the canonical manifest to
+`assets/data/sprites.json`, generates the QML-importable
+`core/js/Animations.js`, and renders `research/walk-cycles.gif`.
 
 `sprites-native.json` is recovered from the 1,180-record cell table initialized
 by the original executable. Regenerate it with:

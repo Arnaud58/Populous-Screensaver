@@ -14,7 +14,11 @@ Window {
         id: wallpaperLoader
 
         anchors.fill: parent
-        source: Qt.resolvedUrl("../package/contents/ui/main.qml")
+        // The engine is assembled, not stored, so the preview loads a built
+        // payload. Run tools/build-targets.py before opening this file.
+        source: Qt.resolvedUrl(
+            "../build/plasma/org.poptheme.populous/contents/ui/main.qml"
+        )
 
         onStatusChanged: {
             if (status === Loader.Error) {

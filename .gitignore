@@ -1,2 +1,5 @@
 __pycache__/
 *.py[cod]
+
+# Assembled target payloads. Rebuild with tools/build-targets.py.
+build/
