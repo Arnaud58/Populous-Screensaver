@@ -48,11 +48,12 @@ populous-screensaver/
 │   ├── sounds/        #   28 original PCM effects
 │   └── sounds-converted/
 ├── core/              # the engine, shared by every QML target
-│   ├── qml/           #   Character.qml, Footprint.qml
+│   ├── qml/           #   PopulousWorld.qml, Character.qml, Footprint.qml
 │   └── js/            #   Simulation.js, Animations.js (generated)
 ├── spec/              # language-neutral simulation rules
 ├── targets/           # per-target host shells only
-│   └── plasma/        #   metadata.json + contents/ui/main.qml
+│   ├── plasma/        #   metadata.json + contents/ui/main.qml
+│   └── preview/       #   main.qml, a plain window for development
 ├── tests/             # standalone preview, golden traces
 └── build/             # assembled payloads — generated, not versioned
 ```
@@ -330,7 +331,21 @@ files by default, so the manifest is also emitted as a JavaScript module.
   rule. Renders a region of the atlas with `sourceClipRect`, avoiding hundreds
   of small PNG files.
 - `core/qml/Footprint.qml` — a fading footprint pair, tinted per tribe.
+- `core/qml/PopulousWorld.qml` — the engine assembled: black background,
+  characters, trail layer and the single simulation loop. Drop it into
+  anything that gives it a size.
 - `core/js/Animations.js` — generated manifest.
+
+A host shell therefore contains almost nothing. The Plasma one is twelve lines:
+
+```qml
+WallpaperItem {
+    PopulousWorld { anchors.fill: parent }
+}
+```
+
+The preview replaces `WallpaperItem` with a `Window`, and the standalone screen
+saver will use one window per screen.
 
 The rules operate on a duck-typed character state, so the same code runs on a
 QML `Item` and on a plain object. That is what makes the simulation testable
@@ -340,12 +355,25 @@ without Qt:
 node --test "tests/**/*.test.mjs"
 ```
 
-A host shell supplies a black background, a character count, a sprite scale and
-the world geometry, then instantiates characters. `targets/plasma/contents/ui/main.qml`
-is that shell for Plasma, in 81 lines. The Qt application will be a second one.
-
 The rules the engine implements, and the ones still missing, are written down
 in [spec/simulation.md](spec/simulation.md).
+
+### Running the preview
+
+The fastest way to see the engine, on any platform Qt supports, with no Plasma
+and no compiler:
+
+```bash
+python3 tools/build-targets.py preview
+qml build/preview/ui/main.qml
+```
+
+On Windows, `qml` lives in `C:\Qt\<version>\msvc2022_64\bin\qml.exe`. Escape
+quits, `F` toggles full screen.
+
+Verified on Windows 11 with Qt 6.11.1 at 1280 × 720: 24 characters spread over
+the black surface, walk cycles animating, direction changes and edge bounces
+visible in the trails, positions staying inside the bounds.
 
 ## Building and installing
 
@@ -375,17 +403,8 @@ kpackagetool6 --type Plasma/Wallpaper --list
 kpackagetool6 --type Plasma/Wallpaper --remove org.poptheme.populous
 ```
 
-A standalone preview is available without touching the desktop, once the
-payload is built and `qmlscene-qt6` is installed:
-
-```bash
-python3 tools/build-targets.py
-qmlscene-qt6 --software --resize-to-root tests/Preview.qml
-```
-
-The prototype was validated at 1280 × 720 with Qt software rendering: 24
-characters spread over the black surface, cycles animating, positions staying
-inside the bounds.
+To see the engine without touching the desktop, use the preview target
+described under [Running the preview](#running-the-preview).
 
 ### Enabling it on the lock screen
 

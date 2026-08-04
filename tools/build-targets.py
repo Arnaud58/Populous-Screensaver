@@ -30,11 +30,26 @@ PLASMA_LAYOUT = [
     ("assets/sounds-converted", "contents/sounds-converted"),
 ]
 
+# The windowed preview. Same engine, no Plasma and no compiler: it runs under
+# the plain `qml` runtime on any platform Qt supports. Sounds are left out
+# until a target actually plays them.
+PREVIEW_LAYOUT = [
+    ("targets/preview/main.qml", "ui/main.qml"),
+    ("core/qml", "ui"),
+    ("core/js", "ui"),
+    ("assets/images", "images"),
+    ("assets/data", "data"),
+]
+
 TARGETS = {
     "plasma": {
         "payload": "plasma/org.poptheme.populous",
         "layout": PLASMA_LAYOUT,
         "version_from": "targets/plasma/metadata.json",
+    },
+    "preview": {
+        "payload": "preview",
+        "layout": PREVIEW_LAYOUT,
     },
 }
 
@@ -97,8 +112,11 @@ def assemble(name: str, build_dir: Path, clean: bool) -> Path:
     for source_relative, destination_relative in target["layout"]:
         total += copy_entry(PROJECT / source_relative, payload / destination_relative)
 
-    version = read_version(target["version_from"])
-    print(f"{name}: {total} files -> {payload} (version {version})")
+    if "version_from" in target:
+        suffix = f" (version {read_version(target['version_from'])})"
+    else:
+        suffix = ""
+    print(f"{name}: {total} files -> {payload}{suffix}")
     return payload
 
 
