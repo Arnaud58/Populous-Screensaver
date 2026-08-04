@@ -10,35 +10,38 @@ behaviour is still unknown, that is stated rather than guessed.
 
 ## Shape of the implementation
 
-Every rule operates on a **duck-typed character state**: an object carrying
-`tribe`, `directionId`, `directionX`, `directionY`, `worldX`, `worldY`,
-`speed`, `previousTick`, `distanceSinceFootprint` and `lastCollisionAt`.
-
-A QML `Item` exposing those as properties qualifies, and so does a plain
-object. That is what lets the same code drive the Plasma wallpaper and run
-headless under Node:
+Every rule operates on a **duck-typed character state**, listed in full under
+[Character state](#character-state). A QML `Item` exposing those as properties
+qualifies, and so does a plain object. That is what lets the same code drive the
+Plasma wallpaper and run headless under Node:
 
 ```bash
 node --test "tests/**/*.test.mjs"
 ```
 
-Two constraints keep it that way, and both matter for the C port:
+Three constraints keep it that way, and all three exist for the C port:
 
-- **no clock access inside the rules** — the caller passes the current time in;
+- **no clock access** — the caller passes elapsed time in, and the state holds
+  remaining durations rather than timestamps;
 - **no callbacks** — callers learn what happened from return values, so
-  `stepCharacter` reports `{ directionChanged, footprint }` rather than
-  emitting a signal.
+  `stepCharacter` reports `{ directionChanged, footprint }` and
+  `stepSimulation` returns the footprints to render;
+- **no ambient randomness** — every draw comes from an explicit seeded source.
 
 Numeric rules live in the `tuning` object so that this document, the
 implementation and the C port have a single place to agree with. Distances are
-unscaled world pixels; the caller applies the sprite scale.
+unscaled world pixels; the caller supplies the sprite scale on the state.
 
-Rendering stays out: frame-derived distances such as edge margins and footprint
-spacing are computed by the host shell and passed in as `metrics`.
+Rendering stays out. The simulation reads `frameWidth`, `frameHeight`,
+`frameCount` and `frameDurationMs` from the state, but never writes them: the
+renderer keeps them current from the manifest.
+
+The host shell owns exactly three things — the world geometry, the clock, and
+one loop calling `stepSimulation`.
 
 ## Status
 
-Written against version 0.4.0. Sections marked **planned** are not implemented
+Written against version 0.5.0. Sections marked **planned** are not implemented
 in any target yet.
 
 ## Coordinate system and world geometry
@@ -66,21 +69,44 @@ the general one.
 
 ## Determinism
 
-**Planned, not yet implemented.** Today the simulation calls `Math.random()`
-and reads the wall clock through `Date.now()`, so no two runs match and no two
-implementations can be compared.
+Implemented. A given seed replays exactly.
 
-The target design:
+**The random source** is mulberry32, seeded with one 32-bit word. It was chosen
+for portability: every operation is an explicit unsigned 32-bit one, and
+JavaScript's `Math.imul` is the same truncating 32-bit multiply as C's
+`uint32_t` multiply, so the C port produces the same bit patterns.
 
-- one explicit seeded PRNG, shared by every implementation, with an identical
-  algorithm and identical output for a given seed;
-- a fixed timestep, with elapsed time passed into the step function rather than
-  read from a clock inside it;
-- every random draw consumed in a defined order, so that adding a draw in one
-  implementation and not the other shows up immediately as a trace divergence.
+```text
+state = (state + 0x6d2b79f5) mod 2^32
+t     = imul(state xor (state >> 15), 1 or state)
+t     = (t + imul(t xor (t >> 7), 61 or t)) xor t
+result = t xor (t >> 14)
+```
 
-Golden traces live in `tests/golden/`. Each is the state of every character
-over N steps from a known seed, serialised deterministically.
+`nextFloat` is `result / 2^32`, uniform in [0, 1). `nextInt(bound)` is
+`floor(nextFloat * bound)`. `pick` indexes an array with `nextInt`.
+
+There is no ambient randomness anywhere: no rule calls `Math.random()`. The
+source is passed in explicitly, which is also what fixes the **draw order** —
+adding a draw in one implementation and not the other shows up immediately as
+a divergence.
+
+**The timestep is fixed.** `stepSimulation` takes real elapsed seconds,
+accumulates them, and runs whole slices of `tuning.stepSeconds` (1/60 s). The
+leftover is carried to the next call, so the amount simulated does not depend
+on how often or how regularly the host calls in — only on how much real time
+passed, quantised to one step.
+
+Time longer than `tuning.maxAccumulatedSeconds` (0.25 s) is **dropped, not
+caught up**. A host that stalls for a second resumes where it left off rather
+than teleporting every character, and the loop cannot spiral trying to catch
+up. This is a deliberate difference from the pre-0.5.0 behaviour, which
+clamped each character's movement individually against the wall clock.
+
+Golden traces are **planned**, in `tests/golden/`. Each will be the state of
+every character over N steps from a known seed, serialised deterministically.
+`tests/simulation.test.mjs` already asserts that a seed replays and that two
+seeds diverge.
 
 ## Tribes
 
@@ -118,13 +144,31 @@ Diagonal movement is normalised, so diagonal speed equals cardinal speed.
 
 ## Character state
 
-Implemented today:
+Written by the simulation:
 
-- tribe, direction, ground position;
-- speed, drawn once at spawn from 30 to 48 world pixels per second, then
-  multiplied by the sprite scale;
-- current animation and frame index;
-- distance walked since the last footprint.
+| Field | Meaning |
+| ----- | ------- |
+| `tribe` | one of the tribe ids above |
+| `directionId`, `directionX`, `directionY` | current heading |
+| `worldX`, `worldY` | ground point |
+| `speed` | drawn once at spawn, 30 to 48 world pixels per second, times the sprite scale |
+| `frameIndex`, `animationElapsedMs` | walk cycle position |
+| `distanceSinceFootprint` | distance walked since the last footprint |
+| `collisionCooldownMs` | counts down after an avoidance turn |
+| `wanderRemainingMs` | counts down to the next spontaneous turn |
+| `initialized` | false until the world is large enough to place it |
+
+Read by the simulation, owned by the renderer:
+
+| Field | Meaning |
+| ----- | ------- |
+| `spriteScale` | multiplier the host chose for the display |
+| `frameWidth`, `frameHeight` | current frame size, used for edge margins |
+| `frameCount`, `frameDurationMs` | current animation, used to advance frames |
+
+The three countdowns replace what used to be per-character timers. That is what
+makes the state portable: it holds no timer object and no timestamp, only
+remaining durations that a fixed step decrements.
 
 **Planned:** a behaviour state (walking, fighting, converting, casting,
 dying, gathering) with explicit transitions. Today every character is
@@ -140,12 +184,13 @@ direction are uniform. Speed is uniform in its range.
 ### Walking
 
 Each step, the character advances along its normalised direction by
-`speed * elapsed`. The walk animation advances on its own timer at 120 ms per
-frame, four frames per cycle, looping.
+`speed * stepSeconds`. The walk animation advances on its own accumulator at
+120 ms per frame, four frames per cycle, looping. Changing direction restarts
+the cycle at frame 0.
 
-The animation is **not** currently tied to distance travelled, so characters of
-different speeds move their legs at the same rate. Whether the original tied
-the two together is **unknown**.
+The animation is **not** tied to distance travelled, so characters of different
+speeds move their legs at the same rate. Whether the original tied the two
+together is **unknown**.
 
 ### Edges
 
@@ -159,19 +204,30 @@ than bounce.
 
 ### Wandering
 
-Every 2 to 7 seconds, redrawn after each change, the character picks a uniformly
-random new direction. The original's timing is **unknown**; these values were
-chosen to look plausible.
+`wanderRemainingMs` counts down each step. When it reaches zero the character
+picks a uniformly random new direction and the countdown is redrawn from 2 to 7
+seconds. The original's timing is **unknown**; these values were chosen to look
+plausible.
+
+A redundant pick — landing on the direction already held — still counts as a
+change and restarts the walk cycle, matching the pre-0.5.0 behaviour.
 
 ### Avoidance
 
-Every 100 ms, a character within 14 scaled pixels of another turns directly
-away from it, but only if it is currently moving towards it (negative dot
-product between direction and separation). After turning, a character ignores
-avoidance for 350 ms.
+The driver runs an avoidance pass every 100 ms of simulated time, over every
+character in order. A character within 14 scaled pixels of another turns
+directly away from the **first** such neighbour it finds, but only if it is
+currently moving towards it (negative dot product between direction and
+separation). After turning, `collisionCooldownMs` blocks further avoidance for
+350 ms.
+
+Since 0.5.0 the pass is driven centrally rather than by one timer per
+character, so every character is evaluated on the same tick instead of on its
+own phase. The turning rate is unchanged, being governed by the cooldown.
 
 This is a placeholder for combat, not a reproduction of anything observed. The
-scan is currently O(n²) over all characters.
+scan is O(n²) over all characters; phase 2 replaces it with a spatial
+partition.
 
 ### Footprints
 

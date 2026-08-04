@@ -88,7 +88,7 @@ build/<target>/       installable payload
 
 ## Current status
 
-Version 0.4.0.
+Version 0.5.0.
 
 **Done**
 
@@ -108,10 +108,11 @@ Version 0.4.0.
 - [x] Plasma plugin installs and runs locally
 - [x] Assets separated from targets, payloads assembled on demand
 - [x] Simulation rules extracted from QML, covered by headless Node tests
+- [x] Seeded PRNG: a given seed replays exactly
+- [x] Single fixed-timestep loop, replacing ~120 per-character timers
 
 **Next**
 
-- [ ] Seeded PRNG and fixed timestep
 - [ ] World-region and viewport geometry in the core
 - [ ] Group the remaining atlas frames into named animations
 - [ ] Combat, deaths, conversions, shamans, spells, gathering, Armageddon
@@ -426,9 +427,9 @@ The work:
 - ✅ extract the rules out of `Character.qml` into `core/js/Simulation.js`,
   operating on a duck-typed state so they run headless under Node — this is
   what makes every step below verifiable without Qt;
-- one seeded PRNG shared by every implementation, replacing every
-  `Math.random()` call;
-- a single fixed-timestep loop stepping all characters, with elapsed time
+- ✅ one seeded PRNG (mulberry32) shared by every implementation, replacing
+  every `Math.random()` call;
+- ✅ a single fixed-timestep loop stepping all characters, with elapsed time
   passed in rather than read inside;
 - world region plus viewport list replacing the implicit single `width` ×
   `height`, so that a continuous multi-monitor world and a per-screen world are

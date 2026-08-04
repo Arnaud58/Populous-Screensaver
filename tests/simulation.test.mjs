@@ -1,13 +1,9 @@
 // Headless tests for core/js/Simulation.js.
 //
-// The simulation is deliberately free of QML, rendering and clock access, so
-// it runs under plain Node. Run with:
+// The simulation is deliberately free of QML, rendering, clock access and
+// ambient randomness, so it runs under plain Node. Run with:
 //
-//     node --test tests/
-//
-// Determinism is not tested yet: the rules still draw from Math.random().
-// Phase 2 step 2 replaces that with a seeded PRNG, and these tests gain a
-// reproducibility case then.
+//     node --test "tests/**/*.test.mjs"
 
 import { readFileSync } from "node:fs"
 import test from "node:test"
@@ -17,13 +13,15 @@ const EXPORTS = [
     "directions",
     "tribes",
     "tuning",
+    "createRandom",
+    "createSimulation",
+    "stepSimulation",
     "animationId",
     "directionForVector",
     "setDirection",
     "initializeCharacter",
     "stepCharacter",
     "avoidCollisions",
-    "wander",
     "tribeColor",
     "randomDirection",
     "randomTribe",
@@ -40,9 +38,11 @@ function loadSimulation() {
 }
 
 const Simulation = loadSimulation()
+const STEP = Simulation.tuning.stepSeconds
 
-// A character state carrying exactly the fields Character.qml exposes as
-// properties. This is the duck typing the extraction relies on.
+// A character state carrying exactly the fields Character.qml exposes. This is
+// the duck typing the whole design relies on. frameWidth/frameHeight/frameCount
+// are bindings in QML; here they are plain values.
 function makeCharacter(overrides = {}) {
     return {
         tribe: "blue",
@@ -51,16 +51,77 @@ function makeCharacter(overrides = {}) {
         directionY: 0,
         worldX: 100,
         worldY: 100,
-        speed: 100,
-        previousTick: 0,
+        speed: 60,
+        spriteScale: 1,
+        frameIndex: 0,
+        animationElapsedMs: 0,
         distanceSinceFootprint: 0,
-        lastCollisionAt: 0,
+        collisionCooldownMs: 0,
+        // Far enough away that it does not fire during short tests.
+        wanderRemainingMs: 1e9,
+        initialized: true,
+        frameWidth: 20,
+        frameHeight: 26,
+        frameCount: 4,
+        frameDurationMs: 120,
         ...overrides
     }
 }
 
 const WORLD = { width: 1000, height: 1000 }
-const METRICS = { marginX: 10, marginTop: 26, footprintSpacing: 24 }
+
+function neverWander(random) {
+    return random
+}
+
+// --- Random source -------------------------------------------------------
+
+test("the same seed replays the same sequence", () => {
+    const a = Simulation.createRandom(12345)
+    const b = Simulation.createRandom(12345)
+
+    for (let i = 0; i < 1000; ++i) {
+        assert.equal(a.nextUint32(), b.nextUint32())
+    }
+})
+
+test("different seeds diverge", () => {
+    const a = Simulation.createRandom(1)
+    const b = Simulation.createRandom(2)
+    const first = Array.from({ length: 50 }, () => a.nextUint32())
+    const second = Array.from({ length: 50 }, () => b.nextUint32())
+
+    assert.notDeepEqual(first, second)
+})
+
+test("the random source stays inside its ranges", () => {
+    const random = Simulation.createRandom(99)
+
+    for (let i = 0; i < 5000; ++i) {
+        const value = random.nextUint32()
+        assert.ok(Number.isInteger(value))
+        assert.ok(value >= 0 && value <= 0xffffffff)
+
+        const float = random.nextFloat()
+        assert.ok(float >= 0 && float < 1)
+
+        const integer = random.nextInt(8)
+        assert.ok(Number.isInteger(integer))
+        assert.ok(integer >= 0 && integer < 8)
+    }
+})
+
+test("a zero seed still produces a usable stream", () => {
+    const random = Simulation.createRandom(0)
+    const values = new Set()
+
+    for (let i = 0; i < 100; ++i) {
+        values.add(random.nextUint32())
+    }
+    assert.ok(values.size > 90)
+})
+
+// --- Helpers -------------------------------------------------------------
 
 test("every direction round-trips through directionForVector", () => {
     for (const direction of Simulation.directions) {
@@ -76,22 +137,35 @@ test("animation ids match the manifest naming", () => {
     )
 })
 
+test("setting a direction restarts the walk cycle", () => {
+    const character = makeCharacter({ frameIndex: 3, animationElapsedMs: 80 })
+
+    Simulation.setDirection(character, 0, 1)
+
+    assert.equal(character.directionId, "south")
+    assert.equal(character.frameIndex, 0)
+    assert.equal(character.animationElapsedMs, 0)
+})
+
+// --- Stepping a character ------------------------------------------------
+
 test("a character walks along its direction at its speed", () => {
     const character = makeCharacter()
-    // 10 ms at 100 px/s is 1 px.
-    Simulation.stepCharacter(character, WORLD, 10, METRICS)
+    const random = Simulation.createRandom(1)
 
-    assert.equal(character.worldX, 101)
+    Simulation.stepCharacter(character, WORLD, STEP, random)
+
+    assert.ok(Math.abs(character.worldX - (100 + 60 * STEP)) < 1e-9)
     assert.equal(character.worldY, 100)
-    assert.equal(character.previousTick, 10)
 })
 
 test("diagonal movement is normalised to the same speed as cardinal", () => {
+    const random = Simulation.createRandom(1)
     const cardinal = makeCharacter()
     const diagonal = makeCharacter({ directionId: "south_east", directionY: 1 })
 
-    Simulation.stepCharacter(cardinal, WORLD, 100, METRICS)
-    Simulation.stepCharacter(diagonal, WORLD, 100, METRICS)
+    Simulation.stepCharacter(cardinal, WORLD, STEP, random)
+    Simulation.stepCharacter(diagonal, WORLD, STEP, random)
 
     const cardinalDistance = Math.hypot(cardinal.worldX - 100, cardinal.worldY - 100)
     const diagonalDistance = Math.hypot(diagonal.worldX - 100, diagonal.worldY - 100)
@@ -99,23 +173,16 @@ test("diagonal movement is normalised to the same speed as cardinal", () => {
     assert.ok(Math.abs(cardinalDistance - diagonalDistance) < 1e-9)
 })
 
-test("a long stall is clamped to maxStepSeconds", () => {
-    const character = makeCharacter()
-    // Ten seconds of stall must advance no more than 0.05 s of movement.
-    Simulation.stepCharacter(character, WORLD, 10_000, METRICS)
-
-    assert.equal(character.worldX, 100 + 100 * Simulation.tuning.maxStepSeconds)
-})
-
 test("a character bounces off the right edge and is clamped inside", () => {
     const world = { width: 200, height: 200 }
-    const character = makeCharacter({ worldX: 195 })
+    const character = makeCharacter({ worldX: 199, speed: 600 })
+    const random = Simulation.createRandom(1)
 
-    const result = Simulation.stepCharacter(character, world, 100, METRICS)
+    const result = Simulation.stepCharacter(character, world, STEP, random)
 
     assert.equal(result.directionChanged, true)
     assert.equal(character.directionId, "west")
-    assert.equal(character.worldX, world.width - METRICS.marginX)
+    assert.equal(character.worldX, world.width - character.frameWidth / 2)
 })
 
 test("a character bounces off the bottom edge using the ground margin", () => {
@@ -124,124 +191,265 @@ test("a character bounces off the bottom edge using the ground margin", () => {
         directionId: "south",
         directionX: 0,
         directionY: 1,
-        worldY: 195
+        worldY: 199,
+        speed: 600
     })
+    const random = Simulation.createRandom(1)
 
-    const result = Simulation.stepCharacter(character, world, 100, METRICS)
+    const result = Simulation.stepCharacter(character, world, STEP, random)
 
     assert.equal(result.directionChanged, true)
     assert.equal(character.directionId, "north")
     assert.equal(character.worldY, world.height - Simulation.tuning.bottomMargin)
 })
 
-test("a footprint is dropped once the spacing has been walked", () => {
+test("the walk animation advances on its own frame duration", () => {
     const character = makeCharacter()
-    const metrics = { ...METRICS, footprintSpacing: 10 }
+    const random = Simulation.createRandom(1)
+    const stepsPerFrame = Math.ceil(character.frameDurationMs / (STEP * 1000))
 
-    // 5 px per step at 100 px/s clamped to 0.05 s.
-    const first = Simulation.stepCharacter(character, WORLD, 1000, metrics)
-    assert.equal(first.footprint, null)
-
-    const second = Simulation.stepCharacter(character, WORLD, 2000, metrics)
-    assert.notEqual(second.footprint, null)
-    assert.equal(second.footprint.tribe, "blue")
-    assert.equal(second.footprint.directionX, 1)
-    // The footprint is left where the character was, not where it lands.
-    assert.equal(second.footprint.groundX, 105)
-    // Footprints sit one pixel above the ground point.
-    assert.equal(second.footprint.groundY, 99)
-    assert.equal(character.distanceSinceFootprint, 0)
+    for (let i = 0; i < stepsPerFrame; ++i) {
+        Simulation.stepCharacter(character, WORLD, STEP, random)
+    }
+    assert.equal(character.frameIndex, 1)
 })
+
+test("the walk animation wraps around its frame count", () => {
+    const character = makeCharacter()
+    const random = Simulation.createRandom(1)
+    const stepsPerCycle =
+        Math.ceil((character.frameDurationMs * character.frameCount) / (STEP * 1000))
+
+    for (let i = 0; i < stepsPerCycle; ++i) {
+        Simulation.stepCharacter(character, WORLD, STEP, random)
+    }
+    assert.ok(character.frameIndex >= 0 && character.frameIndex < character.frameCount)
+})
+
+test("a footprint is dropped once the spacing has been walked", () => {
+    const character = makeCharacter({ speed: 120, spriteScale: 1 })
+    const random = Simulation.createRandom(1)
+    const spacing = Simulation.tuning.footprintSpacing
+
+    let footprint = null
+    let travelled = 0
+    for (let i = 0; i < 200 && !footprint; ++i) {
+        const before = character.worldX
+        footprint = Simulation.stepCharacter(character, WORLD, STEP, random).footprint
+        travelled += character.worldX - before
+    }
+
+    assert.notEqual(footprint, null)
+    assert.ok(travelled >= spacing)
+    assert.equal(footprint.tribe, "blue")
+    assert.equal(footprint.directionX, 1)
+    assert.equal(footprint.spriteScale, 1)
+    // The footprint is left one pixel above the ground point, and the
+    // character walks due east, so its Y never moves.
+    assert.equal(footprint.groundY, 99)
+})
+
+test("wandering fires when its countdown runs out", () => {
+    const character = makeCharacter({ wanderRemainingMs: STEP * 1000 })
+    const random = Simulation.createRandom(7)
+
+    const result = Simulation.stepCharacter(character, WORLD, STEP, random)
+
+    assert.equal(result.directionChanged, true)
+    assert.ok(character.wanderRemainingMs >= Simulation.tuning.wanderIntervalMinMs)
+    assert.ok(character.wanderRemainingMs <= Simulation.tuning.wanderIntervalMaxMs)
+})
+
+// --- Avoidance -----------------------------------------------------------
 
 test("a character turns away from a neighbour it is closing in on", () => {
     const character = makeCharacter()
     const ahead = makeCharacter({ worldX: 105 })
 
-    const turned = Simulation.avoidCollisions(character, [ahead], 1000, 1)
-
-    assert.equal(turned, true)
+    assert.equal(Simulation.avoidCollisions(character, [ahead]), true)
     assert.equal(character.directionId, "west")
-    assert.equal(character.lastCollisionAt, 1000)
+    assert.equal(character.collisionCooldownMs, Simulation.tuning.collisionCooldownMs)
 })
 
 test("a character ignores a neighbour it is moving away from", () => {
     const character = makeCharacter()
     const behind = makeCharacter({ worldX: 95 })
 
-    assert.equal(Simulation.avoidCollisions(character, [behind], 1000, 1), false)
+    assert.equal(Simulation.avoidCollisions(character, [behind]), false)
 })
 
 test("a character ignores a neighbour beyond the collision distance", () => {
     const character = makeCharacter()
     const far = makeCharacter({ worldX: 100 + Simulation.tuning.collisionDistance + 1 })
 
-    assert.equal(Simulation.avoidCollisions(character, [far], 1000, 1), false)
+    assert.equal(Simulation.avoidCollisions(character, [far]), false)
 })
 
 test("avoidance respects its cooldown", () => {
-    const character = makeCharacter({ lastCollisionAt: 1000 })
+    const character = makeCharacter({ collisionCooldownMs: 1 })
     const ahead = makeCharacter({ worldX: 105 })
-    const stillCoolingDown = 1000 + Simulation.tuning.collisionCooldownMs - 1
 
-    assert.equal(
-        Simulation.avoidCollisions(character, [ahead], stillCoolingDown, 1),
-        false
-    )
+    assert.equal(Simulation.avoidCollisions(character, [ahead]), false)
     assert.equal(character.directionId, "east")
 })
 
 test("a character never avoids itself", () => {
     const character = makeCharacter()
 
-    assert.equal(Simulation.avoidCollisions(character, [character], 1000, 1), false)
+    assert.equal(Simulation.avoidCollisions(character, [character]), false)
 })
 
+test("the collision cooldown drains over time", () => {
+    const character = makeCharacter({ collisionCooldownMs: STEP * 1000 })
+    const random = Simulation.createRandom(1)
+
+    Simulation.stepCharacter(character, WORLD, STEP, random)
+
+    assert.equal(character.collisionCooldownMs, 0)
+})
+
+// --- Initialisation ------------------------------------------------------
+
 test("initialisation refuses a world smaller than the minimum", () => {
-    const character = makeCharacter()
+    const character = makeCharacter({ initialized: false })
     const tooSmall = Simulation.tuning.minWorldSize - 1
+    const random = Simulation.createRandom(1)
 
     assert.equal(
         Simulation.initializeCharacter(
-            character, { width: tooSmall, height: tooSmall }, 1, 0
+            character, { width: tooSmall, height: tooSmall }, random
         ),
         false
     )
+    assert.equal(character.initialized, false)
 })
 
 test("initialisation places a character inside the world at a valid speed", () => {
-    for (let attempt = 0; attempt < 200; ++attempt) {
-        const character = makeCharacter()
-        const spriteScale = 2
+    const random = Simulation.createRandom(2024)
 
-        assert.equal(
-            Simulation.initializeCharacter(character, WORLD, spriteScale, 42),
-            true
-        )
+    for (let attempt = 0; attempt < 200; ++attempt) {
+        const character = makeCharacter({ initialized: false, spriteScale: 2 })
+
+        assert.equal(Simulation.initializeCharacter(character, WORLD, random), true)
+        assert.equal(character.initialized, true)
 
         assert.ok(character.worldX >= Simulation.tuning.spawnMarginX)
         assert.ok(character.worldX <= WORLD.width)
         assert.ok(character.worldY >= Simulation.tuning.spawnMarginTop)
         assert.ok(character.worldY <= WORLD.height)
-        assert.ok(character.speed >= Simulation.tuning.speedMin * spriteScale)
-        assert.ok(character.speed <= Simulation.tuning.speedMax * spriteScale)
+        assert.ok(character.speed >= Simulation.tuning.speedMin * 2)
+        assert.ok(character.speed <= Simulation.tuning.speedMax * 2)
         assert.ok(Simulation.tribes.includes(character.tribe))
-        assert.equal(character.previousTick, 42)
+        assert.ok(character.wanderRemainingMs >= Simulation.tuning.wanderIntervalMinMs)
     }
 })
 
-test("wander always reports a change so the walk cycle restarts", () => {
-    const character = makeCharacter()
+// --- The driver ----------------------------------------------------------
 
-    for (let attempt = 0; attempt < 50; ++attempt) {
-        assert.equal(Simulation.wander(character), true)
-        assert.ok(Simulation.directions.some(d => d.id === character.directionId))
+function runSimulation(seed, seconds, characterCount = 6) {
+    const simulation = Simulation.createSimulation(seed)
+    simulation.characters = Array.from({ length: characterCount }, () =>
+        makeCharacter({ initialized: false, wanderRemainingMs: 0 })
+    )
+
+    const footprints = []
+    // Deliberately irregular slices: the fixed step must absorb them.
+    const slices = [0.016, 0.021, 0.008, 0.033, 0.016]
+    let elapsed = 0
+    let index = 0
+    while (elapsed < seconds) {
+        const slice = slices[index++ % slices.length]
+        footprints.push(...Simulation.stepSimulation(simulation, WORLD, slice))
+        elapsed += slice
     }
+
+    return {
+        positions: simulation.characters.map(c => [c.worldX, c.worldY, c.directionId]),
+        footprintCount: footprints.length
+    }
+}
+
+test("the same seed produces the same run", () => {
+    const first = runSimulation(2026, 5)
+    const second = runSimulation(2026, 5)
+
+    assert.deepEqual(first.positions, second.positions)
+    assert.equal(first.footprintCount, second.footprintCount)
 })
 
-test("wander intervals stay inside their configured range", () => {
-    for (let attempt = 0; attempt < 500; ++attempt) {
-        const interval = Simulation.randomWanderInterval()
-        assert.ok(interval >= Simulation.tuning.wanderIntervalMinMs)
-        assert.ok(interval <= Simulation.tuning.wanderIntervalMaxMs)
+test("a different seed produces a different run", () => {
+    const first = runSimulation(2026, 5)
+    const second = runSimulation(1998, 5)
+
+    assert.notDeepEqual(first.positions, second.positions)
+})
+
+test("irregular host timing costs at most one step of quantisation", () => {
+    // The same amount of real time delivered in different slice patterns must
+    // simulate the same distance, give or take the step not yet consumed.
+    // Both patterns stay under maxAccumulatedSeconds, so neither is clamped.
+    function run(sliceSizes) {
+        const simulation = Simulation.createSimulation(4242)
+        simulation.characters = [makeCharacter({ speed: 60 })]
+        for (const slice of sliceSizes) {
+            Simulation.stepSimulation(simulation, WORLD, slice)
+        }
+        return simulation.characters[0].worldX - 100
+    }
+
+    const inOnePiece = run([0.2])
+    const inSmallPieces = run(Array.from({ length: 20 }, () => 0.01))
+    const inUnevenPieces = run([0.004, 0.05, 0.017, 0.129])
+    const oneStepOfMovement = 60 * Simulation.tuning.stepSeconds
+
+    assert.ok(Math.abs(inOnePiece - inSmallPieces) <= oneStepOfMovement + 1e-9)
+    assert.ok(Math.abs(inOnePiece - inUnevenPieces) <= oneStepOfMovement + 1e-9)
+    // Sanity: 0.2 s at 60 px/s is about 12 px, not zero and not a whole run.
+    assert.ok(inOnePiece > 10 && inOnePiece < 13)
+})
+
+test("a stalled host is clamped instead of catching up", () => {
+    const simulation = Simulation.createSimulation(1)
+    simulation.characters = [makeCharacter({ speed: 60 })]
+
+    Simulation.stepSimulation(simulation, WORLD, 10)
+
+    const maxDistance = 60 * Simulation.tuning.maxAccumulatedSeconds
+    assert.ok(simulation.characters[0].worldX - 100 <= maxDistance + 1e-9)
+})
+
+test("the driver initialises characters that are not ready yet", () => {
+    const simulation = Simulation.createSimulation(5)
+    simulation.characters = [makeCharacter({ initialized: false })]
+
+    Simulation.stepSimulation(simulation, WORLD, STEP)
+
+    assert.equal(simulation.characters[0].initialized, true)
+})
+
+test("the driver leaves characters alone while the world is too small", () => {
+    const simulation = Simulation.createSimulation(5)
+    simulation.characters = [makeCharacter({ initialized: false })]
+
+    Simulation.stepSimulation(simulation, { width: 10, height: 10 }, STEP)
+
+    assert.equal(simulation.characters[0].initialized, false)
+})
+
+test("characters stay inside the world over a long run", () => {
+    const simulation = Simulation.createSimulation(31337)
+    simulation.characters = Array.from({ length: 24 }, () =>
+        makeCharacter({ initialized: false })
+    )
+
+    for (let i = 0; i < 600; ++i) {
+        Simulation.stepSimulation(simulation, WORLD, 0.016)
+    }
+
+    for (const character of simulation.characters) {
+        assert.ok(character.worldX >= 0 && character.worldX <= WORLD.width)
+        assert.ok(character.worldY >= 0 && character.worldY <= WORLD.height)
+        assert.ok(Number.isFinite(character.worldX))
+        assert.ok(Number.isFinite(character.worldY))
     }
 })
