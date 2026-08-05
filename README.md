@@ -89,10 +89,20 @@ cmake -S build/qt-app -B build/qt-app-cmake -DCMAKE_PREFIX_PATH=C:/Qt/<version>/
 cmake --build build/qt-app-cmake --config Release
 ```
 
-Run it by hand — `/s` to run, `/c` for the settings dialog, `/w` for ordinary
-windows. It is **not installable yet**: Windows lists screen savers from
-`System32`, where a Qt application's DLLs cannot reasonably go, and that is the
-open question of the next step. Moving the mouse or pressing a key quits.
+Then deploy Qt beside it and select it as your screen saver:
+
+```powershell
+windeployqt --release --qmldir build/qt-app/ui build/qt-app-cmake/populous.scr
+Set-ItemProperty 'HKCU:\Control Panel\Desktop' 'SCRNSAVE.EXE' <full path to populous.scr>
+```
+
+The `--qmldir` is not optional: the QML is compiled into the executable, so
+`windeployqt` cannot find the imports without it.
+
+There is no installer yet, which is why the registry value is written by hand.
+Windows offers no way to browse for a screen saver, so it has to be selected
+once this way; afterwards it appears in the usual dialog. Moving the mouse or
+pressing a key quits it, and `/c` opens its settings.
 
 ### Anywhere else
 

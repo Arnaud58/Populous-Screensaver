@@ -152,7 +152,13 @@ void attachToPreviewWindow(QObject *root, qulonglong handle)
     SetWindowPos(child, HWND_TOP, 0, 0, width, height,
                  SWP_SHOWWINDOW | SWP_NOACTIVATE | SWP_FRAMECHANGED);
 
-    qWarning("preview: attached to %llu at %dx%d", handle, width, height);
+    // Report what actually happened rather than that the calls returned. A
+    // parent that does not match means the reparenting silently came undone,
+    // which is exactly what Qt's own setParent does here.
+    qWarning("preview: child %llu, parent now %llu, expected %llu, %dx%d",
+             reinterpret_cast<qulonglong>(child),
+             reinterpret_cast<qulonglong>(GetParent(child)),
+             handle, width, height);
 
     auto *watchdog = new QTimer(root);
     watchdog->setInterval(500);

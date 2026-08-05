@@ -38,11 +38,24 @@ target shipping so far.
   fabricated 20×26 frame and so never matched what a host actually rendered;
   they now use the real manifest.
 
+- `/p` reparents through raw Win32 `SetParent` after Qt has realised the
+  window. Qt's own `QWindow::fromWinId` plus `setParent` reports success
+  without reparenting anything, and calling `show()` afterwards undoes the
+  Win32 version, so the order matters: realise, then take over.
+
+- Verified end to end against the real Windows screen-saver dialog, which
+  listed it, ran it and drew its thumbnail from a path outside `System32`.
+  That settles the packaging question: install anywhere and write
+  `HKCU\Control Panel\Desktop\SCRNSAVE.EXE`, with no stub and no static build.
+
 ### Known gaps
 
-- `/p` is implemented but unverified: reparenting could not be confirmed
-  against a synthetic host window. The real check is the Windows screen-saver
-  dialog, which belongs with the deferred packaging step.
+- No installer, and no version resource, so the dialog shows the executable's
+  file name rather than a proper title.
+- `windeployqt` has to be told `--qmldir build/qt-app/ui`, since the QML lives
+  in the compiled `.qrc` and cannot be scanned from disk. The dependency set is
+  88 MB with QtQuick.Controls against 40 MB without, and Controls serves only
+  the `/c` dialog.
 - One sprite scale for the whole world, taken from the primary screen.
   Per-monitor DPI would need per-character margins and speeds.
 

@@ -52,34 +52,39 @@ CMake project.
   geometry. Verified on a 1920×1200 beside two 1920×1080: characters walk from
   one physical monitor to the next and trails cross the seams.
 - ✅ **The `.scr` entry point** (0.9.0). `/s`, `/c`, `/p <hwnd>` and a `/w`
-  development mode, with quitting on input guarded against the movement burst
-  Windows sends at launch.
+  development mode, all four verified, with quitting on input guarded against
+  the movement burst Windows sends at launch.
 - ⏳ **Packaging**, deliberately deferred — see below.
 
 ### What is left in this phase
 
-**`/p` is unverified.** The thumbnail reparenting is implemented, through raw
-Win32 `SetParent` after Qt has realised the window, because Qt's own
-`QWindow::fromWinId` plus `setParent` reports success without reparenting
-anything. It could not be confirmed against a synthetic host window; the real
-check is the Windows screen-saver dialog, which needs the packaging step first.
+**Packaging is settled: install anywhere, write the registry.** Tested on
+Windows 11 by pointing `HKCU\Control Panel\Desktop\SCRNSAVE.EXE` at a
+deployed binary outside `System32` and opening the screen-saver dialog. Windows
+ran it, listed it, and drew the thumbnail. **No `System32` stub and no static
+Qt build are needed.**
 
-**Packaging carries an open decision.** Windows lists screen savers from
-`System32`, where a Qt application's DLLs cannot reasonably be dropped — 36 MB
-for seven core libraries alone, before plugins and QML modules. Three
-candidates:
+One nuance: the dialog lists the *currently selected* screen saver plus those
+in `System32`, and offers no way to browse. An installer must therefore write
+the registry value itself — a user cannot pick the screen saver from the list
+until something has selected it once.
 
-1. **Program Files plus a registry entry.** `HKCU\Control Panel\Desktop\
-   SCRNSAVE.EXE` stores a *full path*, so Windows may well run a `.scr` from
-   anywhere; only the picker's listing seems tied to `System32`. Untested, and
-   the cheapest option if it holds.
-2. **A stub `.scr` in `System32`** relaying `/s /c /p` to the real application.
-   Certain to appear in the picker, two binaries to keep in step.
-3. **A static Qt build.** One self-contained file, but a long build and LGPL
-   implications.
+What is left before there is anything to release:
 
-Test option 1 first: it is a registry value and a launch, and it decides the
-other two.
+- **A deployment step in the build.** `windeployqt` must be run with
+  `--qmldir build/qt-app/ui`. Without it the binary starts and immediately
+  exits 1: the QML lives in the compiled `.qrc`, so `windeployqt` cannot scan
+  it and ships none of the QML modules.
+- **A display name.** The dialog currently shows `populous`, taken from the
+  file name, because the executable carries no version resource. Windows uses
+  the file description when there is one.
+- **An installer**, which is mostly copying a directory and writing one
+  registry value.
+
+**Deployment weight is worth a decision.** The dependency set is 40 MB across
+35 files without QtQuick.Controls, and **88 MB across 1376 files with it** —
+and Controls is used by nothing but the `/c` dialog. Rewriting that dialog in
+plain QtQuick would more than halve the download.
 
 **One sprite scale for the whole world**, taken from the primary screen.
 Per-monitor DPI would mean per-character margins and speeds, which the state

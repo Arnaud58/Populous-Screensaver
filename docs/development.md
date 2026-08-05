@@ -101,6 +101,44 @@ and `.scr` files have their own shell verbs (Install, Config, Test), so the
 arguments are not passed as written. Copy the binary to `.exe` for testing, or
 invoke it through `cmd /c`.
 
+### Testing `/p`
+
+`/p` needs a window handle to draw into, so it needs a host. Creating one from
+PowerShell works, but two things will mislead you:
+
+- `Form.PointToScreen` and `Form.Location` are unreliable there — the form may
+  not be where they claim. Read the geometry back through Win32
+  `GetClientRect` plus `ClientToScreen` on the handle instead, and place the
+  form with `SetWindowPos`.
+- A screenshot proves nothing on its own. The binary logs the parent it ended
+  up with, which is the decisive check and does not depend on the form being
+  visible at all:
+
+```text
+preview: child 265824, parent now 4132618, expected 4132618, 320x240
+```
+
+Run with `QT_FORCE_STDERR_LOGGING=1` and redirect stderr, since the executable
+is built without a console.
+
+### The end-to-end check
+
+The real consumer is the Windows screen-saver dialog, which calls the binary
+itself for both `/p` and `/s`. It needs a deployed copy and one registry value:
+
+```powershell
+windeployqt --release --qmldir build/qt-app/ui build/qt-app-deploy/populous.scr
+Set-ItemProperty 'HKCU:\Control Panel\Desktop' 'SCRNSAVE.EXE' <full path>
+rundll32.exe shell32.dll,Control_RunDLL desk.cpl,,1
+```
+
+**Back the old value up first and restore it afterwards** — it is the user's
+screen saver.
+
+`--qmldir` is required. The QML lives in the compiled `.qrc`, so `windeployqt`
+cannot scan it from disk; without the flag it ships no QML modules and the
+binary exits 1 the moment it tries to load `main.qml`.
+
 Qt's DLLs must be reachable — put `<Qt>/bin` on `PATH` when running from the
 build directory. The binary is not deployable yet; see
 [roadmap.md](roadmap.md#what-is-left-in-this-phase).
