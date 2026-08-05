@@ -4,6 +4,63 @@ Versions are those recorded in the Plasma plugin metadata, which every target
 reads from: the Windows build has its number written into the payload by
 `tools/build-targets.py`.
 
+## Unreleased
+
+### The atlas catalogue
+
+- **1,101 of the 1,179 usable cells are grouped, into 382 animations**, against
+  160 and 40 before. Only the 78 particle cells at 819–896 are left.
+  `core/js/Simulation.js` and every QML file are untouched: animations are
+  looked up by id, so a larger manifest changes nothing for the engine.
+- `tools/build-sprites.py` prints a coverage line and the unclaimed cell
+  ranges, and renders `research/sheets/cells-*.png` — every cell in index
+  order, labelled, claimed ones dimmed. That sheet is what makes a sequence
+  identifiable in the first place.
+- The review artefacts are now per stream rather than hard-coded to the braves:
+  a GIF at the declared frame duration, and a `direction-check` page.
+- New entities: the **firewarrior**, four tribes × 8 directions × 4 frames; the
+  four **shamans**, 16 idle + 32 walk + 24 punch each; **standing** sets for
+  brave and firewarrior; the brave's **scratch**, **hit** and **kick**; the
+  **soul** rising on death; a firewarrior **punch**; waving animations; and two
+  effects with no facing.
+- Streams may declare `"kind": "sequence"` for animations with no direction, and
+  may cut a cell that holds two poses with `{"splitSprite": N, "at": [x]}`.
+
+### What the atlas turned out to be
+
+- **The width signature generalises**: within an eight-direction block, the
+  widths of direction *i* equal those of direction *8−i* **read backwards**,
+  because mirrored directions are drawn at the opposite phase. It scores
+  exactly on the brave blocks, which makes it a detector rather than a guess,
+  and it found the firewarrior, the standing sets and the shamans' 16/32/24
+  split.
+- **Tribe colour finds what the signature cannot.** Classifying each cell by
+  the colour that separates it from the other three exposed the block
+  boundaries of the brave actions and of the soul sequences, where the widths
+  say nothing.
+- **One cell holds two poses.** The firewarrior punch blocks read as 23 cells,
+  which divides by neither 8 nor 4; the second cell of each is 43 pixels wide
+  where the row is otherwise 21 to 33. Neither the native table nor the visual
+  detector can separate them — the two figures touch, leaving no transparent
+  column. Cut at the valley of the opaque-pixel profile, each block becomes
+  8 × 3 and the signature scores exactly.
+- **Sounds are a weak witness.** `punch1`–`punch8` and `swords1`–`swords5` led
+  to naming two brave sets a punch and a sword swing. They are a brave *taking*
+  a blow and a brave *kicking*; the pale arc is a leg, not a weapon. Both were
+  corrected from watching the original.
+- The cells versions before 0.4.0 mistook for a walk cycle are the brave's
+  **scratch** idle — what it does when it has stood still too long.
+
+### Guarding the direction order
+
+- `build-sprites.py` matches each new directional set's silhouettes against the
+  verified brave set. The score alone means little: 7/8 between brave and
+  firewarrior, 3/8 between brave and shaman, whose headdress is half the
+  sprite.
+- What it fails the build on is the failure that actually happens — a set
+  assigned to its own mirror, east matching west. Checked both ways: silent on
+  the real layout, fatal on a deliberately reversed one.
+
 ## 0.9.0
 
 ### The standalone Qt application

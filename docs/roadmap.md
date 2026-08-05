@@ -3,7 +3,10 @@
 Five phases, ordered so that each one unblocks the next rather than by how
 visible the result is.
 
-Current version: **0.9.0**. Phases 1, 2 and 3 are complete.
+Current version: **0.9.0**. Phases 1, 2 and 3 are complete; phase 4 is under
+way — see [4b](#4b--catalogue-the-atlas--nearly-done) for where it stands and
+[4a](#4a--watch-the-original--not-started-and-it-blocks-the-rest) for what to
+pick up next.
 
 ## Phase 1 — Separate assets from targets ✅
 
@@ -87,17 +90,75 @@ remaining step. Nothing about the artefact itself is blocking.
 
 ## Phase 4 — The rest of the simulation
 
-Grouping the remaining atlas frames, then implementing behaviour in dependency
-order: combat and deaths, conversions, shamans and spells, gathering at the
-centre, Armageddon. Sound comes with it, wired to simulation events with a cap
-on simultaneous effects.
-
-Observed behaviour is reproduced first. Disassembling the original's 129 KB of
-code is a fallback, used only to settle ambiguous rules, probabilities or
-timings.
+Grouping the atlas first, then implementing behaviour in dependency order.
+Observed behaviour is reproduced first; disassembling the original's 129 KB of
+code is a fallback for ambiguous rules, probabilities or timings.
 
 [spec/simulation.md](../spec/simulation.md) is written **as** each rule is
 implemented, while the reasoning is fresh.
+
+### 4b — Catalogue the atlas 🔄 nearly done
+
+**1,101 of the 1,179 usable cells are grouped, into 382 animations**, against
+160 and 40 when the phase started. Nothing in `core/` or in any QML file
+changed: the simulation looks animations up by id and does not care how many
+exist. Tests stay at 54 and the golden traces still reproduce.
+
+What was found is written up in
+[asset-pipeline.md](asset-pipeline.md#what-the-atlas-turned-out-to-be) — the
+generalised width signature, the entities it uncovered, the merged cell, and
+why sounds turned out to be a poor witness. `tools/build-sprites.py` now prints
+a coverage line and the unclaimed ranges, so progress is a number rather than
+an impression.
+
+**What is left: cells 819–896**, the 78 particle cells, five pixels tall. One
+connected component there is not one frame, so they need handling of their own
+— probably a stream kind that takes a whole band and leaves it unsegmented
+until something needs it.
+
+### 4a — Watch the original ⏳ not started, and it blocks the rest
+
+Running `original/Populous Screen Saver.scr` full screen and writing down what
+it does, into `research/original-behaviour.md`. It needs Windows, or Wine on
+the KDE machine.
+
+This is now the bottleneck, because the catalogue raised questions only the
+original can answer:
+
+- **does a shaman ever fight?** `shaman_punch` is an arms-out pose that reads
+  as a blow, but enemy braves are remembered as walking straight past. These
+  cells may go unused;
+- **are the waving animations used at all?** `brave_wave` and
+  `firewarrior_wave` are grouped so the cells are accounted for, on the
+  suspicion that nothing plays them;
+- **every frame duration outside the walk cycles is invented.** Idle, cast,
+  punch, kick, soul and the two effects all carry a provisional number and a
+  note saying so;
+- what triggers a fight, how long one lasts, what happens to the loser, how
+  Armageddon starts, and whether the run ends or loops.
+
+Record which sounds accompany which events by ear. The 28 file names are
+suggestive and were already misleading once: `punch1`–`punch8` and
+`swords1`–`swords5` led to naming two brave animations a punch and a sword
+swing, when they are a brave *taking* a blow and a brave *kicking*.
+
+### 4c onwards — behaviours
+
+Each becomes its own plan once 4a has said what the rules are.
+
+**4c — behaviour states and events**, the foundation the rest needs.
+`stepCharacter` is one monolithic walk rule today, and `animationId` in
+`core/js/Simulation.js` hard-codes `"brave." + tribe + ".walk." +
+directionId` — with 382 animations behind it, that is now the narrowest point
+in the engine. The state gains `entity`, `action` and a `behaviour` with an
+explicit transition table; `stepSimulation` returns typed events instead of
+only footprints, which is what both the renderer and the future audio layer
+consume; non-character entities (souls, effects) become a second list with
+their own lifetimes.
+
+Then **4d** combat and deaths, **4e** conversions and spells, **4f** gathering
+and Armageddon. Every one changes the golden traces: regenerate them once per
+step, deliberately, and read the JSON diff.
 
 ## Phase 5 — The xscreensaver hack
 

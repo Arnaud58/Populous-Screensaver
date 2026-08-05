@@ -171,8 +171,22 @@ test("the manifest agrees with the simulation on every direction vector", () => 
     const ids = Object.keys(manifest.animations)
     assert.ok(ids.length > 0)
 
+    let directional = 0
+
     for (const id of ids) {
         const animation = manifest.animations[id]
+
+        // Effects have no facing at all. Their ids must then carry no
+        // direction either, or a lookup by direction would find them.
+        if (animation.direction === null) {
+            assert.ok(
+                !Simulation.directions.some((one) => id.endsWith("." + one.id)),
+                `${id}: has no direction but its id ends with one`
+            )
+            continue
+        }
+
+        directional += 1
         const { dx, dy } = animation.direction
         const resolved = Simulation.directionForVector(dx, dy)
 
@@ -187,6 +201,8 @@ test("the manifest agrees with the simulation on every direction vector", () => 
             `${id}: animation id does not end with its own direction`
         )
     }
+
+    assert.ok(directional > 0, "the manifest holds no directional animation")
 })
 
 test("every direction of every tribe is present in the manifest", () => {

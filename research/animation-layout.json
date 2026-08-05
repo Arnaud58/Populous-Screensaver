@@ -7,26 +7,83 @@
       "action": "walk",
       "confidence": "high",
       "sourceRanges": [
-        { "firstSprite": 0, "frameCount": 32 },
-        { "firstSprite": 40, "frameCount": 32 },
-        { "firstSprite": 80, "frameCount": 32 },
-        { "firstSprite": 120, "frameCount": 32 },
-        { "firstSprite": 160, "frameCount": 32 }
+        {
+          "firstSprite": 0,
+          "frameCount": 32
+        },
+        {
+          "firstSprite": 40,
+          "frameCount": 32
+        },
+        {
+          "firstSprite": 80,
+          "frameCount": 32
+        },
+        {
+          "firstSprite": 120,
+          "frameCount": 32
+        },
+        {
+          "firstSprite": 160,
+          "frameCount": 32
+        }
       ],
       "layout": {
-        "tribes": ["neutral", "blue", "red", "yellow", "green"],
+        "tribes": [
+          "neutral",
+          "blue",
+          "red",
+          "yellow",
+          "green"
+        ],
         "directions": [
-          { "id": "south", "dx": 0, "dy": 1 },
-          { "id": "south_east", "dx": 1, "dy": 1 },
-          { "id": "east", "dx": 1, "dy": 0 },
-          { "id": "north_east", "dx": 1, "dy": -1 },
-          { "id": "north", "dx": 0, "dy": -1 },
-          { "id": "north_west", "dx": -1, "dy": -1 },
-          { "id": "west", "dx": -1, "dy": 0 },
-          { "id": "south_west", "dx": -1, "dy": 1 }
+          {
+            "id": "south",
+            "dx": 0,
+            "dy": 1
+          },
+          {
+            "id": "south_east",
+            "dx": 1,
+            "dy": 1
+          },
+          {
+            "id": "east",
+            "dx": 1,
+            "dy": 0
+          },
+          {
+            "id": "north_east",
+            "dx": 1,
+            "dy": -1
+          },
+          {
+            "id": "north",
+            "dx": 0,
+            "dy": -1
+          },
+          {
+            "id": "north_west",
+            "dx": -1,
+            "dy": -1
+          },
+          {
+            "id": "west",
+            "dx": -1,
+            "dy": 0
+          },
+          {
+            "id": "south_west",
+            "dx": -1,
+            "dy": 1
+          }
         ],
         "framesPerAnimation": 4,
-        "order": ["tribe", "direction", "frame"]
+        "order": [
+          "tribe",
+          "direction",
+          "frame"
+        ]
       },
       "playback": {
         "loop": true,
@@ -39,7 +96,1117 @@
         "The direction order was recovered from the cell-width signature, which is mirror-symmetric in blocks of four: south_east mirrors south_west, east mirrors west, and north_east mirrors north_west. South and north are the two self-symmetric axes, at indices 0 and 4.",
         "That signature pairs the blocks but cannot say which of a pair faces which way. The sense comes from research/direction-check.png, which draws each compiled animation next to its movement vector: index 2 strides towards the right of the screen, so it is east, and the order runs clockwise from south.",
         "Do not settle east and west by eyeballing the atlas strip. It was got backwards once that way in 0.5.0, which made six of the eight directions moonwalk.",
-        "Sprites 495 onwards, used before, are atlas rows 16 to 19: standing poses with a raised arm, not a walk cycle."
+        "Sprites 495 onwards, used before 0.4.0, are the brave_scratch idle, not a walk cycle."
+      ]
+    },
+    {
+      "id": "firewarrior_walk",
+      "entity": "firewarrior",
+      "action": "walk",
+      "confidence": "high",
+      "sourceRanges": [
+        {
+          "firstSprite": 897,
+          "frameCount": 32
+        },
+        {
+          "firstSprite": 937,
+          "frameCount": 32
+        },
+        {
+          "firstSprite": 977,
+          "frameCount": 32
+        },
+        {
+          "firstSprite": 1017,
+          "frameCount": 32
+        }
+      ],
+      "layout": {
+        "tribes": [
+          "blue",
+          "red",
+          "yellow",
+          "green"
+        ],
+        "directions": [
+          {
+            "id": "south",
+            "dx": 0,
+            "dy": 1
+          },
+          {
+            "id": "south_east",
+            "dx": 1,
+            "dy": 1
+          },
+          {
+            "id": "east",
+            "dx": 1,
+            "dy": 0
+          },
+          {
+            "id": "north_east",
+            "dx": 1,
+            "dy": -1
+          },
+          {
+            "id": "north",
+            "dx": 0,
+            "dy": -1
+          },
+          {
+            "id": "north_west",
+            "dx": -1,
+            "dy": -1
+          },
+          {
+            "id": "west",
+            "dx": -1,
+            "dy": 0
+          },
+          {
+            "id": "south_west",
+            "dx": -1,
+            "dy": 1
+          }
+        ],
+        "framesPerAnimation": 4,
+        "order": [
+          "tribe",
+          "direction",
+          "frame"
+        ]
+      },
+      "playback": {
+        "loop": true,
+        "frameDurationMs": 120
+      },
+      "notes": [
+        "A horned-helmet warrior holding a flame in each hand: the firewarrior.",
+        "Same packing as the braves, four blocks of 40 native cells at 897, 937, 977 and 1017, each 32 walk cells followed by 8 cells that are not part of the cycle.",
+        "The blocks were matched to tribes by the colour that distinguishes each from the other three: blue at 897, red at 937, yellow at 977, green at 1017. There is no neutral variant here, unlike the braves.",
+        "The direction order was confirmed by the same reversed cell-width signature as the braves, which scores exactly on these blocks: direction i has the widths of direction 8-i read backwards.",
+        "The sense of each direction comes from research/direction-check-firewarrior_walk.png, not from reading the atlas strip."
+      ]
+    },
+    {
+      "id": "shaman_idle",
+      "entity": "shaman",
+      "action": "idle",
+      "confidence": "high",
+      "sourceRanges": [
+        {
+          "firstSprite": 200,
+          "frameCount": 16
+        },
+        {
+          "firstSprite": 272,
+          "frameCount": 16
+        },
+        {
+          "firstSprite": 351,
+          "frameCount": 16
+        },
+        {
+          "firstSprite": 423,
+          "frameCount": 16
+        }
+      ],
+      "layout": {
+        "tribes": [
+          "blue",
+          "red",
+          "yellow",
+          "green"
+        ],
+        "directions": [
+          {
+            "id": "south",
+            "dx": 0,
+            "dy": 1
+          },
+          {
+            "id": "south_east",
+            "dx": 1,
+            "dy": 1
+          },
+          {
+            "id": "east",
+            "dx": 1,
+            "dy": 0
+          },
+          {
+            "id": "north_east",
+            "dx": 1,
+            "dy": -1
+          },
+          {
+            "id": "north",
+            "dx": 0,
+            "dy": -1
+          },
+          {
+            "id": "north_west",
+            "dx": -1,
+            "dy": -1
+          },
+          {
+            "id": "west",
+            "dx": -1,
+            "dy": 0
+          },
+          {
+            "id": "south_west",
+            "dx": -1,
+            "dy": 1
+          }
+        ],
+        "framesPerAnimation": 2,
+        "order": [
+          "tribe",
+          "direction",
+          "frame"
+        ]
+      },
+      "playback": {
+        "loop": true,
+        "frameDurationMs": 250
+      },
+      "notes": [
+        "Standing with hands on hips, two frames per direction.",
+        "The frame duration is provisional: nothing observed sets it yet."
+      ]
+    },
+    {
+      "id": "shaman_walk",
+      "entity": "shaman",
+      "action": "walk",
+      "confidence": "high",
+      "sourceRanges": [
+        {
+          "firstSprite": 216,
+          "frameCount": 32
+        },
+        {
+          "firstSprite": 288,
+          "frameCount": 32
+        },
+        {
+          "firstSprite": 367,
+          "frameCount": 32
+        },
+        {
+          "firstSprite": 439,
+          "frameCount": 32
+        }
+      ],
+      "layout": {
+        "tribes": [
+          "blue",
+          "red",
+          "yellow",
+          "green"
+        ],
+        "directions": [
+          {
+            "id": "south",
+            "dx": 0,
+            "dy": 1
+          },
+          {
+            "id": "south_east",
+            "dx": 1,
+            "dy": 1
+          },
+          {
+            "id": "east",
+            "dx": 1,
+            "dy": 0
+          },
+          {
+            "id": "north_east",
+            "dx": 1,
+            "dy": -1
+          },
+          {
+            "id": "north",
+            "dx": 0,
+            "dy": -1
+          },
+          {
+            "id": "north_west",
+            "dx": -1,
+            "dy": -1
+          },
+          {
+            "id": "west",
+            "dx": -1,
+            "dy": 0
+          },
+          {
+            "id": "south_west",
+            "dx": -1,
+            "dy": 1
+          }
+        ],
+        "framesPerAnimation": 4,
+        "order": [
+          "tribe",
+          "direction",
+          "frame"
+        ]
+      },
+      "playback": {
+        "loop": true,
+        "frameDurationMs": 120
+      },
+      "notes": [
+        "Each shaman occupies 72 consecutive cells laid out as 16 idle, 32 walk, 24 cast. All twelve blocks score exactly on the reversed cell-width signature, which is what fixed the 16/32/24 split rather than eyeballing it.",
+        "The four groups start at 200, 272, 351 and 423, and their headdresses differ: feathers, feathers, a sun disc and leaves. The colours still run blue, red, yellow, green, the same order as the braves and firewarriors, so they are read as the four tribes' shamans.",
+        "The two halves differ in cell height, 35 to 36 against 39, and a seven-cell sparkle sits between them at 344. Whether that makes them two unit types rather than four variants of one is unresolved."
+      ]
+    },
+    {
+      "id": "shaman_punch",
+      "entity": "shaman",
+      "action": "punch",
+      "confidence": "medium",
+      "sourceRanges": [
+        {
+          "firstSprite": 248,
+          "frameCount": 24
+        },
+        {
+          "firstSprite": 320,
+          "frameCount": 24
+        },
+        {
+          "firstSprite": 399,
+          "frameCount": 24
+        },
+        {
+          "firstSprite": 471,
+          "frameCount": 24
+        }
+      ],
+      "layout": {
+        "tribes": [
+          "blue",
+          "red",
+          "yellow",
+          "green"
+        ],
+        "directions": [
+          {
+            "id": "south",
+            "dx": 0,
+            "dy": 1
+          },
+          {
+            "id": "south_east",
+            "dx": 1,
+            "dy": 1
+          },
+          {
+            "id": "east",
+            "dx": 1,
+            "dy": 0
+          },
+          {
+            "id": "north_east",
+            "dx": 1,
+            "dy": -1
+          },
+          {
+            "id": "north",
+            "dx": 0,
+            "dy": -1
+          },
+          {
+            "id": "north_west",
+            "dx": -1,
+            "dy": -1
+          },
+          {
+            "id": "west",
+            "dx": -1,
+            "dy": 0
+          },
+          {
+            "id": "south_west",
+            "dx": -1,
+            "dy": 1
+          }
+        ],
+        "framesPerAnimation": 3,
+        "order": [
+          "tribe",
+          "direction",
+          "frame"
+        ]
+      },
+      "playback": {
+        "loop": false,
+        "frameDurationMs": 120
+      },
+      "notes": [
+        "Arms thrown out to the side, three frames per direction. Read by the author as a punch rather than a spell.",
+        "Whether a shaman ever fights hand to hand in the screen saver is doubtful: enemy braves are remembered as walking straight past. These cells may simply go unused, or one animation may serve both throwing a blow and taking one.",
+        "The frame duration is provisional."
+      ]
+    },
+    {
+      "id": "brave_stand",
+      "entity": "brave",
+      "action": "stand",
+      "confidence": "high",
+      "sourceRanges": [
+        {
+          "firstSprite": 32,
+          "frameCount": 8
+        },
+        {
+          "firstSprite": 72,
+          "frameCount": 8
+        },
+        {
+          "firstSprite": 112,
+          "frameCount": 8
+        },
+        {
+          "firstSprite": 152,
+          "frameCount": 8
+        },
+        {
+          "firstSprite": 192,
+          "frameCount": 8
+        }
+      ],
+      "layout": {
+        "tribes": [
+          "neutral",
+          "blue",
+          "red",
+          "yellow",
+          "green"
+        ],
+        "directions": [
+          {
+            "id": "south",
+            "dx": 0,
+            "dy": 1
+          },
+          {
+            "id": "south_east",
+            "dx": 1,
+            "dy": 1
+          },
+          {
+            "id": "east",
+            "dx": 1,
+            "dy": 0
+          },
+          {
+            "id": "north_east",
+            "dx": 1,
+            "dy": -1
+          },
+          {
+            "id": "north",
+            "dx": 0,
+            "dy": -1
+          },
+          {
+            "id": "north_west",
+            "dx": -1,
+            "dy": -1
+          },
+          {
+            "id": "west",
+            "dx": -1,
+            "dy": 0
+          },
+          {
+            "id": "south_west",
+            "dx": -1,
+            "dy": 1
+          }
+        ],
+        "framesPerAnimation": 1,
+        "order": [
+          "tribe",
+          "direction",
+          "frame"
+        ]
+      },
+      "playback": {
+        "loop": false,
+        "frameDurationMs": 120
+      },
+      "notes": [
+        "The 8 cells trailing each 40-cell walk block: one standing frame per direction.",
+        "Their widths run 18, 14, 10, 14 twice over, which is the single-frame case of the reversed cell-width signature and scores exactly."
+      ]
+    },
+    {
+      "id": "firewarrior_stand",
+      "entity": "firewarrior",
+      "action": "stand",
+      "confidence": "high",
+      "sourceRanges": [
+        {
+          "firstSprite": 929,
+          "frameCount": 8
+        },
+        {
+          "firstSprite": 969,
+          "frameCount": 8
+        },
+        {
+          "firstSprite": 1009,
+          "frameCount": 8
+        },
+        {
+          "firstSprite": 1049,
+          "frameCount": 8
+        }
+      ],
+      "layout": {
+        "tribes": [
+          "blue",
+          "red",
+          "yellow",
+          "green"
+        ],
+        "directions": [
+          {
+            "id": "south",
+            "dx": 0,
+            "dy": 1
+          },
+          {
+            "id": "south_east",
+            "dx": 1,
+            "dy": 1
+          },
+          {
+            "id": "east",
+            "dx": 1,
+            "dy": 0
+          },
+          {
+            "id": "north_east",
+            "dx": 1,
+            "dy": -1
+          },
+          {
+            "id": "north",
+            "dx": 0,
+            "dy": -1
+          },
+          {
+            "id": "north_west",
+            "dx": -1,
+            "dy": -1
+          },
+          {
+            "id": "west",
+            "dx": -1,
+            "dy": 0
+          },
+          {
+            "id": "south_west",
+            "dx": -1,
+            "dy": 1
+          }
+        ],
+        "framesPerAnimation": 1,
+        "order": [
+          "tribe",
+          "direction",
+          "frame"
+        ]
+      },
+      "playback": {
+        "loop": false,
+        "frameDurationMs": 120
+      },
+      "notes": [
+        "The 8 cells trailing each firewarrior walk block, one standing frame per direction.",
+        "The blue block differs from the other three by a single pixel of width on one cell, which is why its signature scores 0.67 rather than 1.0."
+      ]
+    },
+    {
+      "id": "effect_sparkle",
+      "kind": "sequence",
+      "entity": "effect",
+      "action": "sparkle",
+      "confidence": "high",
+      "sourceRanges": [
+        {
+          "firstSprite": 344,
+          "frameCount": 7
+        }
+      ],
+      "playback": {
+        "loop": false,
+        "frameDurationMs": 80
+      },
+      "notes": [
+        "A cyan star that swells and then collapses to a point, seven cells wide 12, 12, 14, 16, 18, 8, 4.",
+        "It sits between the two halves of the shaman set, which is a hint that it belongs to them, but nothing seen so far says which spell it goes with.",
+        "The frame duration is provisional."
+      ]
+    },
+    {
+      "id": "effect_ring",
+      "kind": "sequence",
+      "entity": "effect",
+      "action": "ring",
+      "confidence": "high",
+      "sourceRanges": [
+        {
+          "firstSprite": 1173,
+          "frameCount": 6
+        }
+      ],
+      "playback": {
+        "loop": false,
+        "frameDurationMs": 80
+      },
+      "notes": [
+        "A white core that opens into an orange ring and thins to a crescent. The last cells of the atlas.",
+        "Frames keep interior holes, so the alpha channel has to be preserved exactly rather than keyed.",
+        "The frame duration is provisional."
+      ]
+    },
+    {
+      "id": "brave_scratch",
+      "entity": "brave",
+      "action": "scratch",
+      "confidence": "high",
+      "sourceRanges": [
+        {
+          "firstSprite": 495,
+          "frameCount": 32
+        },
+        {
+          "firstSprite": 527,
+          "frameCount": 32
+        },
+        {
+          "firstSprite": 559,
+          "frameCount": 32
+        },
+        {
+          "firstSprite": 591,
+          "frameCount": 32
+        }
+      ],
+      "layout": {
+        "tribes": [
+          "blue",
+          "red",
+          "yellow",
+          "green"
+        ],
+        "directions": [
+          {
+            "id": "south",
+            "dx": 0,
+            "dy": 1
+          },
+          {
+            "id": "south_east",
+            "dx": 1,
+            "dy": 1
+          },
+          {
+            "id": "east",
+            "dx": 1,
+            "dy": 0
+          },
+          {
+            "id": "north_east",
+            "dx": 1,
+            "dy": -1
+          },
+          {
+            "id": "north",
+            "dx": 0,
+            "dy": -1
+          },
+          {
+            "id": "north_west",
+            "dx": -1,
+            "dy": -1
+          },
+          {
+            "id": "west",
+            "dx": -1,
+            "dy": 0
+          },
+          {
+            "id": "south_west",
+            "dx": -1,
+            "dy": 1
+          }
+        ],
+        "framesPerAnimation": 4,
+        "order": [
+          "tribe",
+          "direction",
+          "frame"
+        ]
+      },
+      "playback": {
+        "loop": true,
+        "frameDurationMs": 200
+      },
+      "notes": [
+        "What a brave does when it has been standing still for a while: it scratches its backside. Identified by the author, who knows the original running.",
+        "Four blocks of 32 at 495, 527, 559, 591, one per tribe, found by classifying each cell by the colour that separates it from the other three. There is no neutral variant.",
+        "These are the cells versions before 0.4.0 mistook for a walk cycle, which is why the braves appeared to scratch instead of walking.",
+        "The cells are 29 pixels tall against 26 for the walk, and the legs are covered rather than bare. A raised arm explains the height; the legwear is unexplained and leaves some doubt that this is the same unit.",
+        "The frame duration is provisional."
+      ]
+    },
+    {
+      "id": "brave_hit",
+      "entity": "brave",
+      "action": "hit",
+      "confidence": "high",
+      "sourceRanges": [
+        {
+          "firstSprite": 623,
+          "frameCount": 8
+        },
+        {
+          "firstSprite": 631,
+          "frameCount": 8
+        },
+        {
+          "firstSprite": 639,
+          "frameCount": 8
+        },
+        {
+          "firstSprite": 647,
+          "frameCount": 8
+        }
+      ],
+      "layout": {
+        "tribes": [
+          "blue",
+          "red",
+          "yellow",
+          "green"
+        ],
+        "directions": [
+          {
+            "id": "south",
+            "dx": 0,
+            "dy": 1
+          },
+          {
+            "id": "south_east",
+            "dx": 1,
+            "dy": 1
+          },
+          {
+            "id": "east",
+            "dx": 1,
+            "dy": 0
+          },
+          {
+            "id": "north_east",
+            "dx": 1,
+            "dy": -1
+          },
+          {
+            "id": "north",
+            "dx": 0,
+            "dy": -1
+          },
+          {
+            "id": "north_west",
+            "dx": -1,
+            "dy": -1
+          },
+          {
+            "id": "west",
+            "dx": -1,
+            "dy": 0
+          },
+          {
+            "id": "south_west",
+            "dx": -1,
+            "dy": 1
+          }
+        ],
+        "framesPerAnimation": 1,
+        "order": [
+          "tribe",
+          "direction",
+          "frame"
+        ]
+      },
+      "playback": {
+        "loop": false,
+        "frameDurationMs": 120
+      },
+      "notes": [
+        "A brave taking a blow, one frame per direction. Identified by the author from the original: it is the recoil, not the attack.",
+        "The one-frame case of the reversed cell-width signature scores exactly on all four blocks.",
+        "The direction sense was confirmed by the author against research/brave_hit.gif."
+      ]
+    },
+    {
+      "id": "brave_kick",
+      "entity": "brave",
+      "action": "kick",
+      "confidence": "high",
+      "sourceRanges": [
+        {
+          "firstSprite": 655,
+          "frameCount": 16
+        },
+        {
+          "firstSprite": 671,
+          "frameCount": 16
+        },
+        {
+          "firstSprite": 687,
+          "frameCount": 16
+        },
+        {
+          "firstSprite": 703,
+          "frameCount": 16
+        }
+      ],
+      "layout": {
+        "tribes": [
+          "blue",
+          "red",
+          "yellow",
+          "green"
+        ],
+        "directions": [
+          {
+            "id": "south",
+            "dx": 0,
+            "dy": 1
+          },
+          {
+            "id": "south_east",
+            "dx": 1,
+            "dy": 1
+          },
+          {
+            "id": "east",
+            "dx": 1,
+            "dy": 0
+          },
+          {
+            "id": "north_east",
+            "dx": 1,
+            "dy": -1
+          },
+          {
+            "id": "north",
+            "dx": 0,
+            "dy": -1
+          },
+          {
+            "id": "north_west",
+            "dx": -1,
+            "dy": -1
+          },
+          {
+            "id": "west",
+            "dx": -1,
+            "dy": 0
+          },
+          {
+            "id": "south_west",
+            "dx": -1,
+            "dy": 1
+          }
+        ],
+        "framesPerAnimation": 2,
+        "order": [
+          "tribe",
+          "direction",
+          "frame"
+        ]
+      },
+      "playback": {
+        "loop": false,
+        "frameDurationMs": 120
+      },
+      "notes": [
+        "A brave kicking. The wide pale arc sweeping around the character is the leg, not a weapon; identified by the author from the original.",
+        "Two frames per direction, four tribes, no neutral variant.",
+        "The direction sense was confirmed by the author against research/brave_kick.gif.",
+        "Mirrored directions are stored at the opposite phase: the arc falls on frame 1 going west and on frame 2 going east. That is what the reversed cell-width signature measures.",
+        "The yellow block scores 0.67 rather than 1.0 on the signature, from a single cell differing in width."
+      ]
+    },
+    {
+      "id": "soul_rise",
+      "kind": "sequence",
+      "entity": "soul",
+      "action": "rise",
+      "confidence": "high",
+      "sourceRanges": [
+        {
+          "firstSprite": 719,
+          "frameCount": 25
+        },
+        {
+          "firstSprite": 744,
+          "frameCount": 25
+        },
+        {
+          "firstSprite": 769,
+          "frameCount": 25
+        },
+        {
+          "firstSprite": 794,
+          "frameCount": 25
+        }
+      ],
+      "layout": {
+        "tribes": [
+          "blue",
+          "red",
+          "yellow",
+          "green"
+        ],
+        "framesPerAnimation": 25
+      },
+      "playback": {
+        "loop": false,
+        "frameDurationMs": 100
+      },
+      "notes": [
+        "The soul flying away when a brave or a firewarrior dies. Identified by the author; earlier taken for ground fires and flame bursts.",
+        "Four blocks of 25 at 719, 744, 769, 794. The block boundaries came from classifying each cell by tribe colour: the first cells of each block carry none, which is the soul before its colour appears.",
+        "No facing, so no direction. The frame duration is provisional."
+      ]
+    },
+    {
+      "id": "firewarrior_punch",
+      "entity": "firewarrior",
+      "action": "punch",
+      "confidence": "high",
+      "sourceRanges": [
+        {
+          "firstSprite": 1057,
+          "frameCount": 1
+        },
+        {
+          "splitSprite": 1058,
+          "at": [
+            22
+          ]
+        },
+        {
+          "firstSprite": 1059,
+          "frameCount": 21
+        },
+        {
+          "firstSprite": 1080,
+          "frameCount": 1
+        },
+        {
+          "splitSprite": 1081,
+          "at": [
+            22
+          ]
+        },
+        {
+          "firstSprite": 1082,
+          "frameCount": 21
+        },
+        {
+          "firstSprite": 1103,
+          "frameCount": 1
+        },
+        {
+          "splitSprite": 1104,
+          "at": [
+            22
+          ]
+        },
+        {
+          "firstSprite": 1105,
+          "frameCount": 21
+        },
+        {
+          "firstSprite": 1126,
+          "frameCount": 1
+        },
+        {
+          "splitSprite": 1127,
+          "at": [
+            22
+          ]
+        },
+        {
+          "firstSprite": 1128,
+          "frameCount": 21
+        }
+      ],
+      "layout": {
+        "tribes": [
+          "blue",
+          "red",
+          "yellow",
+          "green"
+        ],
+        "directions": [
+          {
+            "id": "south",
+            "dx": 0,
+            "dy": 1
+          },
+          {
+            "id": "south_east",
+            "dx": 1,
+            "dy": 1
+          },
+          {
+            "id": "east",
+            "dx": 1,
+            "dy": 0
+          },
+          {
+            "id": "north_east",
+            "dx": 1,
+            "dy": -1
+          },
+          {
+            "id": "north",
+            "dx": 0,
+            "dy": -1
+          },
+          {
+            "id": "north_west",
+            "dx": -1,
+            "dy": -1
+          },
+          {
+            "id": "west",
+            "dx": -1,
+            "dy": 0
+          },
+          {
+            "id": "south_west",
+            "dx": -1,
+            "dy": 1
+          }
+        ],
+        "framesPerAnimation": 3,
+        "order": [
+          "tribe",
+          "direction",
+          "frame"
+        ]
+      },
+      "playback": {
+        "loop": false,
+        "frameDurationMs": 120
+      },
+      "notes": [
+        "A firewarrior throwing a punch, identified by the author. Four blocks aligned exactly with atlas bands 33 to 36.",
+        "Each block reads as 23 cells but is really 24: the second cell is 43 pixels wide where the row is otherwise 21 to 33, and holds two poses. Once it is cut the block is 8 directions x 3 frames and the reversed cell-width signature scores exactly, which is what confirms the cut rather than the eye.",
+        "Neither source can make that cut on its own. The native table lists one cell, and the visual detector merges them too, because the two figures touch and leave no transparent column. The offset 22 was read off the column-by-column opaque pixel count, whose valley falls at 21, 22, 23 with counts 2, 1, 2.",
+        "The same merge happens at the same offset in all four blocks, so one declared cut per block covers it."
+      ]
+    },
+    {
+      "id": "brave_wave",
+      "kind": "sequence",
+      "entity": "brave",
+      "action": "wave",
+      "confidence": "low",
+      "sourceRanges": [
+        {
+          "firstSprite": 1149,
+          "frameCount": 3
+        },
+        {
+          "firstSprite": 1152,
+          "frameCount": 3
+        },
+        {
+          "firstSprite": 1155,
+          "frameCount": 3
+        },
+        {
+          "firstSprite": 1158,
+          "frameCount": 3
+        }
+      ],
+      "layout": {
+        "tribes": [
+          "blue",
+          "red",
+          "yellow",
+          "green"
+        ],
+        "framesPerAnimation": 3
+      },
+      "playback": {
+        "loop": false,
+        "frameDurationMs": 200
+      },
+      "notes": [
+        "A brave waving, three frames per tribe.",
+        "The author does not recall these being used in the screen saver at all. Grouped so the cells are accounted for, not because anything needs them."
+      ]
+    },
+    {
+      "id": "firewarrior_wave",
+      "kind": "sequence",
+      "entity": "firewarrior",
+      "action": "wave",
+      "confidence": "low",
+      "sourceRanges": [
+        {
+          "firstSprite": 1161,
+          "frameCount": 3
+        },
+        {
+          "firstSprite": 1164,
+          "frameCount": 3
+        },
+        {
+          "firstSprite": 1167,
+          "frameCount": 3
+        },
+        {
+          "firstSprite": 1170,
+          "frameCount": 3
+        }
+      ],
+      "layout": {
+        "tribes": [
+          "blue",
+          "red",
+          "yellow",
+          "green"
+        ],
+        "framesPerAnimation": 3
+      },
+      "playback": {
+        "loop": false,
+        "frameDurationMs": 200
+      },
+      "notes": [
+        "A firewarrior waving, three frames per tribe, sharing atlas band 37 with brave_wave.",
+        "Same doubt: probably unused."
       ]
     }
   ]
