@@ -19,9 +19,9 @@ Two versions are built from one engine:
 Version 0.9.0. **The KDE Plasma 6 target works and is usable today** — as a
 desktop wallpaper and on the lock screen, with a configuration page.
 
-The **Windows screen saver** now builds and runs: one window per monitor over a
-single continuous world, with a settings dialog. It is not packaged for
-installation yet, so it has to be launched by hand.
+The **Windows screen saver** works and installs: one window per monitor over a
+single continuous world, a settings dialog, and a self-contained archive with
+its own installer.
 
 The simulation currently has tribespeople walking, turning, avoiding each other
 and leaving coloured footprints. Combat, conversions, shamans, spells and
@@ -35,7 +35,7 @@ See the [changelog](CHANGELOG.md) for what changed when, and the
 | Target | Host | Renderer | Multi-monitor | Status |
 | ------ | ---- | -------- | ------------- | ------ |
 | `plasma` | KDE Plasma 6 wallpaper plugin | QML | one world per screen | **working** |
-| `qt-app` (Windows) | `.scr` screen saver | QML | continuous world | **working**, not packaged |
+| `qt-app` (Windows) | `.scr` screen saver | QML | continuous world | **working** |
 | `qt-app` (Linux) | standalone executable | QML | continuous world | should build, untested |
 | `xscreensaver` | X11 screen saver hack | C / OpenGL | one world per window | planned |
 
@@ -45,8 +45,8 @@ sense.
 
 ## Getting it
 
-There are no binary releases yet. GitHub releases, will come
-once the standalone applications exist. For now, build from the repository.
+There are no published releases yet, but the Windows target now produces the
+archive one would be made of. Until then, build from the repository.
 
 ### KDE Plasma 6
 
@@ -80,29 +80,34 @@ kpackagetool6 --type Plasma/Wallpaper --remove org.poptheme.populous
 
 ### Windows
 
-Needs Qt 6.5 or newer and a C++ toolchain. Building produces `populous.scr`,
-with every asset compiled in:
+Needs Qt 6.5 or newer and a C++ toolchain. The `package` target builds the
+screen saver, gathers everything it needs to run, and zips the result:
 
 ```bash
 python3 tools/build-targets.py qt-app
 cmake -S build/qt-app -B build/qt-app-cmake -DCMAKE_PREFIX_PATH=C:/Qt/<version>/msvc2022_64
-cmake --build build/qt-app-cmake --config Release
+cmake --build build/qt-app-cmake --config Release --target package
 ```
 
-Then deploy Qt beside it and select it as your screen saver:
+That leaves `populous-screensaver-<version>-windows-x64.zip` — about 40 MB —
+in `build/qt-app-cmake/`. Unpack it anywhere and run its installer:
 
 ```powershell
-windeployqt --release --qmldir build/qt-app/ui build/qt-app-cmake/populous.scr
-Set-ItemProperty 'HKCU:\Control Panel\Desktop' 'SCRNSAVE.EXE' <full path to populous.scr>
+powershell -ExecutionPolicy Bypass -File install-windows.ps1
 ```
 
-The `--qmldir` is not optional: the QML is compiled into the executable, so
-`windeployqt` cannot find the imports without it.
+It copies itself to `%LOCALAPPDATA%\Programs\Populous Screen Saver` and selects
+itself, no elevation needed. Windows offers no way to browse for a screen
+saver, which is why the installer writes that setting rather than leaving it to
+the dialog. Your previous screen saver is remembered and put back by
+`install-windows.ps1 -Uninstall`, which also removes the installed copy.
 
-There is no installer yet, which is why the registry value is written by hand.
-Windows offers no way to browse for a screen saver, so it has to be selected
-once this way; afterwards it appears in the usual dialog. Moving the mouse or
-pressing a key quits it, and `/c` opens its settings.
+Moving the mouse or pressing a key quits it, and the dialog's **Settings**
+button opens its configuration.
+
+The Microsoft Visual C++ 2015–2022 redistributable has to be present. It is on
+practically every Windows 11 machine, and the archive deliberately does not
+carry its 25 MB installer.
 
 ### Anywhere else
 

@@ -1,7 +1,8 @@
 # Changelog
 
-Versions are those recorded in the Plasma plugin metadata, which is the only
-target shipping so far.
+Versions are those recorded in the Plasma plugin metadata, which every target
+reads from: the Windows build has its number written into the payload by
+`tools/build-targets.py`.
 
 ## 0.9.0
 
@@ -48,16 +49,39 @@ target shipping so far.
   That settles the packaging question: install anywhere and write
   `HKCU\Control Panel\Desktop\SCRNSAVE.EXE`, with no stub and no static build.
 
+### Packaging
+
+- A `deploy` target gathers a runnable directory — the screen saver, Qt's DLLs
+  and QML modules, and the installer — and a `package` target zips it into
+  `populous-screensaver-<version>-windows-x64.zip`, about 40 MB.
+- `windeployqt` is told `--qmldir build/qt-app/ui`, since the QML lives in the
+  compiled `.qrc` and cannot be scanned from disk. Without it the binary ships
+  no QML module and exits 1 on loading `main.qml`.
+- `install-windows.ps1` copies the directory under `%LOCALAPPDATA%\Programs`
+  and selects the screen saver, with no elevation. It remembers what was
+  selected before and `-Uninstall` restores it — necessary because Windows
+  offers no way to browse for a screen saver.
+- The executable is now named `Populous Screen Saver.scr`. **The settings
+  dialog labels an entry by file name**, not by the version resource: a
+  `FileDescription` of "Populous Screen Saver" still displayed as `populous`
+  until the file itself was renamed.
+- Added a version resource all the same, for Explorer's Properties tab. Its
+  number comes from the Plasma plugin metadata, which stays the only file where
+  a version is maintained by hand.
+- Fixed the `/p` thumbnail rendering an almost always empty world: it used a
+  fixed 640×480 world seen through a window of roughly 150×110, so the
+  characters were somewhere else. The preview world is now the thumbnail.
+
 ### Known gaps
 
-- No installer, and no version resource, so the dialog shows the executable's
-  file name rather than a proper title.
-- `windeployqt` has to be told `--qmldir build/qt-app/ui`, since the QML lives
-  in the compiled `.qrc` and cannot be scanned from disk. The dependency set is
-  88 MB with QtQuick.Controls against 40 MB without, and Controls serves only
-  the `/c` dialog.
 - One sprite scale for the whole world, taken from the primary screen.
   Per-monitor DPI would need per-character margins and speeds.
+- The unpacked deployment is 1378 files, nearly all of them QtQuick.Controls,
+  used by nothing but the `/c` dialog. Without it the dependency set is 35
+  files and 40 MB unpacked.
+- The Visual C++ 2015-2022 redistributable has to be present: the archive drops
+  the 25 MB `vc_redist.x64.exe` windeployqt would otherwise include, since
+  nothing runs it.
 
 ## 0.8.1
 

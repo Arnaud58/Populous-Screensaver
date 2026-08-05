@@ -85,9 +85,48 @@ cmake -S build/qt-app -B build/qt-app-cmake -G Ninja \
 cmake --build build/qt-app-cmake
 ```
 
-On Windows the target is `populous.scr`; elsewhere it is a plain executable.
-Qt's own CMake and Ninja can be replaced by the ones Visual Studio ships, under
-`Common7/IDE/CommonExtensions/Microsoft/CMake/`.
+On Windows the target is `Populous Screen Saver.scr`; elsewhere it is a plain
+executable. Qt's own CMake and Ninja can be replaced by the ones Visual Studio
+ships, under `Common7/IDE/CommonExtensions/Microsoft/CMake/`.
+
+The build needs a developer environment for the Windows SDK libraries, and
+`vcvars64.bat` has to run *before* anything else touches `PATH` — `cmd` expands
+`%PATH%` for the whole line at once, so putting `set PATH=...;%PATH%` after it
+silently discards everything vcvars added and the link fails on `d3d11.lib`:
+
+```bat
+set PATH=C:\Qt\6.11.1\msvc2022_64\bin;%PATH%
+"...\VC\Auxiliary\Build\vcvars64.bat"
+cmake -S build/qt-app -B build/qt-app-cmake -G Ninja ^
+      -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl ^
+      -DCMAKE_PREFIX_PATH=C:/Qt/6.11.1/msvc2022_64
+```
+
+`CMAKE_CXX_COMPILER=cl` is worth passing explicitly: a MinGW toolchain earlier
+on `PATH` — MSYS2's, for instance — is otherwise picked over MSVC and fails at
+link time on Qt symbols.
+
+### Deploying and packaging
+
+Two extra targets, Windows only:
+
+```bash
+cmake --build build/qt-app-cmake --target deploy    # a runnable directory
+cmake --build build/qt-app-cmake --target package   # that directory, zipped
+```
+
+`deploy` produces `build/qt-app-cmake/deploy`: the screen saver, the Qt DLLs
+and QML modules windeployqt resolves, and `install-windows.ps1` beside them.
+`package` zips it into `populous-screensaver-<version>-windows-x64.zip`, which
+is the whole release asset.
+
+The version comes from the Plasma plugin metadata, which stays the one place a
+version number is maintained by hand: `tools/build-targets.py` writes it into
+the payload as `version.cmake`, and CMake reads it back before `project()`.
+
+`--no-compiler-runtime` is passed because windeployqt otherwise copies a 25 MB
+`vc_redist.x64.exe` that nothing runs. The Visual C++ 2015-2022 redistributable
+has to be present on the target machine instead.
 
 | Argument | Behaviour |
 | -------- | --------- |
@@ -121,27 +160,32 @@ preview: child 265824, parent now 4132618, expected 4132618, 320x240
 Run with `QT_FORCE_STDERR_LOGGING=1` and redirect stderr, since the executable
 is built without a console.
 
+The preview world is the thumbnail's own client rectangle, not a fixed size.
+It used to be a fixed 640×480 world shown through a window of roughly 150×110,
+so the characters were almost always somewhere else and the thumbnail looked
+black — which reads exactly like a rendering failure.
+
 ### The end-to-end check
 
 The real consumer is the Windows screen-saver dialog, which calls the binary
-itself for both `/p` and `/s`. It needs a deployed copy and one registry value:
+itself for both `/p` and `/s`:
 
 ```powershell
-windeployqt --release --qmldir build/qt-app/ui build/qt-app-deploy/populous.scr
-Set-ItemProperty 'HKCU:\Control Panel\Desktop' 'SCRNSAVE.EXE' <full path>
+cmake --build build/qt-app-cmake --target deploy
+powershell -ExecutionPolicy Bypass -File build/qt-app-cmake/deploy/install-windows.ps1
 rundll32.exe shell32.dll,Control_RunDLL desk.cpl,,1
 ```
 
-**Back the old value up first and restore it afterwards** — it is the user's
-screen saver.
+The installer records the screen saver that was selected before it, and
+`-Uninstall` puts it back. It is still the user's screen saver being changed,
+so undo it when the check is done.
 
-`--qmldir` is required. The QML lives in the compiled `.qrc`, so `windeployqt`
-cannot scan it from disk; without the flag it ships no QML modules and the
-binary exits 1 the moment it tries to load `main.qml`.
+**The dialog labels an entry by file name, not by the version resource.** A
+`FileDescription` of "Populous Screen Saver" still showed as `populous` until
+the file itself was renamed, which is why the CMake target sets `OUTPUT_NAME`.
 
-Qt's DLLs must be reachable — put `<Qt>/bin` on `PATH` when running from the
-build directory. The binary is not deployable yet; see
-[roadmap.md](roadmap.md#what-is-left-in-this-phase).
+When running from the build directory rather than a deployed copy, Qt's DLLs
+must be reachable: put `<Qt>/bin` on `PATH`.
 
 ## Running the tests
 

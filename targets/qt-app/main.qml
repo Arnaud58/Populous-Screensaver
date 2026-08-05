@@ -26,7 +26,15 @@ QtObject {
     // between screens of different heights are excluded by the simulation.
     readonly property var screenRects: {
         if (previewMode) {
-            return [{ "x": 0, "y": 0, "width": 640, "height": 480 }]
+            // Exactly the window C++ sized from the thumbnail's client rect.
+            // A fixed 640x480 world seen through a 150x110 hole is black
+            // almost all the time: the characters are simply elsewhere.
+            return [{
+                "x": 0,
+                "y": 0,
+                "width": previewWindow.width,
+                "height": previewWindow.height
+            }]
         }
         var rects = []
         for (var index = 0; index < screens.length; ++index) {

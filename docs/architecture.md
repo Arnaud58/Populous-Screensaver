@@ -24,7 +24,8 @@ populous-screensaver/
 ├── targets/           # per-target host shells only
 │   ├── plasma/        #   metadata, host QML and configuration page
 │   ├── preview/       #   main.qml, a plain window for development
-│   └── qt-app/        #   CMake, C++ entry point, one window per screen
+│   └── qt-app/        #   CMake, C++ entry point, one window per screen,
+│                      #   version resource and Windows installer
 ├── tests/             # headless tests and golden traces
 └── build/             # assembled payloads — generated, not versioned
 ```

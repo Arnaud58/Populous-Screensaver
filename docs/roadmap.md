@@ -3,7 +3,7 @@
 Five phases, ordered so that each one unblocks the next rather than by how
 visible the result is.
 
-Current version: **0.8.1**. Phases 1 and 2 are complete.
+Current version: **0.9.0**. Phases 1, 2 and 3 are complete.
 
 ## Phase 1 — Separate assets from targets ✅
 
@@ -54,9 +54,9 @@ CMake project.
 - ✅ **The `.scr` entry point** (0.9.0). `/s`, `/c`, `/p <hwnd>` and a `/w`
   development mode, all four verified, with quitting on input guarded against
   the movement burst Windows sends at launch.
-- ⏳ **Packaging**, deliberately deferred — see below.
-
-### What is left in this phase
+- ✅ **Packaging** (0.9.0). A `deploy` target gathering a runnable directory, a
+  `package` target zipping it, a version resource, and an installer that needs
+  no elevation.
 
 **Packaging is settled: install anywhere, write the registry.** Tested on
 Windows 11 by pointing `HKCU\Control Panel\Desktop\SCRNSAVE.EXE` at a
@@ -65,33 +65,25 @@ ran it, listed it, and drew the thumbnail. **No `System32` stub and no static
 Qt build are needed.**
 
 One nuance: the dialog lists the *currently selected* screen saver plus those
-in `System32`, and offers no way to browse. An installer must therefore write
-the registry value itself — a user cannot pick the screen saver from the list
-until something has selected it once.
+in `System32`, and offers no way to browse. The installer therefore writes the
+registry value itself — a user cannot pick the screen saver from the list until
+something has selected it once.
 
-What is left before there is anything to release:
+The archive is about 40 MB, unpacked to roughly 100 MB across 1378 files.
 
-- **A deployment step in the build.** `windeployqt` must be run with
-  `--qmldir build/qt-app/ui`. Without it the binary starts and immediately
-  exits 1: the QML lives in the compiled `.qrc`, so `windeployqt` cannot scan
-  it and ships none of the QML modules.
-- **A display name.** The dialog currently shows `populous`, taken from the
-  file name, because the executable carries no version resource. Windows uses
-  the file description when there is one.
-- **An installer**, which is mostly copying a directory and writing one
-  registry value.
+### What is left in this phase
 
-**Deployment weight is worth a decision.** The dependency set is 40 MB across
-35 files without QtQuick.Controls, and **88 MB across 1376 files with it** —
-and Controls is used by nothing but the `/c` dialog. Rewriting that dialog in
-plain QtQuick would more than halve the download.
+**Deployment weight is worth a decision.** Almost all of those files are
+QtQuick.Controls, which serves nothing but the `/c` dialog: the dependency set
+is 40 MB across 35 files without it. Rewriting that dialog in plain QtQuick
+would cut the download by more than half.
 
 **One sprite scale for the whole world**, taken from the primary screen.
 Per-monitor DPI would mean per-character margins and speeds, which the state
 does not model.
 
-Binary releases, one per target, start once packaging is settled — probably
-wired to CI.
+Publishing the archive as a GitHub release, and wiring that to CI, is the
+remaining step. Nothing about the artefact itself is blocking.
 
 ## Phase 4 — The rest of the simulation
 

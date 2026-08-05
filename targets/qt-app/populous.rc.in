@@ -1,0 +1,39 @@
+// Version resource, configured by CMake from version.cmake.
+//
+// This is not what names the screen saver in the settings dialog — that comes
+// from the file name; see the comment on OUTPUT_NAME in CMakeLists.txt. It is
+// what Explorer's Properties tab and any installer read, and it is where the
+// version number surfaces in a shipped build.
+//
+// Qt generates such a resource for some targets, but not for this one, so it
+// is written out here rather than configured through QT_TARGET_DESCRIPTION.
+
+#include <windows.h>
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION     @PROJECT_VERSION_MAJOR@,@PROJECT_VERSION_MINOR@,@PROJECT_VERSION_PATCH@,0
+PRODUCTVERSION  @PROJECT_VERSION_MAJOR@,@PROJECT_VERSION_MINOR@,@PROJECT_VERSION_PATCH@,0
+FILEFLAGSMASK   VS_FFI_FILEFLAGSMASK
+FILEFLAGS       0x0L
+FILEOS          VOS_NT_WINDOWS32
+FILETYPE        VFT_APP
+FILESUBTYPE     VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "FileDescription", "Populous Screen Saver"
+            VALUE "FileVersion",     "@PROJECT_VERSION@.0"
+            VALUE "InternalName",    "populous"
+            VALUE "OriginalFilename", "Populous Screen Saver.scr"
+            VALUE "ProductName",     "Populous Screen Saver"
+            VALUE "ProductVersion",  "@PROJECT_VERSION@.0"
+            VALUE "LegalCopyright",  "Port of Bullfrog's 1998 screen saver. Populous is the property of its rights holders."
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END
