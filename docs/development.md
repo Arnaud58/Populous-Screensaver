@@ -27,8 +27,10 @@ sudo apt install \
 `.scr`. The derived assets are versioned, so a normal build does not touch
 them.
 
-The standalone Qt application and the xscreensaver hack will need a toolchain;
-that stays confined to those targets.
+The standalone Qt application requires Qt 6.5 or newer, CMake and a C++
+toolchain, as detailed below. The future xscreensaver hack will require a C and
+OpenGL toolchain. Those dependencies stay confined to their respective
+targets.
 
 ## Building targets
 
@@ -67,9 +69,9 @@ screens side by side, the last two shorter than the first, so a dead zone
 appears along the bottom right. The screens are outlined. Characters should
 cross the seams freely and never appear outside the outlines.
 
-It exists because the continuous multi-monitor world has no real multi-window
-host yet. Once the standalone application exists, rehearsal mode stops being
-the only way to check that behaviour.
+The standalone application is the authoritative real multi-window host.
+Rehearsal mode remains useful for quickly checking seams and dead zones on one
+screen, without compiling the application or taking over every monitor.
 
 ## Building the standalone application
 
@@ -198,10 +200,18 @@ randomness, so it runs under plain Node. The tests load `core/js/Simulation.js`
 by stripping its `.pragma library` line and evaluating it.
 
 `tests/golden/` holds recorded traces for a single-screen and a three-screen
-world. Regenerate them only when a rule deliberately changes:
+world. Normal validation compares freshly generated traces without writing:
 
 ```bash
-node tools/generate-golden.mjs
+node tools/generate-golden.mjs --check
+```
+
+Regenerate the tracked references only when a rule deliberately changes, then
+review the JSON diff before committing it:
+
+```bash
+node tools/generate-golden.mjs --write
+git diff -- tests/golden/
 ```
 
 A trace changing when you did not mean it to is the point: it means the
