@@ -6,6 +6,19 @@ reads from: the Windows build has its number written into the payload by
 
 ## Unreleased
 
+### Original executable analysis
+
+- Added a reproducible Ghidra headless exporter and the first static-analysis
+  report for the 1998 PE32 executable. Ghidra recognised 293 internal and 118
+  imported functions, and decompiled every internal function without error.
+- Confirmed a 30 ms frame timer, the Microsoft C runtime PRNG, fixed capacities
+  of 200 characters and 400 effects, a 1,180-cell native sprite table, a
+  default population of 150 and a repeating Armageddon timer defaulting to 120
+  seconds.
+- Recorded the exact runtime order of all 28 sound resources and a preliminary
+  map of the Armageddon state machine. Raw pseudo-C and the Ghidra project stay
+  outside Git; only the exporter and evidence-backed findings are versioned.
+
 ### The atlas catalogue
 
 - **1,101 of the 1,179 usable cells are grouped, into 382 animations**, against

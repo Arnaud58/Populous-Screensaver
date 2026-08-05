@@ -5,8 +5,8 @@ visible the result is.
 
 Current version: **0.9.0**. Phases 1, 2 and 3 are complete; phase 4 is under
 way — see [4b](#4b--catalogue-the-atlas--nearly-done) for where it stands and
-[4a](#4a--watch-the-original--not-started-and-it-blocks-the-rest) for what to
-pick up next.
+[4a](#4a--observe-and-analyse-the-original--in-progress) for what to pick up
+next.
 
 ## Phase 1 — Separate assets from targets ✅
 
@@ -116,11 +116,17 @@ connected component there is not one frame, so they need handling of their own
 — probably a stream kind that takes a whole band and leaves it unsegmented
 until something needs it.
 
-### 4a — Watch the original ⏳ not started, and it blocks the rest
+### 4a — Observe and analyse the original 🔄 in progress
 
-Running `original/Populous Screen Saver.scr` full screen and writing down what
-it does, into `research/original-behaviour.md`. It needs Windows, or Wine on
-the KDE machine.
+The first 167-second capture has been recorded under Wine. A Ghidra 12.1.2
+headless pass also decompiled all 293 recognised internal functions and
+established the original timer, PRNG, configuration defaults and high-level
+Armageddon state machine. The evidence and reproducible export procedure live
+in [research/reverse-engineering.md](../research/reverse-engineering.md).
+
+The remaining work is to index the video into
+`research/original-behaviour.md`, label the entity classes and correlate
+numeric states and sound calls with visible events.
 
 This is now the bottleneck, because the catalogue raised questions only the
 original can answer:
