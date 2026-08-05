@@ -6,6 +6,21 @@ reads from: the Windows build has its number written into the payload by
 
 ## Unreleased
 
+### Behaviour and combat foundation
+
+- Added explicit entity, action and behaviour states plus stable entity ids.
+  Animation lookup now selects walk, kick, hit and rising-soul streams from
+  state instead of hard-coding brave walking.
+- `stepSimulation` now emits one deterministic typed-event stream for
+  footprints, transitions, attacks, hits, spawns and removals. QML exposes the
+  complete stream while keeping footprint rendering isolated.
+- Implemented the first evidence-backed original state chain: acquire and
+  pursue a hostile, kick, receive damage, spawn a rising soul at zero health,
+  then remove it after its lifetime. Unrecovered distances and timings remain
+  explicitly provisional.
+- Golden traces moved to format 2 and include ids, behaviour state,
+  non-character entities and typed events.
+
 ### Original executable analysis
 
 - Added a reproducible Ghidra headless exporter and the first static-analysis

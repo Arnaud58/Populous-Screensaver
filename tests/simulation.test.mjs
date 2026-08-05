@@ -16,6 +16,9 @@ import {
 const EXPORTS = [
     "directions",
     "tribes",
+    "entityTypes",
+    "actions",
+    "behaviours",
     "tuning",
     "createRandom",
     "createCharacter",
@@ -27,6 +30,8 @@ const EXPORTS = [
     "clampIntoWorld",
     "stepSimulation",
     "animationId",
+    "stateAnimationId",
+    "setAction",
     "directionForVector",
     "setDirection",
     "initializeCharacter",
@@ -157,6 +162,32 @@ test("animation ids match the manifest naming", () => {
         Simulation.animationId("yellow", "north_west"),
         "brave.yellow.walk.north_west"
     )
+})
+
+test("every combat and soul state resolves to a catalogued animation", () => {
+    for (const tribe of Simulation.tribes) {
+        for (const direction of Simulation.directions) {
+            for (const action of [Simulation.actions.kick, Simulation.actions.hit]) {
+                const character = makeCharacter({
+                    tribe,
+                    action,
+                    directionId: direction.id
+                })
+                Simulation.setAction(character, Simulation.actions.walk)
+                Simulation.setDirection(character, direction.dx, direction.dy)
+                Simulation.setAction(character, action)
+                assert.ok(character.frames && character.frames.length > 0)
+            }
+        }
+        const character = makeCharacter({ tribe })
+        const soul = {
+            entity: Simulation.entityTypes.soul,
+            tribe,
+            action: Simulation.actions.rise
+        }
+        assert.ok(manifest.animations[Simulation.stateAnimationId(soul)])
+        assert.equal(character.entity, Simulation.entityTypes.brave)
+    }
 })
 
 // The simulation keeps its own direction table; the manifest carries a vector
@@ -477,7 +508,8 @@ function runSimulation(seed, seconds, characterCount = 6) {
     let index = 0
     while (elapsed < seconds) {
         const slice = slices[index++ % slices.length]
-        footprints.push(...Simulation.stepSimulation(simulation, WORLD, slice))
+        footprints.push(...Simulation.stepSimulation(simulation, WORLD, slice)
+            .filter(event => event.type === "footprint"))
         elapsed += slice
     }
 
@@ -552,6 +584,74 @@ test("the driver leaves characters alone while the world is too small", () => {
     Simulation.stepSimulation(simulation, Simulation.createWorld([rect(0, 0, 10, 10)]), STEP)
 
     assert.equal(simulation.characters[0].initialized, false)
+})
+
+test("combat follows pursue, kick, hit, soul and removal states", () => {
+    const simulation = Simulation.createSimulation(
+        1998,
+        manifest.animations,
+        { combatEnabled: true }
+    )
+    const attacker = makeCharacter({
+        id: 1,
+        tribe: "blue",
+        worldX: 100,
+        worldY: 100
+    })
+    const victim = makeCharacter({
+        id: 2,
+        tribe: "red",
+        worldX: 110,
+        worldY: 100,
+        health: 1
+    })
+    simulation.characters = [attacker, victim]
+    simulation.nextEntityId = 3
+
+    const events = []
+    for (let step = 0; step < 80 && simulation.entities.length === 0; ++step) {
+        events.push(...Simulation.stepSimulation(simulation, WORLD, STEP))
+    }
+
+    assert.equal(simulation.characters.length, 1)
+    assert.equal(simulation.characters[0].id, attacker.id)
+    assert.equal(simulation.entities.length, 1)
+    assert.equal(simulation.entities[0].entity, Simulation.entityTypes.soul)
+    assert.equal(
+        Simulation.stateAnimationId(simulation.entities[0]),
+        "soul.red.rise"
+    )
+    assert.ok(events.some(event => event.type === "attack-started"
+        && event.entityId === attacker.id && event.targetId === victim.id))
+    assert.ok(events.some(event => event.type === "hit"
+        && event.entityId === victim.id && event.health === 0))
+    assert.ok(events.some(event => event.type === "soul-spawned"
+        && event.characterId === victim.id))
+    assert.ok(events.some(event => event.type === "character-removed"
+        && event.entityId === victim.id))
+
+    for (let step = 0; step < 100; ++step) {
+        events.push(...Simulation.stepSimulation(simulation, WORLD, STEP))
+    }
+    assert.equal(simulation.entities.length, 0)
+    assert.ok(events.some(event => event.type === "entity-removed"))
+})
+
+test("combat can be disabled for focused walking scenarios", () => {
+    const simulation = Simulation.createSimulation(
+        1998,
+        manifest.animations,
+        { combatEnabled: false }
+    )
+    simulation.characters = [
+        makeCharacter({ id: 1, tribe: "blue", worldX: 100 }),
+        makeCharacter({ id: 2, tribe: "red", worldX: 105 })
+    ]
+
+    const events = Simulation.stepSimulation(simulation, WORLD, STEP)
+
+    assert.equal(simulation.characters[0].behaviour, Simulation.behaviours.wander)
+    assert.equal(events.some(event => event.type === "attack-started"), false)
 })
 
 test("characters stay inside the world over a long run", () => {

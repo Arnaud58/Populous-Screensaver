@@ -56,8 +56,13 @@ Item {
     function sync() {
         var states = simulation ? simulation.characters : []
 
+        syncStates(states, characters)
+        syncStates(simulation ? simulation.entities : [], entities)
+    }
+
+    function syncStates(states, repeater) {
         for (var index = 0; index < states.length; ++index) {
-            var item = characters.itemAt(index)
+            var item = repeater.itemAt(index)
             if (!item) {
                 continue
             }
@@ -123,7 +128,15 @@ Item {
     Repeater {
         id: characters
 
-        model: view.simulation ? view.simulation.characterCount : 0
+        model: view.simulation ? view.simulation.characters.length : 0
+
+        delegate: Character { }
+    }
+
+    Repeater {
+        id: entities
+
+        model: view.simulation ? view.simulation.entities.length : 0
 
         delegate: Character { }
     }

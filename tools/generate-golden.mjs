@@ -93,6 +93,10 @@ function rounded(value) {
 
 function characterSnapshot(character) {
     return {
+        id: character.id,
+        entity: character.entity,
+        action: character.action,
+        behaviour: character.behaviour,
         tribe: character.tribe,
         directionId: character.directionId,
         directionX: character.directionX,
@@ -106,7 +110,26 @@ function characterSnapshot(character) {
         distanceSinceFootprint: character.distanceSinceFootprint,
         collisionCooldownMs: character.collisionCooldownMs,
         wanderRemainingMs: character.wanderRemainingMs,
+        health: character.health,
+        targetId: character.targetId,
+        actionRemainingMs: character.actionRemainingMs,
         initialized: character.initialized
+    }
+}
+
+function entitySnapshot(entity) {
+    return {
+        id: entity.id,
+        entity: entity.entity,
+        action: entity.action,
+        behaviour: entity.behaviour,
+        tribe: entity.tribe,
+        worldX: entity.worldX,
+        worldY: entity.worldY,
+        spriteScale: entity.spriteScale,
+        frameIndex: entity.frameIndex,
+        animationElapsedMs: entity.animationElapsedMs,
+        lifetimeRemainingMs: entity.lifetimeRemainingMs
     }
 }
 
@@ -114,7 +137,11 @@ export async function generateScenario(scenario) {
     const Simulation = await loadSimulation()
     const animations = await loadAnimations()
     const world = Simulation.createWorld(scenario.worldRects)
-    const simulation = Simulation.createSimulation(scenario.seed, animations)
+    const simulation = Simulation.createSimulation(
+        scenario.seed,
+        animations,
+        { combatEnabled: true }
+    )
     Simulation.populate(simulation, scenario.characterCount, scenario.spriteScale)
 
     // A zero-duration call performs deterministic initialisation without
@@ -122,21 +149,22 @@ export async function generateScenario(scenario) {
     Simulation.stepSimulation(simulation, world, 0)
 
     const snapshots = []
-    let footprints = []
+    let events = []
     const capture = step => {
         snapshots.push(rounded({
             step,
             accumulatedSeconds: simulation.accumulatedSeconds,
             avoidanceElapsedMs: simulation.avoidanceElapsedMs,
             characters: simulation.characters.map(characterSnapshot),
-            footprints
+            entities: simulation.entities.map(entitySnapshot),
+            events
         }))
-        footprints = []
+        events = []
     }
 
     capture(0)
     for (let step = 1; step <= scenario.steps; ++step) {
-        footprints.push(...Simulation.stepSimulation(
+        events.push(...Simulation.stepSimulation(
             simulation,
             world,
             Simulation.tuning.stepSeconds
@@ -147,7 +175,7 @@ export async function generateScenario(scenario) {
     }
 
     return {
-        formatVersion: 1,
+        formatVersion: 2,
         scenario: {
             id: scenario.id,
             seed: scenario.seed,

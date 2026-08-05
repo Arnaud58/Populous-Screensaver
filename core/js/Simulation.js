@@ -28,6 +28,28 @@ var directions = [
 
 var tribes = ["blue", "red", "yellow", "green"]
 
+// Public state vocabulary. Strings keep traces readable and map directly to
+// enums in the future C port.
+var entityTypes = {
+    brave: "brave",
+    soul: "soul"
+}
+
+var actions = {
+    walk: "walk",
+    kick: "kick",
+    hit: "hit",
+    rise: "rise"
+}
+
+var behaviours = {
+    wander: "wander",
+    pursue: "pursue",
+    attack: "attack",
+    hit: "hit",
+    rise: "rise"
+}
+
 var tribeColors = {
     neutral: "#b9b0a2",
     blue: "#45d7ff",
@@ -59,6 +81,17 @@ var tuning = {
     fallbackMarginX: 12,
     fallbackMarginTop: 24,
     fallbackFrameDurationMs: 120,
+    // The state chain is recovered from the original. These first readable
+    // distances and timings are provisional until its compiler literals have
+    // been converted and checked against a capture.
+    combatAcquireDistance: 72,
+    combatAttackDistance: 16,
+    combatAttackDurationMs: 360,
+    combatImpactMs: 180,
+    combatHitDurationMs: 300,
+    characterHealth: 6,
+    soulRiseSpeed: 24,
+    soulLifetimeMs: 1200,
     // The simulation advances in fixed slices, independent of how often the
     // host manages to call it. Anything longer than maxAccumulatedSeconds is
     // dropped rather than caught up, so a stalled host cannot teleport
@@ -251,6 +284,14 @@ function animationId(tribe, directionId) {
     return "brave." + tribe + ".walk." + directionId
 }
 
+function stateAnimationId(state) {
+    if (state.entity === entityTypes.soul) {
+        return "soul." + state.tribe + ".rise"
+    }
+    return state.entity + "." + state.tribe + "." + state.action
+        + "." + state.directionId
+}
+
 function directionForVector(dx, dy) {
     var horizontal = dx < 0 ? -1 : (dx > 0 ? 1 : 0)
     var vertical = dy < 0 ? -1 : (dy > 0 ? 1 : 0)
@@ -287,7 +328,7 @@ function tribeColor(tribe) {
 // any of them owning its dimensions.
 function resolveAnimation(state) {
     var animation = state.animations
-        ? state.animations[animationId(state.tribe, state.directionId)]
+        ? state.animations[stateAnimationId(state)]
         : null
 
     state.frames = animation && animation.frames ? animation.frames : null
@@ -295,6 +336,26 @@ function resolveAnimation(state) {
     state.frameDurationMs = animation && animation.frameDurationMs > 0
         ? animation.frameDurationMs
         : tuning.fallbackFrameDurationMs
+}
+
+function setAction(state, action) {
+    if (state.action === action) {
+        return false
+    }
+    state.action = action
+    state.frameIndex = 0
+    state.animationElapsedMs = 0
+    resolveAnimation(state)
+    return true
+}
+
+function setBehaviour(state, behaviour, action) {
+    var previous = state.behaviour
+    state.behaviour = behaviour
+    if (action) {
+        setAction(state, action)
+    }
+    return previous
 }
 
 // The frame currently displayed. Edge margins follow it rather than a constant,
@@ -326,6 +387,10 @@ function setDirection(state, dx, dy) {
 // frames whenever its tribe or direction changes.
 function createCharacter(animations, spriteScale) {
     var state = {
+        id: 0,
+        entity: entityTypes.brave,
+        action: actions.walk,
+        behaviour: behaviours.wander,
         animations: animations,
         tribe: "blue",
         directionId: "south",
@@ -340,6 +405,10 @@ function createCharacter(animations, spriteScale) {
         distanceSinceFootprint: 0,
         collisionCooldownMs: 0,
         wanderRemainingMs: 0,
+        health: tuning.characterHealth,
+        targetId: 0,
+        actionRemainingMs: 0,
+        attackImpactDone: false,
         initialized: false,
         frames: null,
         frameCount: 0,
@@ -373,9 +442,41 @@ function initializeCharacter(state, world, random) {
     state.distanceSinceFootprint = 0
     state.collisionCooldownMs = 0
     state.wanderRemainingMs = randomWanderInterval(random)
+    state.health = tuning.characterHealth
+    state.targetId = 0
+    state.actionRemainingMs = 0
+    state.attackImpactDone = false
+    setBehaviour(state, behaviours.wander, actions.walk)
     setDirection(state, direction.dx, direction.dy)
     state.initialized = true
     return true
+}
+
+function createSoul(character, id) {
+    var soul = {
+        id: id,
+        entity: entityTypes.soul,
+        action: actions.rise,
+        behaviour: behaviours.rise,
+        animations: character.animations,
+        tribe: character.tribe,
+        directionId: character.directionId,
+        directionX: 0,
+        directionY: -1,
+        worldX: character.worldX,
+        worldY: character.worldY,
+        speed: tuning.soulRiseSpeed * character.spriteScale,
+        spriteScale: character.spriteScale,
+        frameIndex: 0,
+        animationElapsedMs: 0,
+        lifetimeRemainingMs: tuning.soulLifetimeMs,
+        initialized: true,
+        frames: null,
+        frameCount: 0,
+        frameDurationMs: tuning.fallbackFrameDurationMs
+    }
+    resolveAnimation(soul)
+    return soul
 }
 
 // Edge margins depend on the sprite currently displayed.
@@ -389,7 +490,7 @@ function marginTop(state) {
     return frame ? frame.height * state.spriteScale : tuning.fallbackMarginTop
 }
 
-// Advances the walk animation by one slice.
+// Advances the current animation by one slice.
 function advanceAnimation(state, stepMs) {
     var duration = state.frameDurationMs > 0
         ? state.frameDurationMs
@@ -618,11 +719,14 @@ function nearbyCharacters(state, spatialIndex, radius) {
 // A host shell creates one, populates it, and calls stepSimulation with real
 // elapsed time. It never owns the characters itself, which is what allows
 // several windows to render one world.
-function createSimulation(seed, animations) {
+function createSimulation(seed, animations, options) {
     return {
         random: createRandom(seed),
         animations: animations || null,
         characters: [],
+        entities: [],
+        combatEnabled: !options || options.combatEnabled !== false,
+        nextEntityId: 1,
         accumulatedSeconds: 0,
         avoidanceElapsedMs: 0
     }
@@ -632,17 +736,218 @@ function createSimulation(seed, animations) {
 function populate(simulation, count, spriteScale) {
     simulation.characters = []
     for (var index = 0; index < count; ++index) {
-        simulation.characters.push(
-            createCharacter(simulation.animations, spriteScale)
-        )
+        var character = createCharacter(simulation.animations, spriteScale)
+        character.id = simulation.nextEntityId++
+        simulation.characters.push(character)
     }
     return simulation.characters
 }
 
-// Runs as many fixed steps as the elapsed time allows. Returns the footprints
-// dropped across every step, in order, for the caller to render.
+function findCharacter(simulation, id) {
+    for (var index = 0; index < simulation.characters.length; ++index) {
+        if (simulation.characters[index].id === id) {
+            return simulation.characters[index]
+        }
+    }
+    return null
+}
+
+function nearestHostile(simulation, state) {
+    var maximum = tuning.combatAcquireDistance * state.spriteScale
+    var bestDistance = maximum * maximum
+    var best = null
+
+    for (var index = 0; index < simulation.characters.length; ++index) {
+        var candidate = simulation.characters[index]
+        if (!candidate || candidate === state || !candidate.initialized
+                || candidate.tribe === state.tribe || candidate.health <= 0) {
+            continue
+        }
+        var dx = candidate.worldX - state.worldX
+        var dy = candidate.worldY - state.worldY
+        var distance = dx * dx + dy * dy
+        if (distance < bestDistance) {
+            bestDistance = distance
+            best = candidate
+        }
+    }
+    return best
+}
+
+function transitionEvent(state, previous) {
+    return {
+        type: "behaviour-changed",
+        entityId: state.id,
+        from: previous,
+        to: state.behaviour
+    }
+}
+
+function beginPursuit(state, target, events) {
+    var previous = setBehaviour(state, behaviours.pursue, actions.walk)
+    state.targetId = target.id
+    if (previous !== state.behaviour) {
+        events.push(transitionEvent(state, previous))
+    }
+}
+
+function beginAttack(state, target, events) {
+    var previous = setBehaviour(state, behaviours.attack, actions.kick)
+    state.targetId = target.id
+    state.actionRemainingMs = tuning.combatAttackDurationMs
+    state.attackImpactDone = false
+    if (previous !== state.behaviour) {
+        events.push(transitionEvent(state, previous))
+    }
+    events.push({ type: "attack-started", entityId: state.id, targetId: target.id })
+}
+
+function receiveHit(state, attacker, events) {
+    state.health = Math.max(0, state.health - 1)
+    var previous = setBehaviour(state, behaviours.hit, actions.hit)
+    state.targetId = attacker.id
+    state.actionRemainingMs = tuning.combatHitDurationMs
+    if (previous !== state.behaviour) {
+        events.push(transitionEvent(state, previous))
+    }
+    events.push({
+        type: "hit",
+        entityId: state.id,
+        attackerId: attacker.id,
+        health: state.health
+    })
+}
+
+function footprintEvent(footprint, entityId) {
+    footprint.type = "footprint"
+    footprint.entityId = entityId
+    return footprint
+}
+
+function stepCombatCharacter(simulation, state, world, events) {
+    var stepMs = tuning.stepSeconds * 1000
+
+    if (state.behaviour === behaviours.hit) {
+        advanceAnimation(state, stepMs)
+        state.actionRemainingMs -= stepMs
+        if (state.actionRemainingMs <= 0 && state.health > 0) {
+            var retaliate = findCharacter(simulation, state.targetId)
+            if (retaliate && retaliate.health > 0) {
+                beginPursuit(state, retaliate, events)
+            } else {
+                var recovered = setBehaviour(state, behaviours.wander, actions.walk)
+                state.targetId = 0
+                events.push(transitionEvent(state, recovered))
+            }
+        }
+        return null
+    }
+
+    if (state.behaviour === behaviours.attack) {
+        var attackTarget = findCharacter(simulation, state.targetId)
+        advanceAnimation(state, stepMs)
+        state.actionRemainingMs -= stepMs
+
+        if (!state.attackImpactDone
+                && state.actionRemainingMs <= tuning.combatAttackDurationMs
+                    - tuning.combatImpactMs) {
+            state.attackImpactDone = true
+            if (attackTarget && attackTarget.health > 0) {
+                receiveHit(attackTarget, state, events)
+            }
+        }
+
+        if (state.actionRemainingMs <= 0) {
+            if (attackTarget && attackTarget.health > 0) {
+                beginPursuit(state, attackTarget, events)
+            } else {
+                var previous = setBehaviour(state, behaviours.wander, actions.walk)
+                state.targetId = 0
+                events.push(transitionEvent(state, previous))
+            }
+        }
+        return null
+    }
+
+    var target = findCharacter(simulation, state.targetId)
+    if (!target || target.health <= 0 || target.tribe === state.tribe) {
+        target = nearestHostile(simulation, state)
+        if (target) {
+            beginPursuit(state, target, events)
+        } else if (state.behaviour !== behaviours.wander) {
+            var oldBehaviour = setBehaviour(state, behaviours.wander, actions.walk)
+            state.targetId = 0
+            events.push(transitionEvent(state, oldBehaviour))
+        }
+    }
+
+    if (target) {
+        var dx = target.worldX - state.worldX
+        var dy = target.worldY - state.worldY
+        var distance = Math.sqrt(dx * dx + dy * dy)
+        if (distance <= tuning.combatAttackDistance * state.spriteScale) {
+            setDirection(state, dx, dy)
+            beginAttack(state, target, events)
+            return null
+        }
+        var pursuitDirection = directionForVector(dx, dy)
+        if (pursuitDirection.id !== state.directionId) {
+            setDirection(state, pursuitDirection.dx, pursuitDirection.dy)
+        }
+        // Pursuit owns the heading. Prevent stepCharacter's wander timer from
+        // consuming randomness or replacing it.
+        state.wanderRemainingMs = Math.max(state.wanderRemainingMs, stepMs * 2)
+    }
+
+    return stepCharacter(state, world, tuning.stepSeconds, simulation.random)
+}
+
+function finishDeaths(simulation, events) {
+    var survivors = []
+    for (var index = 0; index < simulation.characters.length; ++index) {
+        var character = simulation.characters[index]
+        if (character.health <= 0 && character.behaviour === behaviours.hit
+                && character.actionRemainingMs <= 0) {
+            var soul = createSoul(character, simulation.nextEntityId++)
+            simulation.entities.push(soul)
+            events.push({
+                type: "soul-spawned",
+                entityId: soul.id,
+                characterId: character.id,
+                tribe: character.tribe,
+                worldX: character.worldX,
+                worldY: character.worldY
+            })
+            events.push({ type: "character-removed", entityId: character.id })
+        } else {
+            survivors.push(character)
+        }
+    }
+    simulation.characters = survivors
+}
+
+function stepEntities(simulation, events) {
+    var survivors = []
+    var stepMs = tuning.stepSeconds * 1000
+    for (var index = 0; index < simulation.entities.length; ++index) {
+        var entity = simulation.entities[index]
+        entity.worldY -= entity.speed * tuning.stepSeconds
+        entity.lifetimeRemainingMs -= stepMs
+        advanceAnimation(entity, stepMs)
+        if (entity.lifetimeRemainingMs > 0) {
+            survivors.push(entity)
+        } else {
+            events.push({ type: "entity-removed", entityId: entity.id })
+        }
+    }
+    simulation.entities = survivors
+}
+
+// Runs as many fixed steps as the elapsed time allows. Returns typed events in
+// deterministic order. Renderers currently consume footprint events; combat,
+// souls and the future audio layer use the same boundary.
 function stepSimulation(simulation, world, elapsedSeconds) {
-    var footprints = []
+    var events = []
     var characters = simulation.characters
     var index
 
@@ -665,10 +970,18 @@ function stepSimulation(simulation, world, elapsedSeconds) {
             if (!state.initialized) {
                 continue
             }
-            var result = stepCharacter(state, world, tuning.stepSeconds, simulation.random)
-            if (result.footprint) {
-                footprints.push(result.footprint)
+            var result = simulation.combatEnabled
+                ? stepCombatCharacter(simulation, state, world, events)
+                : stepCharacter(state, world, tuning.stepSeconds, simulation.random)
+            if (result && result.footprint) {
+                events.push(footprintEvent(result.footprint, state.id))
             }
+        }
+
+        if (simulation.combatEnabled) {
+            finishDeaths(simulation, events)
+            stepEntities(simulation, events)
+            characters = simulation.characters
         }
 
         simulation.avoidanceElapsedMs += tuning.stepSeconds * 1000
@@ -676,7 +989,9 @@ function stepSimulation(simulation, world, elapsedSeconds) {
             simulation.avoidanceElapsedMs -= tuning.avoidanceIntervalMs
             var spatialIndex = createSpatialIndex(characters, tuning.spatialCellSize)
             for (index = 0; index < characters.length; ++index) {
-                if (characters[index].initialized) {
+                if (characters[index].initialized
+                        && (!simulation.combatEnabled
+                            || characters[index].behaviour === behaviours.wander)) {
                     var collisionRadius =
                         tuning.collisionDistance * characters[index].spriteScale
                     avoidCollisions(
@@ -688,5 +1003,5 @@ function stepSimulation(simulation, world, elapsedSeconds) {
         }
     }
 
-    return footprints
+    return events
 }

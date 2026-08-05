@@ -28,6 +28,7 @@ Item {
     property var worldRects: []
 
     readonly property alias characters: internal.characters
+    readonly property alias entities: internal.entities
     property bool running: true
 
     // Emitted after each batch of fixed steps, once the character states have
@@ -38,6 +39,9 @@ Item {
     // its own visuals: QML items cannot be shared between windows.
     signal footprintsDropped(var footprints)
 
+    // Complete deterministic event stream for future sound and effect layers.
+    signal eventsEmitted(var events)
+
     // Emitted when the population is replaced, so views can drop stale visuals.
     signal restarted()
 
@@ -46,6 +50,7 @@ Item {
 
         property var simulation: null
         property var characters: []
+        property var entities: []
         property var worldModel: null
         property double previousTick: 0
         property bool ready: false
@@ -62,11 +67,13 @@ Item {
 
         internal.simulation = Simulation.createSimulation(
             randomSeed || Date.now(),
-            animationManifest ? animationManifest.animations : null
+            animationManifest ? animationManifest.animations : null,
+            { combatEnabled: true }
         )
         internal.characters = Simulation.populate(
             internal.simulation, characterCount, spriteScale
         )
+        internal.entities = []
         internal.previousTick = Date.now()
         restarted()
     }
@@ -80,11 +87,32 @@ Item {
         var elapsedSeconds = (now - internal.previousTick) / 1000
         internal.previousTick = now
 
-        var footprints = Simulation.stepSimulation(
+        var events = Simulation.stepSimulation(
             internal.simulation, internal.worldModel, elapsedSeconds
         )
 
+        var footprints = []
+        var populationChanged = false
+        for (var index = 0; index < events.length; ++index) {
+            if (events[index].type === "footprint") {
+                footprints.push(events[index])
+            } else if (events[index].type === "soul-spawned"
+                    || events[index].type === "character-removed"
+                    || events[index].type === "entity-removed") {
+                populationChanged = true
+            }
+        }
+        if (populationChanged) {
+            // New array identities notify QML Repeaters; the JS driver may
+            // replace its arrays when characters die or effects expire.
+            internal.characters = internal.simulation.characters.slice()
+            internal.entities = internal.simulation.entities.slice()
+        }
+
         stepped()
+        if (events.length > 0) {
+            eventsEmitted(events)
+        }
         if (footprints.length > 0) {
             footprintsDropped(footprints)
         }

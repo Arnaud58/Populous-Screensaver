@@ -154,23 +154,22 @@ Sound/resource call sites and 145 capture timestamps now replace identification
 by ear. The old warning remains useful: a sound name identifies an effect, not
 necessarily the sprite that caused it.
 
-### 4c onwards — behaviours
+### 4c and first 4d slice — behaviours and combat
 
-Each becomes its own plan once 4a has said what the rules are.
+**4c is complete.** State carries `entity`, `action` and `behaviour`, animation
+selection is no longer hard-coded to brave walking, and `stepSimulation`
+returns typed events. Non-character entities have their own list and lifetime.
 
-**4c — behaviour states and events**, the foundation the rest needs.
-`stepCharacter` is one monolithic walk rule today, and `animationId` in
-`core/js/Simulation.js` hard-codes `"brave." + tribe + ".walk." +
-directionId` — with 382 animations behind it, that is now the narrowest point
-in the engine. The state gains `entity`, `action` and a `behaviour` with an
-explicit transition table; `stepSimulation` returns typed events instead of
-only footprints, which is what both the renderer and the future audio layer
-consume; non-character entities (souls, effects) become a second list with
-their own lifetimes.
+The first closed **4d** chain is also implemented: hostile acquisition,
+pursuit, brave kick, hit reaction, accumulated damage, rising soul and removal.
+The QML targets enable it; explicit non-combat simulations remain available to
+keep focused fixtures small. Golden traces moved to format 2 and now record the
+new state and event contract.
 
-Then **4d** combat and deaths, **4e** conversions and spells, **4f** gathering
-and Armageddon. Every one changes the golden traces: regenerate them once per
-step, deliberately, and read the JSON diff.
+Before 4d is called exact, translate its distance/timing literals from the
+original and validate them against capture. Then **4e** is conversions and
+spells, **4f** gathering and Armageddon. Regenerate and review the golden JSON
+once per intentional rule change.
 
 ## Phase 5 — The xscreensaver hack
 

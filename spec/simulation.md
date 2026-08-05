@@ -25,24 +25,23 @@ Three constraints keep it that way, and all three exist for the C port:
   remaining durations rather than timestamps;
 - **no callbacks** — callers learn what happened from return values, so
   `stepCharacter` reports `{ directionChanged, footprint }` and
-  `stepSimulation` returns the footprints to render;
+  `stepSimulation` returns one ordered stream of typed events;
 - **no ambient randomness** — every draw comes from an explicit seeded source.
 
 Numeric rules live in the `tuning` object so that this document, the
 implementation and the C port have a single place to agree with. Distances are
 unscaled world pixels; the caller supplies the sprite scale on the state.
 
-Rendering stays out. The simulation reads `frameWidth`, `frameHeight`,
-`frameCount` and `frameDurationMs` from the state, but never writes them: the
-renderer keeps them current from the manifest.
+Rendering stays out. The simulation resolves the current animation from the
+manifest and stores its frames on the state; views only read that state.
 
 The host shell owns exactly three things — the world geometry, the clock, and
 one loop calling `stepSimulation`.
 
 ## Status
 
-Written against version 0.9.0. Sections marked **planned** are not implemented
-in any target yet.
+Written after version 0.9.0. Sections marked **planned** are not implemented in
+any target yet.
 
 ## Coordinate system and world geometry
 
@@ -139,7 +138,7 @@ clamped each character's movement individually against the wall clock.
 
 Golden traces live in `tests/golden/`. They record the initial state and one
 snapshot per simulated second over 600 fixed steps for both a 1280×720 screen
-and the three-screen development layout. Character state and footprint events
+and the three-screen development layout. Character, entity and typed-event data
 are rounded to six decimal places so the future C implementation can compare
 language-neutral values.
 
@@ -201,6 +200,10 @@ Written by the simulation:
 
 | Field | Meaning |
 | ----- | ------- |
+| `id` | stable numeric identity within one simulation |
+| `entity` | renderable class; currently `brave` |
+| `action` | animation action: `walk`, `kick` or `hit` |
+| `behaviour` | state-machine state: `wander`, `pursue`, `attack` or `hit` |
 | `tribe` | one of the tribe ids above |
 | `directionId`, `directionX`, `directionY` | current heading |
 | `worldX`, `worldY` | ground point |
@@ -209,6 +212,10 @@ Written by the simulation:
 | `distanceSinceFootprint` | distance walked since the last footprint |
 | `collisionCooldownMs` | counts down after an avoidance turn |
 | `wanderRemainingMs` | counts down to the next spontaneous turn |
+| `health` | remaining hits; starts at 6 |
+| `targetId` | stable id of the current opponent, or 0 |
+| `actionRemainingMs` | remaining time in a kick or hit reaction |
+| `attackImpactDone` | prevents a kick from dealing damage twice |
 | `initialized` | false until the world is large enough to place it |
 
 Resolved by the simulation from the manifest:
@@ -240,9 +247,10 @@ remaining durations that a fixed step decrements.
 `createCharacter(animations, spriteScale)` builds one; `populate(simulation,
 count, spriteScale)` replaces a whole population.
 
-**Planned:** a behaviour state (walking, fighting, converting, casting,
-dying, gathering) with explicit transitions. Today every character is
-permanently walking.
+`simulation.entities` is a second list for short-lived non-character entities.
+Its first member is the rising soul: it has `entity = soul`, `action = rise`,
+its own position, animation and `lifetimeRemainingMs`. It is deliberately not
+left in the character population after death.
 
 ## Rules
 
@@ -306,8 +314,8 @@ Since 0.5.0 the pass is driven centrally rather than by one timer per
 character, so every character is evaluated on the same tick instead of on its
 own phase. The turning rate is unchanged, being governed by the cooldown.
 
-This is a placeholder for combat, not a reproduction of anything observed. The
-driver has used a uniform spatial grid since 0.7.0. Ground points are assigned
+When combat is disabled, this remains a separation rule. The driver has used a
+uniform spatial grid since 0.7.0. Ground points are assigned
 to 42-pixel cells and a character queries only the cells touched by its scaled
 collision radius. Candidates are restored to their order in the master
 character array before applying the rule. This preserves the historical
@@ -324,11 +332,55 @@ Footprints are drawn procedurally as two rectangles. Atlas row 27 holds native
 particle cells that may be the original's footprints, but their mapping to
 tribes and directions is **unconfirmed**, so they are left untouched.
 
-### Combat, conversion, spells, gathering, Armageddon
+### Events
 
-**Planned.** None of these are implemented or specified. The atlas rows that
-probably hold their frames are catalogued in `research/sprite-groups.json`, but
-none of the sequences have been grouped into named animations yet.
+`stepSimulation` returns one array in deterministic emission order. Every item
+has a `type`; actor-related items carry stable numeric ids. Current types are:
+
+| Type | Meaning |
+| ---- | ------- |
+| `footprint` | renderer should add one trail mark |
+| `behaviour-changed` | `from`/`to` state transition |
+| `attack-started` | an attacker began its kick |
+| `hit` | damage landed; includes remaining health |
+| `soul-spawned` | dead character was replaced by a soul entity |
+| `character-removed` | actor left the character population |
+| `entity-removed` | a short-lived entity expired |
+
+The QML renderer filters `footprint`; the complete stream is also exposed as
+`PopulousSimulation.eventsEmitted` for the future sound and effect layers.
+
+### Combat and death
+
+Implemented as the first closed chain recovered from original states 2, 6, 7,
+10 and 11. Combat is enabled by default and by the QML hosts;
+`{ combatEnabled: false }` keeps focused non-combat fixtures possible.
+
+| Current behaviour | Condition | Next behaviour |
+| ----------------- | --------- | -------------- |
+| `wander` | nearest hostile within acquisition range | `pursue` |
+| `pursue` | target enters attack range | `attack` |
+| `attack` | impact point reached | target becomes `hit` |
+| `attack` | kick ends and target lives | `pursue` |
+| `hit` | reaction ends with health remaining | `pursue` attacker |
+| `hit` | reaction ends at zero health | remove character, spawn `soul` |
+| `rise` | lifetime ends | remove soul entity |
+
+Target selection scans character order and retains the first nearest hostile,
+so ties and replay are deterministic. A kick deals one point at its impact
+point and cannot deal twice. A soul rises at constant speed while its atlas
+sequence loops, then expires.
+
+The chain and animation choices are evidence-backed. The initial values —
+72-pixel acquisition, 16-pixel attack range, 360 ms kick, impact at 180 ms,
+300 ms hit reaction, six health, 24 px/s rise and 1200 ms lifetime — are
+**provisional**, pending conversion of the original compiler literals and
+frame-counter validation against video.
+
+### Conversion, spells, gathering and Armageddon
+
+**Planned.** Their atlas animations and original numeric states are catalogued
+in `research/original-state-map.md`; their transitions are not implemented.
 
 ## Screen-saver invocation
 
