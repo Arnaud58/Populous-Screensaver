@@ -281,6 +281,31 @@ function tribeColor(tribe) {
     return tribeColors[tribe] || "#d0d0d0"
 }
 
+// Caches the frames of the animation matching the character's tribe and
+// direction. The state then carries everything the rules need about its
+// sprite, which is what lets several views render the same character without
+// any of them owning its dimensions.
+function resolveAnimation(state) {
+    var animation = state.animations
+        ? state.animations[animationId(state.tribe, state.directionId)]
+        : null
+
+    state.frames = animation && animation.frames ? animation.frames : null
+    state.frameCount = state.frames ? state.frames.length : 0
+    state.frameDurationMs = animation && animation.frameDurationMs > 0
+        ? animation.frameDurationMs
+        : tuning.fallbackFrameDurationMs
+}
+
+// The frame currently displayed. Edge margins follow it rather than a constant,
+// because a cycle changes width from frame to frame: south runs 17, 19, 17, 19.
+function currentFrame(state) {
+    if (!state.frames || state.frames.length === 0) {
+        return null
+    }
+    return state.frames[state.frameIndex % state.frames.length]
+}
+
 // Applies a direction to a character and restarts its walk cycle. Returns the
 // resolved direction so the caller can tell which of the eight it snapped to.
 function setDirection(state, dx, dy) {
@@ -290,10 +315,39 @@ function setDirection(state, dx, dy) {
     state.directionId = direction.id
     state.frameIndex = 0
     state.animationElapsedMs = 0
+    resolveAnimation(state)
     return direction
 }
 
 // --- Character rules -----------------------------------------------------
+
+// Builds a character state. `animations` is the `animations` object of the
+// compiled manifest; the state keeps a reference so it can resolve its own
+// frames whenever its tribe or direction changes.
+function createCharacter(animations, spriteScale) {
+    var state = {
+        animations: animations,
+        tribe: "blue",
+        directionId: "south",
+        directionX: 0,
+        directionY: 1,
+        worldX: 0,
+        worldY: 0,
+        speed: 0,
+        spriteScale: spriteScale > 0 ? spriteScale : 1,
+        frameIndex: 0,
+        animationElapsedMs: 0,
+        distanceSinceFootprint: 0,
+        collisionCooldownMs: 0,
+        wanderRemainingMs: 0,
+        initialized: false,
+        frames: null,
+        frameCount: 0,
+        frameDurationMs: tuning.fallbackFrameDurationMs
+    }
+    resolveAnimation(state)
+    return state
+}
 
 // Populates a character with a random tribe, direction, position and speed.
 // Returns false when no screen is large enough to place anything, which is how
@@ -324,18 +378,15 @@ function initializeCharacter(state, world, random) {
     return true
 }
 
-// Edge margins depend on the sprite currently displayed, so they are derived
-// from the frame size the renderer keeps on the state.
+// Edge margins depend on the sprite currently displayed.
 function marginX(state) {
-    return state.frameWidth > 0
-        ? state.frameWidth * state.spriteScale / 2
-        : tuning.fallbackMarginX
+    var frame = currentFrame(state)
+    return frame ? frame.width * state.spriteScale / 2 : tuning.fallbackMarginX
 }
 
 function marginTop(state) {
-    return state.frameHeight > 0
-        ? state.frameHeight * state.spriteScale
-        : tuning.fallbackMarginTop
+    var frame = currentFrame(state)
+    return frame ? frame.height * state.spriteScale : tuning.fallbackMarginTop
 }
 
 // Advances the walk animation by one slice.
@@ -560,16 +611,32 @@ function nearbyCharacters(state, spatialIndex, radius) {
 
 // --- Driver --------------------------------------------------------------
 
-// The whole simulation: its random source, its characters and the leftover
-// time not yet consumed by a fixed step. A host shell creates one, fills in
-// characters, and calls stepSimulation with real elapsed time.
-function createSimulation(seed) {
+// The whole simulation: its random source, the animation manifest its
+// characters resolve frames from, its characters, and the leftover time not
+// yet consumed by a fixed step.
+//
+// A host shell creates one, populates it, and calls stepSimulation with real
+// elapsed time. It never owns the characters itself, which is what allows
+// several windows to render one world.
+function createSimulation(seed, animations) {
     return {
         random: createRandom(seed),
+        animations: animations || null,
         characters: [],
         accumulatedSeconds: 0,
         avoidanceElapsedMs: 0
     }
+}
+
+// Replaces the population with `count` fresh characters.
+function populate(simulation, count, spriteScale) {
+    simulation.characters = []
+    for (var index = 0; index < count; ++index) {
+        simulation.characters.push(
+            createCharacter(simulation.animations, spriteScale)
+        )
+    }
+    return simulation.characters
 }
 
 // Runs as many fixed steps as the elapsed time allows. Returns the footprints

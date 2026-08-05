@@ -41,7 +41,7 @@ one loop calling `stepSimulation`.
 
 ## Status
 
-Written against version 0.8.0. Sections marked **planned** are not implemented
+Written against version 0.9.0. Sections marked **planned** are not implemented
 in any target yet.
 
 ## Coordinate system and world geometry
@@ -211,17 +211,34 @@ Written by the simulation:
 | `wanderRemainingMs` | counts down to the next spontaneous turn |
 | `initialized` | false until the world is large enough to place it |
 
-Read by the simulation, owned by the renderer:
+Resolved by the simulation from the manifest:
+
+| Field | Meaning |
+| ----- | ------- |
+| `animations` | the manifest's `animations` object, so a character can resolve its own frames |
+| `frames` | frame array of the current animation, refreshed by `setDirection` |
+| `frameCount`, `frameDurationMs` | derived from the same animation |
+
+Supplied by the host:
 
 | Field | Meaning |
 | ----- | ------- |
 | `spriteScale` | multiplier the host chose for the display |
-| `frameWidth`, `frameHeight` | current frame size, used for edge margins |
-| `frameCount`, `frameDurationMs` | current animation, used to advance frames |
+
+Edge margins follow `frames[frameIndex]`, not a constant: a cycle changes width
+from frame to frame — `south` runs 17, 19, 17, 19.
+
+**The renderer owns nothing.** Until 0.9.0 the state carried `frameWidth` and
+`frameHeight` written by `Character.qml` bindings, which made the character
+item *be* the state. That ownership has no answer once several windows render
+one world, so the simulation resolves animations itself and a view only reads.
 
 The three countdowns replace what used to be per-character timers. That is what
 makes the state portable: it holds no timer object and no timestamp, only
 remaining durations that a fixed step decrements.
+
+`createCharacter(animations, spriteScale)` builds one; `populate(simulation,
+count, spriteScale)` replaces a whole population.
 
 **Planned:** a behaviour state (walking, fighting, converting, casting,
 dying, gathering) with explicit transitions. Today every character is
@@ -312,6 +329,27 @@ tribes and directions is **unconfirmed**, so they are left untouched.
 **Planned.** None of these are implemented or specified. The atlas rows that
 probably hold their frames are catalogued in `research/sprite-groups.json`, but
 none of the sequences have been grouped into named animations yet.
+
+## Screen-saver invocation
+
+The Windows target is an ordinary executable with a `.scr` extension. Windows
+dispatches on the first argument, and is inconsistent about both the separator
+and the case, so `-S`, `/s` and `/S` all mean the same thing, and the window
+handle sometimes arrives as `/c:1234` rather than as a second argument.
+
+| Argument | Behaviour |
+| -------- | --------- |
+| `/s` | run: one full-screen borderless window per monitor, cursor hidden, quits on input |
+| `/c`, `/c:<hwnd>` | show the configuration dialog |
+| `/p <hwnd>` | draw into the settings dialog's thumbnail |
+| `/w` | run in ordinary windows — a development affordance, not a Windows convention |
+| *(none)* | treated as `/c`, which is what a double-click should do |
+
+**Quitting on input** needs two guards. Windows delivers a burst of mouse
+movement right after launch — the pointer has not moved, the system is only
+reporting where it is — so input is ignored for 1.2 s. And a mouse resting on a
+noisy surface reports tiny movements indefinitely, so the pointer must travel
+more than 12 pixels before it counts.
 
 ## Sound
 

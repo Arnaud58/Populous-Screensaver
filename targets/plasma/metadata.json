@@ -14,7 +14,7 @@
         "License": "Proprietary",
         "Name": "Populous Screen Saver",
         "Name[fr]": "Économiseur d'écran Populous",
-        "Version": "0.8.1"
+        "Version": "0.9.0"
     },
     "X-KDE-ParentApp": "org.kde.plasmashell"
 }

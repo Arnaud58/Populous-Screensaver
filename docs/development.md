@@ -71,6 +71,40 @@ It exists because the continuous multi-monitor world has no real multi-window
 host yet. Once the standalone application exists, rehearsal mode stops being
 the only way to check that behaviour.
 
+## Building the standalone application
+
+Needs Qt 6.5 or newer, CMake and a C++ toolchain. The payload is assembled
+first, then built from `build/qt-app` — everything under `ui/`, `images/` and
+`data/` is compiled into the executable through a generated `resources.qrc`.
+
+```bash
+python3 tools/build-targets.py qt-app
+cmake -S build/qt-app -B build/qt-app-cmake -G Ninja \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_PREFIX_PATH=/path/to/Qt/6.x/gcc_64
+cmake --build build/qt-app-cmake
+```
+
+On Windows the target is `populous.scr`; elsewhere it is a plain executable.
+Qt's own CMake and Ninja can be replaced by the ones Visual Studio ships, under
+`Common7/IDE/CommonExtensions/Microsoft/CMake/`.
+
+| Argument | Behaviour |
+| -------- | --------- |
+| `/s` | run full screen on every monitor, quit on input |
+| `/c` | settings dialog |
+| `/w` | ordinary windows — for development |
+| `/p <hwnd>` | draw into the settings dialog's thumbnail |
+
+**Testing it from PowerShell:** `Start-Process` goes through `ShellExecute`,
+and `.scr` files have their own shell verbs (Install, Config, Test), so the
+arguments are not passed as written. Copy the binary to `.exe` for testing, or
+invoke it through `cmd /c`.
+
+Qt's DLLs must be reachable — put `<Qt>/bin` on `PATH` when running from the
+build directory. The binary is not deployable yet; see
+[roadmap.md](roadmap.md#what-is-left-in-this-phase).
+
 ## Running the tests
 
 ```bash

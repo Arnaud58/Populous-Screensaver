@@ -6,12 +6,14 @@ import { dirname, join, resolve } from "node:path"
 
 const PROJECT = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const SIMULATION_PATH = join(PROJECT, "core/js/Simulation.js")
+const ANIMATIONS_PATH = join(PROJECT, "core/js/Animations.js")
 const GOLDEN_DIR = join(PROJECT, "tests/golden")
 
 const SIMULATION_EXPORTS = [
     "tuning",
     "createSimulation",
     "createWorld",
+    "populate",
     "stepSimulation"
 ]
 
@@ -45,40 +47,30 @@ export const SCENARIOS = [
 ]
 
 let simulationModulePromise = null
+let animationsPromise = null
+
+async function loadPragmaLibrary(path, exports) {
+    const source = await readFile(path, "utf8")
+    const plainSource = source.replace(/^\s*\.pragma\s+library\s*$/m, "")
+    return new Function(`${plainSource}\nreturn { ${exports.join(", ")} };`)()
+}
 
 async function loadSimulation() {
     if (!simulationModulePromise) {
-        simulationModulePromise = readFile(SIMULATION_PATH, "utf8").then(source => {
-            const plainSource = source.replace(/^\s*\.pragma\s+library\s*$/m, "")
-            return new Function(
-                `${plainSource}\nreturn { ${SIMULATION_EXPORTS.join(", ")} };`
-            )()
-        })
+        simulationModulePromise = loadPragmaLibrary(SIMULATION_PATH, SIMULATION_EXPORTS)
     }
     return simulationModulePromise
 }
 
-function makeCharacter(spriteScale) {
-    return {
-        tribe: "blue",
-        directionId: "south",
-        directionX: 0,
-        directionY: 1,
-        worldX: 0,
-        worldY: 0,
-        speed: 0,
-        spriteScale,
-        frameIndex: 0,
-        animationElapsedMs: 0,
-        distanceSinceFootprint: 0,
-        collisionCooldownMs: 0,
-        wanderRemainingMs: 0,
-        initialized: false,
-        frameWidth: 20,
-        frameHeight: 26,
-        frameCount: 4,
-        frameDurationMs: 120
+// The traces use the real manifest, so the frame sizes driving edge margins are
+// the ones a host actually renders. Before 0.9.0 this file invented a fixed
+// 20x26 frame, and the traces therefore never matched the QML targets.
+async function loadAnimations() {
+    if (!animationsPromise) {
+        animationsPromise = loadPragmaLibrary(ANIMATIONS_PATH, ["manifest"])
+            .then(module => module.manifest.animations)
     }
+    return animationsPromise
 }
 
 function rounded(value) {
@@ -120,12 +112,10 @@ function characterSnapshot(character) {
 
 export async function generateScenario(scenario) {
     const Simulation = await loadSimulation()
+    const animations = await loadAnimations()
     const world = Simulation.createWorld(scenario.worldRects)
-    const simulation = Simulation.createSimulation(scenario.seed)
-    simulation.characters = Array.from(
-        { length: scenario.characterCount },
-        () => makeCharacter(scenario.spriteScale)
-    )
+    const simulation = Simulation.createSimulation(scenario.seed, animations)
+    Simulation.populate(simulation, scenario.characterCount, scenario.spriteScale)
 
     // A zero-duration call performs deterministic initialisation without
     // consuming a simulation step, giving the fixture an explicit step 0.

@@ -16,8 +16,12 @@ Two versions are built from one engine:
 
 ## Status
 
-Version 0.8.1. **The KDE Plasma 6 target works and is usable today** — as a
+Version 0.9.0. **The KDE Plasma 6 target works and is usable today** — as a
 desktop wallpaper and on the lock screen, with a configuration page.
+
+The **Windows screen saver** now builds and runs: one window per monitor over a
+single continuous world, with a settings dialog. It is not packaged for
+installation yet, so it has to be launched by hand.
 
 The simulation currently has tribespeople walking, turning, avoiding each other
 and leaving coloured footprints. Combat, conversions, shamans, spells and
@@ -31,8 +35,8 @@ See the [changelog](CHANGELOG.md) for what changed when, and the
 | Target | Host | Renderer | Multi-monitor | Status |
 | ------ | ---- | -------- | ------------- | ------ |
 | `plasma` | KDE Plasma 6 wallpaper plugin | QML | one world per screen | **working** |
-| `qt-app` (Windows) | `.scr` screen saver | QML | continuous world | planned |
-| `qt-app` (Linux) | standalone executable | QML | continuous world | planned |
+| `qt-app` (Windows) | `.scr` screen saver | QML | continuous world | **working**, not packaged |
+| `qt-app` (Linux) | standalone executable | QML | continuous world | should build, untested |
 | `xscreensaver` | X11 screen saver hack | C / OpenGL | one world per window | planned |
 
 The Plasma wallpaper plugin is also what KDE's **lock screen** consumes, so it
@@ -74,10 +78,26 @@ To remove it:
 kpackagetool6 --type Plasma/Wallpaper --remove org.poptheme.populous
 ```
 
+### Windows
+
+Needs Qt 6.5 or newer and a C++ toolchain. Building produces `populous.scr`,
+with every asset compiled in:
+
+```bash
+python3 tools/build-targets.py qt-app
+cmake -S build/qt-app -B build/qt-app-cmake -DCMAKE_PREFIX_PATH=C:/Qt/<version>/msvc2022_64
+cmake --build build/qt-app-cmake --config Release
+```
+
+Run it by hand — `/s` to run, `/c` for the settings dialog, `/w` for ordinary
+windows. It is **not installable yet**: Windows lists screen savers from
+`System32`, where a Qt application's DLLs cannot reasonably go, and that is the
+open question of the next step. Moving the mouse or pressing a key quits.
+
 ### Anywhere else
 
-The engine runs in a plain window on any platform Qt 6 supports, with no Plasma
-and no compiler:
+The engine runs in a plain window on any platform Qt 6 supports, with no
+compiler at all:
 
 ```bash
 python3 tools/build-targets.py preview

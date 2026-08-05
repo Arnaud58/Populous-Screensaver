@@ -42,6 +42,21 @@ PREVIEW_LAYOUT = [
     ("assets/data", "data"),
 ]
 
+# The standalone application, which becomes the Windows .scr. Everything it
+# renders is compiled into the executable through a generated resources.qrc, so
+# the binary does not depend on files sitting next to it.
+QT_APP_LAYOUT = [
+    ("targets/qt-app/CMakeLists.txt", "CMakeLists.txt"),
+    ("targets/qt-app/main.cpp", "main.cpp"),
+    ("targets/qt-app/main.qml", "ui/main.qml"),
+    ("targets/qt-app/ConfigDialog.qml", "ui/ConfigDialog.qml"),
+    ("targets/qt-app/DismissArea.qml", "ui/DismissArea.qml"),
+    ("core/qml", "ui"),
+    ("core/js", "ui"),
+    ("assets/images", "images"),
+    ("assets/data", "data"),
+]
+
 TARGETS = {
     "plasma": {
         "payload": "plasma/org.poptheme.populous",
@@ -51,6 +66,12 @@ TARGETS = {
     "preview": {
         "payload": "preview",
         "layout": PREVIEW_LAYOUT,
+    },
+    "qt-app": {
+        "payload": "qt-app",
+        "layout": QT_APP_LAYOUT,
+        # Everything under these directories is embedded in the binary.
+        "qrc": {"output": "resources.qrc", "directories": ["ui", "images", "data"]},
     },
 }
 
@@ -97,6 +118,30 @@ def copy_entry(source: Path, destination: Path) -> int:
     return copied
 
 
+def write_qrc(payload: Path, spec: dict) -> int:
+    """Emit a Qt resource file listing everything under the given directories.
+
+    Paths are relative to the payload root and keep their directory prefix, so
+    `ui/main.qml` is reachable as `qrc:/ui/main.qml` and the relative lookups
+    inside the QML — `../images/sprites.png` — resolve unchanged.
+    """
+    entries: list[str] = []
+    for directory in spec["directories"]:
+        root = payload / directory
+        if not root.exists():
+            continue
+        for item in sorted(root.rglob("*")):
+            if item.is_file():
+                entries.append(item.relative_to(payload).as_posix())
+
+    lines = ['<!DOCTYPE RCC><RCC version="1.0">', '  <qresource prefix="/">']
+    lines.extend(f"    <file>{entry}</file>" for entry in entries)
+    lines.extend(["  </qresource>", "</RCC>", ""])
+
+    (payload / spec["output"]).write_text("\n".join(lines), encoding="utf-8")
+    return len(entries)
+
+
 def read_version(relative: str) -> str:
     metadata = json.loads((PROJECT / relative).read_text(encoding="utf-8"))
     return metadata.get("KPlugin", {}).get("Version", "unknown")
@@ -113,10 +158,13 @@ def assemble(name: str, build_dir: Path, clean: bool) -> Path:
     for source_relative, destination_relative in target["layout"]:
         total += copy_entry(PROJECT / source_relative, payload / destination_relative)
 
+    details = []
+    if "qrc" in target:
+        details.append(f"{write_qrc(payload, target['qrc'])} embedded")
     if "version_from" in target:
-        suffix = f" (version {read_version(target['version_from'])})"
-    else:
-        suffix = ""
+        details.append(f"version {read_version(target['version_from'])}")
+
+    suffix = f" ({', '.join(details)})" if details else ""
     print(f"{name}: {total} files -> {payload}{suffix}")
     return payload
 

@@ -3791,12 +3791,12 @@
           "directionId": "west",
           "directionX": -1,
           "directionY": 0,
-          "worldX": 1237.975573,
+          "worldX": 1238.917296,
           "worldY": 309.819087,
           "speed": 35.391416,
           "spriteScale": 1,
           "frameIndex": 3,
-          "animationElapsedMs": 76.666667,
+          "animationElapsedMs": 26.666667,
           "distanceSinceFootprint": 8.975809,
           "collisionCooldownMs": 0,
           "wanderRemainingMs": 671,
@@ -4093,7 +4093,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1259.210423,
+          "groundX": 1260.152146,
           "groundY": 308.819087,
           "directionX": -1,
           "directionY": 0,
@@ -4301,7 +4301,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1247.413284,
+          "groundX": 1248.355007,
           "groundY": 308.819087,
           "directionX": -1,
           "directionY": 0,
@@ -4464,12 +4464,12 @@
           "directionId": "south_west",
           "directionX": -1,
           "directionY": 1,
-          "worldX": 1257.056099,
+          "worldX": 1261.98166,
           "worldY": 484.523539,
           "speed": 41.794777,
           "spriteScale": 1,
           "frameIndex": 3,
-          "animationElapsedMs": 90,
+          "animationElapsedMs": 6.666667,
           "distanceSinceFootprint": 4.769863,
           "collisionCooldownMs": 0,
           "wanderRemainingMs": 4078.666667,
@@ -4528,12 +4528,12 @@
           "directionId": "north_east",
           "directionX": 1,
           "directionY": -1,
-          "worldX": 33.67567,
+          "worldX": 32.561021,
           "worldY": 637.867743,
           "speed": 47.290572,
           "spriteScale": 1,
           "frameIndex": 1,
-          "animationElapsedMs": 116.666667,
+          "animationElapsedMs": 100,
           "distanceSinceFootprint": 7.991156,
           "collisionCooldownMs": 0,
           "wanderRemainingMs": 1009,
@@ -4816,7 +4816,7 @@
           "directionId": "west",
           "directionX": -1,
           "directionY": 0,
-          "worldX": 1202.584157,
+          "worldX": 1203.52588,
           "worldY": 309.819087,
           "speed": 35.391416,
           "spriteScale": 1,
@@ -4918,7 +4918,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1235.026288,
+          "groundX": 1235.968011,
           "groundY": 308.819087,
           "directionX": -1,
           "directionY": 0,
@@ -5062,7 +5062,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 10.825356,
+          "groundX": 9.710707,
           "groundY": 659.718057,
           "directionX": 0.707107,
           "directionY": -0.707107,
@@ -5142,7 +5142,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1223.229149,
+          "groundX": 1224.170873,
           "groundY": 308.819087,
           "directionX": -1,
           "directionY": 0,
@@ -5214,7 +5214,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 19.185227,
+          "groundX": 18.070578,
           "groundY": 651.358186,
           "directionX": 0.707107,
           "directionY": -0.707107,
@@ -5230,9 +5230,9 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1269.370003,
+          "groundX": 1270.847671,
           "groundY": 471.209635,
-          "directionX": -0.707107,
+          "directionX": 0.707107,
           "directionY": 0.707107,
           "tribe": "red",
           "spriteScale": 1
@@ -5342,7 +5342,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1211.432011,
+          "groundX": 1212.373734,
           "groundY": 308.819087,
           "directionX": -1,
           "directionY": 0,
@@ -5374,7 +5374,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 27.545098,
+          "groundX": 26.430449,
           "groundY": 642.998315,
           "directionX": 0.707107,
           "directionY": -0.707107,
@@ -5446,7 +5446,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1260.503992,
+          "groundX": 1265.429554,
           "groundY": 480.075646,
           "directionX": -0.707107,
           "directionY": 0.707107,
@@ -5505,12 +5505,12 @@
           "directionId": "south_west",
           "directionX": -1,
           "directionY": 1,
-          "worldX": 1227.502728,
+          "worldX": 1232.42829,
           "worldY": 514.07691,
           "speed": 41.794777,
           "spriteScale": 1,
-          "frameIndex": 0,
-          "animationElapsedMs": 10,
+          "frameIndex": 3,
+          "animationElapsedMs": 46.666667,
           "distanceSinceFootprint": 10.56464,
           "collisionCooldownMs": 0,
           "wanderRemainingMs": 3078.666667,
@@ -5569,12 +5569,12 @@
           "directionId": "north_east",
           "directionX": 1,
           "directionY": -1,
-          "worldX": 67.115154,
+          "worldX": 66.000505,
           "worldY": 604.428259,
           "speed": 47.290572,
           "spriteScale": 1,
           "frameIndex": 2,
-          "animationElapsedMs": 36.666667,
+          "animationElapsedMs": 20,
           "distanceSinceFootprint": 7.281727,
           "collisionCooldownMs": 0,
           "wanderRemainingMs": 9,
@@ -5697,12 +5697,12 @@
           "directionId": "west",
           "directionX": -1,
           "directionY": 0,
-          "worldX": 1261.047336,
+          "worldX": 1258.347406,
           "worldY": 553.164099,
           "speed": 40.49894,
           "spriteScale": 1,
-          "frameIndex": 1,
-          "animationElapsedMs": 113.333333,
+          "frameIndex": 2,
+          "animationElapsedMs": 26.666667,
           "distanceSinceFootprint": 2.318656,
           "collisionCooldownMs": 0,
           "wanderRemainingMs": 3513.666667,
@@ -5857,7 +5857,7 @@
           "directionId": "west",
           "directionX": -1,
           "directionY": 0,
-          "worldX": 1167.19274,
+          "worldX": 1168.134463,
           "worldY": 309.819087,
           "speed": 35.391416,
           "spriteScale": 1,
@@ -5935,7 +5935,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 36.462294,
+          "groundX": 35.347644,
           "groundY": 634.08112,
           "directionX": 0.707107,
           "directionY": -0.707107,
@@ -5975,7 +5975,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1199.045015,
+          "groundX": 1199.986738,
           "groundY": 308.819087,
           "directionX": -1,
           "directionY": 0,
@@ -6007,7 +6007,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1252.130537,
+          "groundX": 1257.056099,
           "groundY": 488.449101,
           "directionX": -0.707107,
           "directionY": 0.707107,
@@ -6095,7 +6095,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 44.822165,
+          "groundX": 43.707515,
           "groundY": 625.721249,
           "directionX": 0.707107,
           "directionY": -0.707107,
@@ -6183,7 +6183,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1187.247876,
+          "groundX": 1188.189599,
           "groundY": 308.819087,
           "directionX": -1,
           "directionY": 0,
@@ -6199,7 +6199,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1243.757082,
+          "groundX": 1248.682644,
           "groundY": 496.822556,
           "directionX": -0.707107,
           "directionY": 0.707107,
@@ -6279,7 +6279,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 53.182036,
+          "groundX": 52.067386,
           "groundY": 617.361378,
           "directionX": 0.707107,
           "directionY": -0.707107,
@@ -6383,7 +6383,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1235.383627,
+          "groundX": 1240.309189,
           "groundY": 505.196011,
           "directionX": -0.707107,
           "directionY": 0.707107,
@@ -6391,7 +6391,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1175.450737,
+          "groundX": 1176.392461,
           "groundY": 308.819087,
           "directionX": -1,
           "directionY": 0,
@@ -6423,7 +6423,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 61.541907,
+          "groundX": 60.427257,
           "groundY": 609.001507,
           "directionX": 0.707107,
           "directionY": -0.707107,
@@ -6511,7 +6511,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1263.747265,
+          "groundX": 1261.047336,
           "groundY": 552.164099,
           "directionX": -1,
           "directionY": 0,
@@ -6570,12 +6570,12 @@
           "directionId": "south_west",
           "directionX": -1,
           "directionY": 1,
-          "worldX": 1197.949358,
+          "worldX": 1202.87492,
           "worldY": 543.63028,
           "speed": 41.794777,
           "spriteScale": 1,
-          "frameIndex": 0,
-          "animationElapsedMs": 50,
+          "frameIndex": 3,
+          "animationElapsedMs": 86.666667,
           "distanceSinceFootprint": 4.359417,
           "collisionCooldownMs": 0,
           "wanderRemainingMs": 2078.666667,
@@ -6634,7 +6634,7 @@
           "directionId": "north_west",
           "directionX": -1,
           "directionY": -1,
-          "worldX": 34.79032,
+          "worldX": 33.67567,
           "worldY": 570.988775,
           "speed": 47.290572,
           "spriteScale": 1,
@@ -6762,12 +6762,12 @@
           "directionId": "west",
           "directionX": -1,
           "directionY": 0,
-          "worldX": 1220.548396,
+          "worldX": 1217.848467,
           "worldY": 553.164099,
           "speed": 40.49894,
           "spriteScale": 1,
           "frameIndex": 2,
-          "animationElapsedMs": 33.333333,
+          "animationElapsedMs": 66.666667,
           "distanceSinceFootprint": 6.817595,
           "collisionCooldownMs": 0,
           "wanderRemainingMs": 2513.666667,
@@ -6922,7 +6922,7 @@
           "directionId": "south",
           "directionX": 0,
           "directionY": 1,
-          "worldX": 1142.418749,
+          "worldX": 1143.360472,
           "worldY": 320.436512,
           "speed": 35.391416,
           "spriteScale": 1,
@@ -6960,7 +6960,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1226.517616,
+          "groundX": 1231.443178,
           "groundY": 514.062022,
           "directionX": -0.707107,
           "directionY": 0.707107,
@@ -6976,7 +6976,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 65.44318,
+          "groundX": 64.32853,
           "groundY": 600.641636,
           "directionX": -0.707107,
           "directionY": -0.707107,
@@ -7000,7 +7000,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1163.063742,
+          "groundX": 1164.005465,
           "groundY": 308.819087,
           "directionX": -1,
           "directionY": 0,
@@ -7104,7 +7104,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1251.597583,
+          "groundX": 1248.897654,
           "groundY": 552.164099,
           "directionX": -1,
           "directionY": 0,
@@ -7144,7 +7144,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1218.144161,
+          "groundX": 1223.069723,
           "groundY": 522.435477,
           "directionX": -0.707107,
           "directionY": 0.707107,
@@ -7168,7 +7168,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 56.525984,
+          "groundX": 55.411335,
           "groundY": 591.72444,
           "directionX": -0.707107,
           "directionY": -0.707107,
@@ -7208,7 +7208,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1151.266603,
+          "groundX": 1152.208326,
           "groundY": 308.819087,
           "directionX": -1,
           "directionY": 0,
@@ -7280,7 +7280,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1239.447901,
+          "groundX": 1236.747972,
           "groundY": 552.164099,
           "directionX": -1,
           "directionY": 0,
@@ -7328,7 +7328,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1209.770706,
+          "groundX": 1214.696268,
           "groundY": 530.808932,
           "directionX": -0.707107,
           "directionY": 0.707107,
@@ -7344,7 +7344,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 48.166113,
+          "groundX": 47.051464,
           "groundY": 583.364569,
           "directionX": -0.707107,
           "directionY": -0.707107,
@@ -7456,7 +7456,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1142.418749,
+          "groundX": 1143.360472,
           "groundY": 311.768372,
           "directionX": 0,
           "directionY": 1,
@@ -7472,7 +7472,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1227.973202,
+          "groundX": 1225.273272,
           "groundY": 552.164099,
           "directionX": -1,
           "directionY": 0,
@@ -7488,7 +7488,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 39.806242,
+          "groundX": 38.691593,
           "groundY": 575.004698,
           "directionX": -0.707107,
           "directionY": -0.707107,
@@ -7504,7 +7504,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1201.397251,
+          "groundX": 1206.322813,
           "groundY": 539.182387,
           "directionX": -0.707107,
           "directionY": 0.707107,
@@ -7587,12 +7587,12 @@
           "directionId": "south_west",
           "directionX": -1,
           "directionY": 1,
-          "worldX": 1168.395987,
+          "worldX": 1173.321549,
           "worldY": 573.18365,
           "speed": 41.794777,
           "spriteScale": 1,
           "frameIndex": 0,
-          "animationElapsedMs": 90,
+          "animationElapsedMs": 6.666667,
           "distanceSinceFootprint": 10.154194,
           "collisionCooldownMs": 0,
           "wanderRemainingMs": 1078.666667,
@@ -7651,12 +7651,12 @@
           "directionId": "north_east",
           "directionX": 1,
           "directionY": -1,
-          "worldX": 18.627902,
+          "worldX": 14.573247,
           "worldY": 537.549291,
           "speed": 47.290572,
           "spriteScale": 1,
-          "frameIndex": 2,
-          "animationElapsedMs": 26.666667,
+          "frameIndex": 1,
+          "animationElapsedMs": 63.333333,
           "distanceSinceFootprint": 5.632019,
           "collisionCooldownMs": 0,
           "wanderRemainingMs": 1069.666667,
@@ -7776,15 +7776,15 @@
         },
         {
           "tribe": "red",
-          "directionId": "west",
-          "directionX": -1,
-          "directionY": 0,
-          "worldX": 1180.049456,
-          "worldY": 553.164099,
+          "directionId": "south_east",
+          "directionX": 1,
+          "directionY": 1,
+          "worldX": 1232.658339,
+          "worldY": 576.073759,
           "speed": 40.49894,
           "spriteScale": 1,
           "frameIndex": 2,
-          "animationElapsedMs": 73.333333,
+          "animationElapsedMs": 80,
           "distanceSinceFootprint": 11.316535,
           "collisionCooldownMs": 0,
           "wanderRemainingMs": 1513.666667,
@@ -7939,7 +7939,7 @@
           "directionId": "south",
           "directionX": 0,
           "directionY": 1,
-          "worldX": 1142.418749,
+          "worldX": 1143.360472,
           "worldY": 355.827929,
           "speed": 35.391416,
           "spriteScale": 1,
@@ -8049,7 +8049,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 31.446371,
+          "groundX": 30.331722,
           "groundY": 566.644827,
           "directionX": -0.707107,
           "directionY": -0.707107,
@@ -8065,7 +8065,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1215.82352,
+          "groundX": 1213.12359,
           "groundY": 552.164099,
           "directionX": -1,
           "directionY": 0,
@@ -8089,7 +8089,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1142.418749,
+          "groundX": 1143.360472,
           "groundY": 324.155368,
           "directionX": 0,
           "directionY": 1,
@@ -8097,7 +8097,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1193.023796,
+          "groundX": 1197.949358,
           "groundY": 547.555842,
           "directionX": -0.707107,
           "directionY": 0.707107,
@@ -8209,7 +8209,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 22.529175,
+          "groundX": 21.414526,
           "groundY": 557.727631,
           "directionX": -0.707107,
           "directionY": -0.707107,
@@ -8257,10 +8257,10 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1203.673838,
-          "groundY": 552.164099,
-          "directionX": -1,
-          "directionY": 0,
+          "groundX": 1215.953378,
+          "groundY": 558.368799,
+          "directionX": 0.707107,
+          "directionY": 0.707107,
           "tribe": "red",
           "spriteScale": 1
         },
@@ -8289,7 +8289,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1184.157785,
+          "groundX": 1189.083347,
           "groundY": 556.421853,
           "directionX": -0.707107,
           "directionY": 0.707107,
@@ -8297,7 +8297,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1142.418749,
+          "groundX": 1143.360472,
           "groundY": 335.952507,
           "directionX": 0,
           "directionY": 1,
@@ -8361,7 +8361,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 14.169304,
+          "groundX": 13.054655,
           "groundY": 549.36776,
           "directionX": -0.707107,
           "directionY": -0.707107,
@@ -8457,15 +8457,15 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1191.524156,
-          "groundY": 552.164099,
-          "directionX": -1,
-          "directionY": 0,
+          "groundX": 1224.544501,
+          "groundY": 566.959921,
+          "directionX": 0.707107,
+          "directionY": 0.707107,
           "tribe": "red",
           "spriteScale": 1
         },
         {
-          "groundX": 1175.78433,
+          "groundX": 1180.709892,
           "groundY": 564.795308,
           "directionX": -0.707107,
           "directionY": 0.707107,
@@ -8497,7 +8497,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1142.418749,
+          "groundX": 1143.360472,
           "groundY": 347.749645,
           "directionX": 0,
           "directionY": 1,
@@ -8529,7 +8529,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 14.169304,
+          "groundX": 10.114649,
           "groundY": 541.007889,
           "directionX": 0.707107,
           "directionY": -0.707107,
@@ -8636,12 +8636,12 @@
           "directionId": "south_west",
           "directionX": -1,
           "directionY": 1,
-          "worldX": 1138.842617,
+          "worldX": 1143.768179,
           "worldY": 602.737021,
           "speed": 41.794777,
           "spriteScale": 1,
-          "frameIndex": 1,
-          "animationElapsedMs": 10,
+          "frameIndex": 0,
+          "animationElapsedMs": 46.666667,
           "distanceSinceFootprint": 3.948972,
           "collisionCooldownMs": 0,
           "wanderRemainingMs": 78.666667,
@@ -8700,12 +8700,12 @@
           "directionId": "north_east",
           "directionX": 1,
           "directionY": -1,
-          "worldX": 52.067386,
+          "worldX": 48.012731,
           "worldY": 504.109807,
           "speed": 47.290572,
           "spriteScale": 1,
-          "frameIndex": 2,
-          "animationElapsedMs": 66.666667,
+          "frameIndex": 1,
+          "animationElapsedMs": 103.333333,
           "distanceSinceFootprint": 4.922591,
           "collisionCooldownMs": 0,
           "wanderRemainingMs": 69.666667,
@@ -8825,15 +8825,15 @@
         },
         {
           "tribe": "red",
-          "directionId": "west",
-          "directionX": -1,
-          "directionY": 0,
-          "worldX": 1139.550517,
-          "worldY": 553.164099,
+          "directionId": "south_east",
+          "directionX": 1,
+          "directionY": 1,
+          "worldX": 1261.295413,
+          "worldY": 604.710834,
           "speed": 40.49894,
           "spriteScale": 1,
-          "frameIndex": 2,
-          "animationElapsedMs": 113.333333,
+          "frameIndex": 3,
+          "animationElapsedMs": 0,
           "distanceSinceFootprint": 3.815475,
           "collisionCooldownMs": 0,
           "wanderRemainingMs": 513.666667,
@@ -8988,7 +8988,7 @@
           "directionId": "south_west",
           "directionX": -1,
           "directionY": 1,
-          "worldX": 1136.996555,
+          "worldX": 1137.938278,
           "worldY": 388.973399,
           "speed": 35.391416,
           "spriteScale": 1,
@@ -9042,15 +9042,15 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1179.374474,
-          "groundY": 552.164099,
-          "directionX": -1,
-          "directionY": 0,
+          "groundX": 1233.135623,
+          "groundY": 575.551044,
+          "directionX": 0.707107,
+          "directionY": 0.707107,
           "tribe": "red",
           "spriteScale": 1
         },
         {
-          "groundX": 1167.410875,
+          "groundX": 1172.336437,
           "groundY": 573.168763,
           "directionX": -0.707107,
           "directionY": 0.707107,
@@ -9090,7 +9090,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 23.0865,
+          "groundX": 19.031845,
           "groundY": 532.090694,
           "directionX": 0.707107,
           "directionY": -0.707107,
@@ -9130,7 +9130,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1142.418749,
+          "groundX": 1143.360472,
           "groundY": 360.136641,
           "directionX": 0,
           "directionY": 1,
@@ -9210,10 +9210,10 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1167.899774,
-          "groundY": 552.164099,
-          "directionX": -1,
-          "directionY": 0,
+          "groundX": 1241.249461,
+          "groundY": 583.664882,
+          "directionX": 0.707107,
+          "directionY": 0.707107,
           "tribe": "red",
           "spriteScale": 1
         },
@@ -9226,7 +9226,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1159.03742,
+          "groundX": 1163.962982,
           "groundY": 581.542218,
           "directionX": -0.707107,
           "directionY": 0.707107,
@@ -9274,7 +9274,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 31.446371,
+          "groundX": 27.391716,
           "groundY": 523.730823,
           "directionX": 0.707107,
           "directionY": -0.707107,
@@ -9330,7 +9330,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1142.418749,
+          "groundX": 1143.360472,
           "groundY": 371.93378,
           "directionX": 0,
           "directionY": 1,
@@ -9402,10 +9402,10 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1155.750092,
-          "groundY": 552.164099,
-          "directionX": -1,
-          "directionY": 0,
+          "groundX": 1249.840583,
+          "groundY": 592.256004,
+          "directionX": 0.707107,
+          "directionY": 0.707107,
           "tribe": "red",
           "spriteScale": 1
         },
@@ -9418,7 +9418,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1150.171409,
+          "groundX": 1155.096971,
           "groundY": 590.408229,
           "directionX": -0.707107,
           "directionY": 0.707107,
@@ -9442,7 +9442,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 39.806242,
+          "groundX": 35.751587,
           "groundY": 515.370952,
           "directionX": 0.707107,
           "directionY": -0.707107,
@@ -9530,7 +9530,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1141.584565,
+          "groundX": 1142.526288,
           "groundY": 383.385389,
           "directionX": -0.707107,
           "directionY": 0.707107,
@@ -9570,7 +9570,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 48.166113,
+          "groundX": 44.111458,
           "groundY": 507.011081,
           "directionX": 0.707107,
           "directionY": -0.707107,
@@ -9578,7 +9578,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1141.797954,
+          "groundX": 1146.723516,
           "groundY": 598.781684,
           "directionX": -0.707107,
           "directionY": 0.707107,
@@ -9594,10 +9594,10 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1143.600411,
-          "groundY": 552.164099,
-          "directionX": -1,
-          "directionY": 0,
+          "groundX": 1258.431706,
+          "groundY": 600.847127,
+          "directionX": 0.707107,
+          "directionY": 0.707107,
           "tribe": "red",
           "spriteScale": 1
         },
@@ -9685,7 +9685,7 @@
           "directionId": "north_east",
           "directionX": 1,
           "directionY": -1,
-          "worldX": 1163.470426,
+          "worldX": 1168.395987,
           "worldY": 578.109212,
           "speed": 41.794777,
           "spriteScale": 1,
@@ -9749,7 +9749,7 @@
           "directionId": "north_west",
           "directionX": -1,
           "directionY": -1,
-          "worldX": 24.20115,
+          "worldX": 20.146495,
           "worldY": 470.670324,
           "speed": 47.290572,
           "spriteScale": 1,
@@ -9874,16 +9874,16 @@
         },
         {
           "tribe": "red",
-          "directionId": "south_east",
-          "directionX": 1,
+          "directionId": "south_west",
+          "directionX": -1,
           "directionY": 1,
-          "worldX": 1132.467317,
-          "worldY": 567.005352,
+          "worldX": 1261.295413,
+          "worldY": 633.347909,
           "speed": 40.49894,
           "spriteScale": 1,
-          "frameIndex": 0,
-          "animationElapsedMs": 3.333333,
-          "distanceSinceFootprint": 8.314414,
+          "frameIndex": 3,
+          "animationElapsedMs": 6.666667,
+          "distanceSinceFootprint": 7.919019,
           "collisionCooldownMs": 0,
           "wanderRemainingMs": 5826.666667,
           "initialized": true
@@ -10037,7 +10037,7 @@
           "directionId": "south_west",
           "directionX": -1,
           "directionY": 1,
-          "worldX": 1111.971044,
+          "worldX": 1112.912767,
           "worldY": 413.998909,
           "speed": 35.391416,
           "spriteScale": 1,
@@ -10131,7 +10131,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 53.182036,
+          "groundX": 49.127381,
           "groundY": 498.65121,
           "directionX": -0.707107,
           "directionY": -0.707107,
@@ -10155,7 +10155,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1132.825636,
+          "groundX": 1133.76736,
           "groundY": 392.144317,
           "directionX": -0.707107,
           "directionY": 0.707107,
@@ -10163,7 +10163,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1139.335173,
+          "groundX": 1144.260735,
           "groundY": 601.244465,
           "directionX": 0.707107,
           "directionY": -0.707107,
@@ -10187,10 +10187,10 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1131.450729,
-          "groundY": 552.164099,
-          "directionX": -1,
-          "directionY": 0,
+          "groundX": 1267.022828,
+          "groundY": 609.438249,
+          "directionX": 0.707107,
+          "directionY": 0.707107,
           "tribe": "red",
           "spriteScale": 1
         },
@@ -10307,7 +10307,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 44.26484,
+          "groundX": 40.210185,
           "groundY": 489.734014,
           "directionX": -0.707107,
           "directionY": -0.707107,
@@ -10355,7 +10355,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1147.708628,
+          "groundX": 1152.63419,
           "groundY": 592.87101,
           "directionX": 0.707107,
           "directionY": -0.707107,
@@ -10379,15 +10379,15 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1119.976029,
-          "groundY": 552.164099,
-          "directionX": -1,
-          "directionY": 0,
+          "groundX": 1268.454682,
+          "groundY": 618.029372,
+          "directionX": -0.707107,
+          "directionY": 0.707107,
           "tribe": "red",
           "spriteScale": 1
         },
         {
-          "groundX": 1124.4838,
+          "groundX": 1125.425523,
           "groundY": 400.486154,
           "directionX": -0.707107,
           "directionY": 0.707107,
@@ -10475,7 +10475,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 35.904969,
+          "groundX": 31.850314,
           "groundY": 481.374143,
           "directionX": -0.707107,
           "directionY": -0.707107,
@@ -10547,7 +10547,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1156.574639,
+          "groundX": 1161.500201,
           "groundY": 584.004999,
           "directionX": 0.707107,
           "directionY": -0.707107,
@@ -10555,9 +10555,9 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1126.262618,
-          "groundY": 559.800653,
-          "directionX": 0.707107,
+          "groundX": 1267.022828,
+          "groundY": 626.620494,
+          "directionX": -0.707107,
           "directionY": 0.707107,
           "tribe": "red",
           "spriteScale": 1
@@ -10603,7 +10603,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 1116.141963,
+          "groundX": 1117.083686,
           "groundY": 408.827991,
           "directionX": -0.707107,
           "directionY": 0.707107,
@@ -10659,7 +10659,7 @@
           "spriteScale": 1
         },
         {
-          "groundX": 27.545098,
+          "groundX": 23.490443,
           "groundY": 473.014272,
           "directionX": -0.707107,
           "directionY": -0.707107,

@@ -42,33 +42,51 @@ the platform where the modern version has something the original could not do,
 and because the Plasma target already covers KDE. Linux follows from the same
 CMake project.
 
-Three steps:
+- ✅ **State and view split** (0.9.0). The simulation owns plain JavaScript
+  character objects; `Character.qml` is a view the simulation never touches.
+  Frame data moved into the simulation at the same time, because no single view
+  can own it once there are several. `PopulousWorld.qml` kept its property
+  surface, so the Plasma and preview hosts were untouched.
+- ✅ **The multi-window shell** (0.9.0). One `QQmlEngine`, one window per
+  `QScreen`, one shared simulation, and the world built from every screen's
+  geometry. Verified on a 1920×1200 beside two 1920×1080: characters walk from
+  one physical monitor to the next and trails cross the seams.
+- ✅ **The `.scr` entry point** (0.9.0). `/s`, `/c`, `/p <hwnd>` and a `/w`
+  development mode, with quitting on input guarded against the movement burst
+  Windows sends at launch.
+- ⏳ **Packaging**, deliberately deferred — see below.
 
-1. **State and view split.** The simulation must own plain JavaScript character
-   objects rather than QML items, because three windows cannot share the same
-   `Item`. `Simulation.js` already works on plain objects — that is how the
-   golden traces are generated under Node — so the change is confined to the
-   QML side, and the traces should not move by a byte.
+### What is left in this phase
 
-   Worth doing before phase 4: a character state has fourteen fields and one
-   behaviour today. After combat and spells it will have many more.
+**`/p` is unverified.** The thumbnail reparenting is implemented, through raw
+Win32 `SetParent` after Qt has realised the window, because Qt's own
+`QWindow::fromWinId` plus `setParent` reports success without reparenting
+anything. It could not be confirmed against a synthetic host window; the real
+check is the Windows screen-saver dialog, which needs the packaging step first.
 
-2. **The multi-window shell.** One `QQmlEngine`, one window per `QScreen`, one
-   shared simulation, and the world built from every screen's geometry. This is
-   what finally exercises the continuous multi-monitor world on real monitors
-   rather than in the preview's rehearsal mode.
+**Packaging carries an open decision.** Windows lists screen savers from
+`System32`, where a Qt application's DLLs cannot reasonably be dropped — 36 MB
+for seven core libraries alone, before plugins and QML modules. Three
+candidates:
 
-3. **The `.scr` entry point.** A `.scr` is an ordinary executable with a
-   different extension, invoked with `/s` to run, `/c` to configure and
-   `/p <hwnd>` to preview in the Windows settings dialog. It must also quit on
-   input.
+1. **Program Files plus a registry entry.** `HKCU\Control Panel\Desktop\
+   SCRNSAVE.EXE` stores a *full path*, so Windows may well run a `.scr` from
+   anywhere; only the picker's listing seems tied to `System32`. Untested, and
+   the cheapest option if it holds.
+2. **A stub `.scr` in `System32`** relaying `/s /c /p` to the real application.
+   Certain to appear in the picker, two binaries to keep in step.
+3. **A static Qt build.** One self-contained file, but a long build and LGPL
+   implications.
 
-   Packaging carries an open decision: Windows lists screen savers from
-   `System32`, where thirty Qt DLLs cannot reasonably be dropped. Either a tiny
-   stub `.scr` relays to the real application installed elsewhere, or Qt is
-   linked statically. To be settled when the step is reached.
+Test option 1 first: it is a registry value and a launch, and it decides the
+other two.
 
-Binary releases, one per target, start here — probably wired to CI.
+**One sprite scale for the whole world**, taken from the primary screen.
+Per-monitor DPI would mean per-character margins and speeds, which the state
+does not model.
+
+Binary releases, one per target, start once packaging is settled — probably
+wired to CI.
 
 ## Phase 4 — The rest of the simulation
 

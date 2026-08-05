@@ -17,12 +17,14 @@ populous-screensaver/
 │   ├── sounds/        #   28 original PCM effects
 │   └── sounds-converted/
 ├── core/              # the engine, shared by every QML target
-│   ├── qml/           #   PopulousWorld.qml, Character.qml, Footprint.qml
+│   ├── qml/           #   PopulousSimulation, PopulousView, PopulousWorld,
+│   │                  #   Character, Footprint
 │   └── js/            #   Simulation.js, Animations.js (generated)
 ├── spec/              # normative simulation rules
 ├── targets/           # per-target host shells only
 │   ├── plasma/        #   metadata, host QML and configuration page
-│   └── preview/       #   main.qml, a plain window for development
+│   ├── preview/       #   main.qml, a plain window for development
+│   └── qt-app/        #   CMake, C++ entry point, one window per screen
 ├── tests/             # headless tests and golden traces
 └── build/             # assembled payloads — generated, not versioned
 ```
@@ -73,14 +75,25 @@ The left column is described in [asset-pipeline.md](asset-pipeline.md).
 - **`core/js/Animations.js`** — the generated animation manifest. It exists
   because Qt forbids `XMLHttpRequest` from reading local files by default, so
   the manifest is emitted as a JavaScript module as well as JSON.
-- **`core/qml/Character.qml`** — one character on screen. It holds no rule, no
-  timer and no logic: the simulation writes its plain properties and everything
-  visual is a binding derived from them. It renders a region of the atlas with
-  `sourceClipRect`, avoiding hundreds of small PNG files.
+- **`core/qml/PopulousSimulation.qml`** — owns the simulation and paces it.
+  Non-visual, so several views can watch the same one.
+- **`core/qml/PopulousView.qml`** — renders one viewport: black background,
+  trail layer and the characters visible in it. `viewportX` and `viewportY` are
+  its top-left corner in world coordinates, which is how one world spans
+  several windows.
+- **`core/qml/Character.qml`** — one character on screen. It holds no state, no
+  rule and no timer: the view copies four values into it each tick and
+  everything visual is a binding derived from them. It renders a region of the
+  atlas with `sourceClipRect`, avoiding hundreds of small PNG files.
 - **`core/qml/Footprint.qml`** — a fading footprint pair, tinted per tribe.
-- **`core/qml/PopulousWorld.qml`** — the engine assembled: black background,
-  characters, trail layer and the single simulation loop. Drop it into anything
-  that gives it a size.
+- **`core/qml/PopulousWorld.qml`** — one simulation and one view wired together.
+  This is what a host with a single window wants; drop it into anything that
+  gives it a size.
+
+The simulation and the view are separable for one reason: **QML items cannot be
+shared between windows.** A host with three monitors creates one
+`PopulousSimulation` and three `PopulousView`s over it. Until 0.9.0 the
+`Character` items *were* the simulation state, which made that impossible.
 
 ### Duck-typed state
 
@@ -128,10 +141,17 @@ WallpaperItem {
 }
 ```
 
-The preview replaces `WallpaperItem` with a `Window`. The standalone screen
-saver will use one window per screen, which is the step that forces the
-character state to become plain objects rather than QML items — three windows
-cannot share the same `Item`.
+The preview replaces `WallpaperItem` with a `Window`.
+
+The standalone screen saver is the one host that does not use `PopulousWorld`:
+it holds a single `PopulousSimulation` and creates one `Window` per
+`Qt.application.screens` entry, each with a `PopulousView` offset by that
+monitor's position in the virtual desktop. World coordinates are the virtual
+desktop, so characters line up across the seams.
+
+Its C++ entry point does only two things: decide which mode Windows asked for
+(`/s`, `/c`, `/p <hwnd>`) and, for the thumbnail, reparent the preview window
+into the handle the settings dialog supplies.
 
 ## The world
 

@@ -3,6 +3,49 @@
 Versions are those recorded in the Plasma plugin metadata, which is the only
 target shipping so far.
 
+## 0.9.0
+
+### The standalone Qt application
+
+- New `qt-app` target: a Qt 6 application opening **one window per monitor over
+  a single shared world**. This is the first time the continuous multi-monitor
+  world runs on real monitors rather than in the preview's rehearsal mode.
+- Windows builds it as `populous.scr`. `/s` runs it, `/c` opens the settings
+  dialog, `/w` runs in ordinary windows for development, and `/p <hwnd>` draws
+  into the settings dialog's thumbnail.
+- Quitting on input ignores the burst of mouse movement Windows sends at launch
+  and requires the pointer to travel more than 12 pixels, so the screen saver
+  does not dismiss itself the moment it starts.
+- Assets and QML are compiled into the executable through a generated
+  `resources.qrc`, so the binary does not depend on files beside it.
+
+### The engine split in three
+
+- `PopulousSimulation.qml` owns the simulation and the loop, `PopulousView.qml`
+  renders one viewport of it, and `PopulousWorld.qml` is now a wrapper holding
+  one of each. Its property surface is unchanged, so the Plasma and preview
+  hosts were untouched by the split.
+- `Character.qml` holds no state at all: the view copies four values into it
+  each tick. QML items cannot be shared between windows, so the simulation had
+  to stop using them as its state.
+
+### Frame data moved into the simulation
+
+- A character state carries `animations` and caches the resolved `frames` of
+  its current animation, so nothing outside the simulation owns its dimensions.
+  Edge margins follow the displayed frame, which changes within a cycle.
+- **Golden traces were regenerated once, deliberately.** They previously used a
+  fabricated 20×26 frame and so never matched what a host actually rendered;
+  they now use the real manifest.
+
+### Known gaps
+
+- `/p` is implemented but unverified: reparenting could not be confirmed
+  against a synthetic host window. The real check is the Windows screen-saver
+  dialog, which belongs with the deferred packaging step.
+- One sprite scale for the whole world, taken from the primary screen.
+  Per-monitor DPI would need per-character margins and speeds.
+
 ## 0.8.1
 
 - Fixed the configuration page failing to load from the screen-locker

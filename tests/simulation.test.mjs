@@ -18,7 +18,9 @@ const EXPORTS = [
     "tribes",
     "tuning",
     "createRandom",
+    "createCharacter",
     "createSimulation",
+    "populate",
     "createWorld",
     "worldContains",
     "worldAllows",
@@ -51,32 +53,40 @@ const Simulation = loadPragmaLibrary("../core/js/Simulation.js", EXPORTS)
 const { manifest } = loadPragmaLibrary("../core/js/Animations.js", ["manifest"])
 const STEP = Simulation.tuning.stepSeconds
 
-// A character state carrying exactly the fields Character.qml exposes. This is
-// the duck typing the whole design relies on. frameWidth/frameHeight/frameCount
-// are bindings in QML; here they are plain values.
+// A character built the way a host builds one, then nudged into a known state.
+// It carries the real manifest, so the frames driving edge margins are the ones
+// a host actually renders rather than an invented constant.
 function makeCharacter(overrides = {}) {
-    return {
-        tribe: "blue",
-        directionId: "east",
-        directionX: 1,
-        directionY: 0,
+    const state = Simulation.createCharacter(
+        manifest.animations,
+        overrides.spriteScale === undefined ? 1 : overrides.spriteScale
+    )
+
+    Object.assign(state, {
         worldX: 100,
         worldY: 100,
         speed: 60,
-        spriteScale: 1,
-        frameIndex: 0,
-        animationElapsedMs: 0,
-        distanceSinceFootprint: 0,
-        collisionCooldownMs: 0,
         // Far enough away that it does not fire during short tests.
         wanderRemainingMs: 1e9,
-        initialized: true,
-        frameWidth: 20,
-        frameHeight: 26,
-        frameCount: 4,
-        frameDurationMs: 120,
-        ...overrides
+        initialized: true
+    })
+
+    if (overrides.tribe !== undefined) {
+        state.tribe = overrides.tribe
     }
+    // Resolves the frames for the requested heading; east unless overridden.
+    Simulation.setDirection(
+        state,
+        overrides.directionX === undefined ? 1 : overrides.directionX,
+        overrides.directionY === undefined ? 0 : overrides.directionY
+    )
+
+    return Object.assign(state, overrides)
+}
+
+// The frame a character is displaying, which is what its edge margins follow.
+function frameOf(state) {
+    return state.frames[state.frameIndex % state.frames.length]
 }
 
 const WORLD = Simulation.createWorld([{ x: 0, y: 0, width: 1000, height: 1000 }])
@@ -229,12 +239,14 @@ test("a character bounces off the right edge and is clamped inside", () => {
     const world = Simulation.createWorld([rect(0, 0, 200, 200)])
     const character = makeCharacter({ worldX: 199, speed: 600 })
     const random = Simulation.createRandom(1)
+    // Captured before the step: turning west re-resolves the frames.
+    const margin = frameOf(character).width * character.spriteScale / 2
 
     const result = Simulation.stepCharacter(character, world, STEP, random)
 
     assert.equal(result.directionChanged, true)
     assert.equal(character.directionId, "west")
-    assert.equal(character.worldX, 200 - character.frameWidth / 2)
+    assert.equal(character.worldX, 200 - margin)
 })
 
 test("a character bounces off the bottom edge using the ground margin", () => {

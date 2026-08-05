@@ -4748,7 +4748,7 @@
           "directionId": "south_west",
           "directionX": -1,
           "directionY": 1,
-          "worldX": 5702.604817,
+          "worldX": 5706.563745,
           "worldY": 614.58539,
           "speed": 83.981544,
           "spriteScale": 2,
@@ -5234,7 +5234,7 @@
           "spriteScale": 2
         },
         {
-          "groundX": 5728.337849,
+          "groundX": 5732.296777,
           "groundY": 587.852358,
           "directionX": -0.707107,
           "directionY": 0.707107,
@@ -5426,7 +5426,7 @@
           "spriteScale": 2
         },
         {
-          "groundX": 5711.512405,
+          "groundX": 5715.471333,
           "groundY": 604.677802,
           "directionX": -0.707107,
           "directionY": 0.707107,
@@ -5789,7 +5789,7 @@
           "directionId": "south_west",
           "directionX": -1,
           "directionY": 1,
-          "worldX": 5643.220898,
+          "worldX": 5647.179826,
           "worldY": 673.969309,
           "speed": 83.981544,
           "spriteScale": 2,
@@ -6003,7 +6003,7 @@
           "spriteScale": 2
         },
         {
-          "groundX": 5694.686961,
+          "groundX": 5698.645889,
           "groundY": 621.503246,
           "directionX": -0.707107,
           "directionY": 0.707107,
@@ -6187,7 +6187,7 @@
           "spriteScale": 2
         },
         {
-          "groundX": 5676.871785,
+          "groundX": 5680.830713,
           "groundY": 639.318422,
           "directionX": -0.707107,
           "directionY": 0.707107,
@@ -6379,7 +6379,7 @@
           "spriteScale": 2
         },
         {
-          "groundX": 5660.046342,
+          "groundX": 5664.00527,
           "groundY": 656.143865,
           "directionX": -0.707107,
           "directionY": 0.707107,
@@ -6854,7 +6854,7 @@
           "directionId": "south_west",
           "directionX": -1,
           "directionY": 1,
-          "worldX": 5583.836978,
+          "worldX": 5587.795906,
           "worldY": 733.353229,
           "speed": 83.981544,
           "spriteScale": 2,
@@ -6964,7 +6964,7 @@
       ],
       "footprints": [
         {
-          "groundX": 5643.220898,
+          "groundX": 5647.179826,
           "groundY": 672.969309,
           "directionX": -0.707107,
           "directionY": 0.707107,
@@ -7148,7 +7148,7 @@
           "spriteScale": 2
         },
         {
-          "groundX": 5626.395454,
+          "groundX": 5630.354382,
           "groundY": 689.794753,
           "directionX": -0.707107,
           "directionY": 0.707107,
@@ -7324,7 +7324,7 @@
           "spriteScale": 2
         },
         {
-          "groundX": 5609.57001,
+          "groundX": 5613.528938,
           "groundY": 706.620197,
           "directionX": -0.707107,
           "directionY": 0.707107,
@@ -7508,7 +7508,7 @@
           "spriteScale": 2
         },
         {
-          "groundX": 5592.744566,
+          "groundX": 5596.703494,
           "groundY": 723.445641,
           "directionX": -0.707107,
           "directionY": 0.707107,
@@ -7871,7 +7871,7 @@
           "directionId": "south_west",
           "directionX": -1,
           "directionY": 1,
-          "worldX": 5524.453059,
+          "worldX": 5528.411987,
           "worldY": 792.737148,
           "speed": 83.981544,
           "spriteScale": 2,
@@ -8101,7 +8101,7 @@
           "spriteScale": 2
         },
         {
-          "groundX": 5575.919122,
+          "groundX": 5579.87805,
           "groundY": 740.271085,
           "directionX": -0.707107,
           "directionY": 0.707107,
@@ -8285,7 +8285,7 @@
           "spriteScale": 2
         },
         {
-          "groundX": 5558.103947,
+          "groundX": 5562.062875,
           "groundY": 758.08626,
           "directionX": -0.707107,
           "directionY": 0.707107,
@@ -8469,7 +8469,7 @@
           "spriteScale": 2
         },
         {
-          "groundX": 5541.278503,
+          "groundX": 5545.237431,
           "groundY": 774.911704,
           "directionX": -0.707107,
           "directionY": 0.707107,
@@ -8920,7 +8920,7 @@
           "directionId": "south_west",
           "directionX": -1,
           "directionY": 1,
-          "worldX": 5465.06914,
+          "worldX": 5469.028068,
           "worldY": 852.121067,
           "speed": 83.981544,
           "spriteScale": 2,
@@ -9054,7 +9054,7 @@
           "spriteScale": 2
         },
         {
-          "groundX": 5524.453059,
+          "groundX": 5528.411987,
           "groundY": 791.737148,
           "directionX": -0.707107,
           "directionY": 0.707107,
@@ -9214,7 +9214,7 @@
           "spriteScale": 2
         },
         {
-          "groundX": 5507.627615,
+          "groundX": 5511.586543,
           "groundY": 808.562592,
           "directionX": -0.707107,
           "directionY": 0.707107,
@@ -9374,7 +9374,7 @@
           "spriteScale": 2
         },
         {
-          "groundX": 5490.802171,
+          "groundX": 5494.761099,
           "groundY": 825.388036,
           "directionX": -0.707107,
           "directionY": 0.707107,
@@ -9558,7 +9558,7 @@
           "spriteScale": 2
         },
         {
-          "groundX": 5473.976728,
+          "groundX": 5477.935656,
           "groundY": 842.213479,
           "directionX": -0.707107,
           "directionY": 0.707107,
@@ -9969,7 +9969,7 @@
           "directionId": "south_west",
           "directionX": -1,
           "directionY": 1,
-          "worldX": 5405.68522,
+          "worldX": 5409.644148,
           "worldY": 911.504987,
           "speed": 83.981544,
           "spriteScale": 2,
@@ -10151,7 +10151,7 @@
           "spriteScale": 2
         },
         {
-          "groundX": 5457.151284,
+          "groundX": 5461.110212,
           "groundY": 859.038923,
           "directionX": -0.707107,
           "directionY": 0.707107,
@@ -10335,7 +10335,7 @@
           "spriteScale": 2
         },
         {
-          "groundX": 5439.336108,
+          "groundX": 5443.295036,
           "groundY": 876.854099,
           "directionX": -0.707107,
           "directionY": 0.707107,
@@ -10519,7 +10519,7 @@
           "spriteScale": 2
         },
         {
-          "groundX": 5422.510664,
+          "groundX": 5426.469592,
           "groundY": 893.679543,
           "directionX": -0.707107,
           "directionY": 0.707107,
