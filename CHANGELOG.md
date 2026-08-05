@@ -24,6 +24,12 @@ reads from: the Windows build has its number written into the payload by
 - Added a reproducible audio matcher. It recovered 145 high-confidence WAV
   starts from the AAC capture and anchored the first Armageddon's gathering,
   site-spell, attack and lightning events to reviewed video frames.
+- Recovered 32 function boundaries referenced only through C++ vtables, taking
+  the reproducible Ghidra export from 293 to 327 internal functions.
+- Mapped character states to the walk, stand, scratch, kick, hit, cast, soul,
+  firewarrior-punch and wave atlas streams. Identified the conversion, fire and
+  procedural-lightning effect chains while retaining provisional names for
+  generic particles.
 
 ### The atlas catalogue
 

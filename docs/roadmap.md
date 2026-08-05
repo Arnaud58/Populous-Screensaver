@@ -127,29 +127,32 @@ sound starts with the capture. The evidence and reproducible procedures live
 in [research/reverse-engineering.md](../research/reverse-engineering.md) and
 [research/original-behaviour.md](../research/original-behaviour.md).
 
-The remaining work is to assign semantic names to the twelve effect selectors,
-map numeric character states to the atlas animations, and record an
-uninterrupted Armageddon through its return to ordinary simulation.
+The third pass mapped every character state to the atlas and established the
+roles of the conversion projectile, fire projectile, lightning, their child
+particles and the Armageddon swirl. See
+[research/original-state-map.md](../research/original-state-map.md). Generic
+particle names remain provisional. The remaining observational task is an
+uninterrupted Armageddon through its return to ordinary simulation; ordinary
+combat can now move into an implementation plan for 4c.
 
-This is now the bottleneck, because the catalogue raised questions only the
-original can answer:
+The static pass answered several former atlas questions: shamans do select
+fire and lightning attacks, the “punch” cells are their conversion cast, the
+wave cells are played in Armageddon state 13, and death uses the soul stream.
+The remaining evidence work is narrower:
 
-- **does a shaman ever fight?** `shaman_punch` is an arms-out pose that reads
-  as a blow, but enemy braves are remembered as walking straight past. These
-  cells may go unused;
-- **are the waving animations used at all?** `brave_wave` and
-  `firewarrior_wave` are grouped so the cells are accounted for, on the
-  suspicion that nothing plays them;
-- **every frame duration outside the walk cycles is invented.** Idle, cast,
-  punch, kick, soul and the two effects all carry a provisional number and a
-  note saying so;
-- what triggers a fight, how long one lasts, what happens to the loser, how
-  Armageddon starts, and whether the run ends or loops.
+- **every QML frame duration outside the walk cycles is still provisional.**
+  The original's tick counters are now known, but they must be translated into
+  animation durations and checked against video;
+- exact combat distance constants and probabilities still need conversion
+  from compiler literals into readable units;
+- the 819–896 particle band is partly mapped to effect selectors, but its
+  tiny overlapping groups still need a build-pipeline representation;
+- the first recording ends before Armageddon visibly returns to ordinary
+  simulation, although the looping code path is statically confirmed.
 
-Record which sounds accompany which events by ear. The 28 file names are
-suggestive and were already misleading once: `punch1`–`punch8` and
-`swords1`–`swords5` led to naming two brave animations a punch and a sword
-swing, when they are a brave *taking* a blow and a brave *kicking*.
+Sound/resource call sites and 145 capture timestamps now replace identification
+by ear. The old warning remains useful: a sound name identifies an effect, not
+necessarily the sprite that caused it.
 
 ### 4c onwards — behaviours
 

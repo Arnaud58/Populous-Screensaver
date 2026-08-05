@@ -325,6 +325,9 @@ Two effects are grouped and have no facing at all: a cyan sparkle at 344–350,
 sitting between the two halves of the shaman set, and an expanding orange ring
 at 1173–1178, the last cells of the atlas.
 
-Row 27 holds native particle cells that may be the original's footprints, but
-their mapping to tribes and directions is unconfirmed, so the engine draws
-footprints procedurally and leaves those cells untouched.
+Row 27 holds native particle cells. Reverse engineering now maps several
+overlapping ranges to the original's conversion debris, fire trail, impact
+emitter and embers; see
+[research/original-state-map.md](../research/original-state-map.md). There is
+still no confirmed code path identifying them as footprints, so the engine
+draws footprints procedurally and leaves those cells untouched.

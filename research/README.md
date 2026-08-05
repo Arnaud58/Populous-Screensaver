@@ -70,8 +70,9 @@ Known limitations:
 - the provisional bottom-center anchor may cause jitter in some sequences;
 - packed sequences may continue from one atlas row to the next.
 
-Row 27 contains the native 5-pixel-high particle strip. Its cells include
-several colour families and shrinking shapes consistent with trail effects,
-but their exact mapping to tribes, directions and effect types is not yet
-confirmed. The QML prototype therefore uses a procedural pixel footprint and
-keeps these native cells untouched until that mapping is verified.
+Row 27 contains the native 5-pixel-high particle strip. Static analysis now
+ties parts of it to effect selectors 2, 3, 5, 7, 8 and 9; the ranges and call
+chains are recorded in [original-state-map.md](original-state-map.md). The
+cells overlap in ways that do not fit the current one-frame-per-component
+pipeline, so they remain uncompiled. The QML prototype continues to use a
+procedural pixel footprint until that representation is implemented.

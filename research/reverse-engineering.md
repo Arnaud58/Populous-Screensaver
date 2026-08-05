@@ -37,25 +37,34 @@ and the generated pseudo-C deliberately live outside Git under
 Import and analyse the binary:
 
 ```bash
-ghidra-analyzeHeadless ../ghidra-work populous \
+analysis_root=$(realpath ../ghidra-work)
+ghidra-analyzeHeadless "$analysis_root" populous \
     -import "original/Populous Screen Saver.scr" \
     -overwrite -analysisTimeoutPerFile 900 -max-cpu 8
 ```
 
-Export the analysis snapshot:
+Recover the methods referenced only by C++ vtables, then rerun analysis and
+export the snapshot:
 
 ```bash
-ghidra-analyzeHeadless ../ghidra-work populous \
-    -process "Populous Screen Saver.scr" -noanalysis -readOnly \
+ghidra-analyzeHeadless "$analysis_root" populous \
+    -process "Populous Screen Saver.scr" -noanalysis \
+    -scriptPath "$PWD/tools/ghidra" \
+    -postScript RecoverPopulousVtables.java
+
+ghidra-analyzeHeadless "$analysis_root" populous \
+    -process "Populous Screen Saver.scr" \
+    -analysisTimeoutPerFile 900 -max-cpu 8 \
     -scriptPath "$PWD/tools/ghidra" \
     -postScript ExportPopulousAnalysis.java "$PWD/../ghidra-work/exports"
 ```
 
 `tools/ghidra/ExportPopulousAnalysis.java` writes a summary, function table,
-imports with their callers, strings and a complete pseudo-C listing. Ghidra
-found 293 internal functions and 118 imported functions; all 293 internal
-functions decompiled without an error. That does not make every inferred type
-or function boundary correct.
+imports with their callers, strings and a complete pseudo-C listing. The
+initial automatic pass found 293 internal functions and 118 imported
+functions. `RecoverPopulousVtables.java` recovered 32 virtual boundaries; the
+subsequent analysis exports 327 internal functions, all without a decompilation
+error. That does not make every inferred type or function boundary correct.
 
 ## Confirmed architecture
 
@@ -131,6 +140,8 @@ The base update and rectangle/render methods start at `0x00416b40`,
 `0x00416bb0`, `0x00416c00` and `0x00416e10`. The class split and selector
 values are confirmed; effect names are not. Naming them from appearance alone
 would repeat the mistake previously made with the punch and sword WAV names.
+The evidence-backed selector names and numeric character states are maintained
+in [original-state-map.md](original-state-map.md).
 
 ### Main loop
 
@@ -287,15 +298,16 @@ keeps scores and does not silently turn the nearest resource name into a fact.
 
 ## What is not established yet
 
-- semantic names for the twelve effect selectors and all virtual methods;
-- which atlas stream corresponds to every numeric action state;
-- ordinary combat triggers and damage rules;
-- whether shamans use their punch/cast-looking animations outside Armageddon;
-- the 78 particle cells at 819–896;
+- final public names for the generic particle selectors;
+- exact probabilities and distance thresholds inside ordinary combat;
+- a readable, fully checked transcription of ordinary target selection and
+  damage rules;
+- a build-pipeline representation for the partly mapped particle cells at
+  819–896;
 - exact meaning and range of the darkening and footprint settings;
 - timings inside actions that are not directly driven by the two Windows
   timers.
 
-The next analysis pass should label the character constructors and virtual
-tables, then align state changes and sound calls against timestamped events in
-the capture. Only confirmed rules should move into `spec/simulation.md`.
+The next engineering pass can implement the closed pursuit, attack, hit and
+soul-removal chain described in `original-state-map.md`. Only rules covered by
+tests and deterministic traces should move into `spec/simulation.md`.
