@@ -129,7 +129,9 @@ function entitySnapshot(entity) {
         spriteScale: entity.spriteScale,
         frameIndex: entity.frameIndex,
         animationElapsedMs: entity.animationElapsedMs,
-        lifetimeRemainingMs: entity.lifetimeRemainingMs
+        phaseRemainingMs: entity.phaseRemainingMs,
+        lifetimeRemainingMs: entity.lifetimeRemainingMs,
+        accelerationRemainingMs: entity.accelerationRemainingMs
     }
 }
 

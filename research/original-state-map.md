@@ -51,6 +51,32 @@ unique animation to every logical state. For braves this means walk blocks at
 - Damage above five changes braves and firewarriors to state 10. After three
   soul frames they enter state 11, rise vertically and are removed.
 
+### Recovered combat constants
+
+The brave update at `0x00410590` and its renderer at `0x00411970` make the
+closed chain quantitative. The original update timer is 30 ms.
+
+| Rule | Original representation | Converted value |
+| ---- | ----------------------- | --------------- |
+| target acquisition | squared distance at `0x004212a0` | 62,500 = **250 px** |
+| kick distance | squared distance at `0x004212a4` | 196 = **14 px** |
+| pursuit motion | 2 px per update | **66.667 px/s** |
+| brave kick | countdown 4 | **120 ms**, damage applied immediately |
+| hit reaction | countdown 3 | **90 ms** |
+| hit recoil | −10 px along current heading per update | **333.333 px/s backward** |
+| death threshold | damage counter greater than 5 | **sixth hit** |
+| directional soul poses | frame counter 0–2 | **3 × 30 ms** |
+| final soul phase | countdown 200 | at most **6 s** |
+| soul vertical motion | starts −2, subtracts 1 every other update down to −20 | **66.667 to 666.667 px/s upward** |
+
+The 25 soul cells per tribe consequently split into eight directions × three
+state-10 poses plus one state-11 departure pose. The former sequence
+interpretation as 25 directionless frames was wrong.
+
+The main loop replaces a removed character whenever the live population is
+below the configured target, so ordinary deaths do not drain the screen over
+time. Replacement happens only in the normal global mode.
+
 ## Effect selectors
 
 `FUN_00401670` allocates effects in the 400-slot array. The selector is stored
@@ -98,7 +124,8 @@ allocation and the global six-state controller.
 - exact user-facing names for generic effect types 1–5, 9 and 11;
 - whether selector 5 is genuinely dead code or only reached through an
   indirect/non-constant selector missed by the static call search;
-- precise per-state probabilities and distance constants after converting the
-  compiler's floating-point literals;
+- the exact cadence for entering pursuit outside Armageddon: its individual
+  PRNG comparisons are visible, but they are interleaved with the state-1
+  cooldown, population reservations and global Armageddon mode;
 - whether the shaman cast cells should be called `cast` rather than `punch` in
   the public atlas catalogue.

@@ -121,7 +121,7 @@ Visual detection remains useful for naming and grouping sequences.
 
 ## 6. Build the animation manifest
 
-In progress. **1,101 of the 1,179 usable cells are grouped into 382
+In progress. **1,101 of the 1,179 usable cells are grouped into 414
 animations.** Reviewed sequences are described in
 `research/animation-layout.json` and compiled with:
 
@@ -138,6 +138,11 @@ A stream is `directional` by default — tribes × eight directions × frames,
 which is the layout most of the sheet uses. Effects with no facing declare
 `"kind": "sequence"` instead, and may drop tribes entirely, so a seven-frame
 sparkle does not have to be written out as eight identical copies.
+
+The soul block is the mixed case: each tribe contributes eight directions ×
+three death poses, then one directionless departure pose. It is compiled as
+the directional `soul_rise` stream plus the four-cell `soul_depart` sequence;
+this split comes directly from the original renderer.
 
 ### Review artefacts
 

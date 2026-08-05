@@ -39,7 +39,8 @@ var actions = {
     walk: "walk",
     kick: "kick",
     hit: "hit",
-    rise: "rise"
+    rise: "rise",
+    depart: "depart"
 }
 
 var behaviours = {
@@ -47,7 +48,8 @@ var behaviours = {
     pursue: "pursue",
     attack: "attack",
     hit: "hit",
-    rise: "rise"
+    rise: "rise",
+    depart: "depart"
 }
 
 var tribeColors = {
@@ -81,17 +83,23 @@ var tuning = {
     fallbackMarginX: 12,
     fallbackMarginTop: 24,
     fallbackFrameDurationMs: 120,
-    // The state chain is recovered from the original. These first readable
-    // distances and timings are provisional until its compiler literals have
-    // been converted and checked against a capture.
-    combatAcquireDistance: 72,
-    combatAttackDistance: 16,
-    combatAttackDurationMs: 360,
-    combatImpactMs: 180,
-    combatHitDurationMs: 300,
+    // Original timer and combat values recovered from vfunc_00410590. The
+    // engine remains 60 Hz; tick values are converted to milliseconds/speeds.
+    originalTickMs: 30,
+    combatAcquireDistance: 250,
+    combatAttackDistance: 14,
+    combatPursuitSpeed: 2 * 1000 / 30,
+    combatAttackDurationMs: 4 * 30,
+    combatImpactMs: 0,
+    combatHitDurationMs: 3 * 30,
+    combatHitRecoilSpeed: 10 * 1000 / 30,
     characterHealth: 6,
-    soulRiseSpeed: 24,
-    soulLifetimeMs: 1200,
+    soulPoseDurationMs: 3 * 30,
+    soulInitialRiseSpeed: 2 * 1000 / 30,
+    soulAccelerationSpeedStep: 1 * 1000 / 30,
+    soulAccelerationIntervalMs: 2 * 30,
+    soulMaximumRiseSpeed: 20 * 1000 / 30,
+    soulLifetimeMs: 200 * 30,
     // The simulation advances in fixed slices, independent of how often the
     // host manages to call it. Anything longer than maxAccumulatedSeconds is
     // dropped rather than caught up, so a stalled host cannot teleport
@@ -286,7 +294,10 @@ function animationId(tribe, directionId) {
 
 function stateAnimationId(state) {
     if (state.entity === entityTypes.soul) {
-        return "soul." + state.tribe + ".rise"
+        if (state.action === actions.depart) {
+            return "soul." + state.tribe + ".depart"
+        }
+        return "soul." + state.tribe + ".rise." + state.directionId
     }
     return state.entity + "." + state.tribe + "." + state.action
         + "." + state.directionId
@@ -336,6 +347,7 @@ function resolveAnimation(state) {
     state.frameDurationMs = animation && animation.frameDurationMs > 0
         ? animation.frameDurationMs
         : tuning.fallbackFrameDurationMs
+    state.animationLoop = !animation || animation.loop !== false
 }
 
 function setAction(state, action) {
@@ -412,7 +424,8 @@ function createCharacter(animations, spriteScale) {
         initialized: false,
         frames: null,
         frameCount: 0,
-        frameDurationMs: tuning.fallbackFrameDurationMs
+        frameDurationMs: tuning.fallbackFrameDurationMs,
+        animationLoop: true
     }
     resolveAnimation(state)
     return state
@@ -465,15 +478,18 @@ function createSoul(character, id) {
         directionY: -1,
         worldX: character.worldX,
         worldY: character.worldY,
-        speed: tuning.soulRiseSpeed * character.spriteScale,
+        speed: 0,
         spriteScale: character.spriteScale,
         frameIndex: 0,
         animationElapsedMs: 0,
-        lifetimeRemainingMs: tuning.soulLifetimeMs,
+        phaseRemainingMs: tuning.soulPoseDurationMs,
+        lifetimeRemainingMs: 0,
+        accelerationRemainingMs: 0,
         initialized: true,
         frames: null,
         frameCount: 0,
-        frameDurationMs: tuning.fallbackFrameDurationMs
+        frameDurationMs: tuning.fallbackFrameDurationMs,
+        animationLoop: false
     }
     resolveAnimation(soul)
     return soul
@@ -503,7 +519,11 @@ function advanceAnimation(state, stepMs) {
     state.animationElapsedMs += stepMs
     while (state.animationElapsedMs >= duration) {
         state.animationElapsedMs -= duration
-        state.frameIndex = (state.frameIndex + 1) % state.frameCount
+        if (state.animationLoop) {
+            state.frameIndex = (state.frameIndex + 1) % state.frameCount
+        } else {
+            state.frameIndex = Math.min(state.frameCount - 1, state.frameIndex + 1)
+        }
     }
 }
 
@@ -512,7 +532,7 @@ function advanceAnimation(state, stepMs) {
 //
 // Returns { directionChanged, footprint }. footprint is null or a descriptor
 // the caller turns into a visual.
-function stepCharacter(state, world, stepSeconds, random) {
+function stepCharacter(state, world, stepSeconds, random, speedOverride) {
     var stepMs = stepSeconds * 1000
     var directionChanged = false
 
@@ -521,8 +541,9 @@ function stepCharacter(state, world, stepSeconds, random) {
     )
     var normalizedX = length > 0 ? state.directionX / length : 0
     var normalizedY = length > 0 ? state.directionY / length : 0
-    var nextX = state.worldX + normalizedX * state.speed * stepSeconds
-    var nextY = state.worldY + normalizedY * state.speed * stepSeconds
+    var movementSpeed = speedOverride > 0 ? speedOverride : state.speed
+    var nextX = state.worldX + normalizedX * movementSpeed * stepSeconds
+    var nextY = state.worldY + normalizedY * movementSpeed * stepSeconds
     var newDirectionX = state.directionX
     var newDirectionY = state.directionY
 
@@ -538,8 +559,8 @@ function stepCharacter(state, world, stepSeconds, random) {
         var rescued = clampIntoWorld(world, state.worldX, state.worldY, margins)
         state.worldX = rescued.x
         state.worldY = rescued.y
-        nextX = state.worldX + normalizedX * state.speed * stepSeconds
-        nextY = state.worldY + normalizedY * state.speed * stepSeconds
+        nextX = state.worldX + normalizedX * movementSpeed * stepSeconds
+        nextY = state.worldY + normalizedY * movementSpeed * stepSeconds
     }
 
     // Try the whole move, then each axis alone. Whichever axis is refused is
@@ -725,6 +746,8 @@ function createSimulation(seed, animations, options) {
         animations: animations || null,
         characters: [],
         entities: [],
+        desiredPopulation: 0,
+        populationSpriteScale: 1,
         combatEnabled: !options || options.combatEnabled !== false,
         nextEntityId: 1,
         accumulatedSeconds: 0,
@@ -735,6 +758,8 @@ function createSimulation(seed, animations, options) {
 // Replaces the population with `count` fresh characters.
 function populate(simulation, count, spriteScale) {
     simulation.characters = []
+    simulation.desiredPopulation = count
+    simulation.populationSpriteScale = spriteScale > 0 ? spriteScale : 1
     for (var index = 0; index < count; ++index) {
         var character = createCharacter(simulation.animations, spriteScale)
         character.id = simulation.nextEntityId++
@@ -828,8 +853,30 @@ function stepCombatCharacter(simulation, state, world, events) {
     var stepMs = tuning.stepSeconds * 1000
 
     if (state.behaviour === behaviours.hit) {
+        var recoilLength = Math.sqrt(
+            state.directionX * state.directionX + state.directionY * state.directionY
+        )
+        if (recoilLength > 0) {
+            var recoilX = state.worldX
+                - state.directionX / recoilLength
+                    * tuning.combatHitRecoilSpeed * state.spriteScale
+                    * tuning.stepSeconds
+            var recoilY = state.worldY
+                - state.directionY / recoilLength
+                    * tuning.combatHitRecoilSpeed * state.spriteScale
+                    * tuning.stepSeconds
+            var recoilMargins = {
+                x: marginX(state),
+                top: marginTop(state),
+                bottom: tuning.bottomMargin
+            }
+            if (worldAllows(world, recoilX, recoilY, recoilMargins)) {
+                state.worldX = recoilX
+                state.worldY = recoilY
+            }
+        }
         advanceAnimation(state, stepMs)
-        state.actionRemainingMs -= stepMs
+        state.actionRemainingMs = Math.max(0, state.actionRemainingMs - stepMs)
         if (state.actionRemainingMs <= 0 && state.health > 0) {
             var retaliate = findCharacter(simulation, state.targetId)
             if (retaliate && retaliate.health > 0) {
@@ -846,7 +893,7 @@ function stepCombatCharacter(simulation, state, world, events) {
     if (state.behaviour === behaviours.attack) {
         var attackTarget = findCharacter(simulation, state.targetId)
         advanceAnimation(state, stepMs)
-        state.actionRemainingMs -= stepMs
+        state.actionRemainingMs = Math.max(0, state.actionRemainingMs - stepMs)
 
         if (!state.attackImpactDone
                 && state.actionRemainingMs <= tuning.combatAttackDurationMs
@@ -888,6 +935,10 @@ function stepCombatCharacter(simulation, state, world, events) {
         if (distance <= tuning.combatAttackDistance * state.spriteScale) {
             setDirection(state, dx, dy)
             beginAttack(state, target, events)
+            // The original increments damage and forces state 7 in the same
+            // update that enters state 6; there is no delayed impact frame.
+            receiveHit(target, state, events)
+            state.attackImpactDone = true
             return null
         }
         var pursuitDirection = directionForVector(dx, dy)
@@ -899,7 +950,13 @@ function stepCombatCharacter(simulation, state, world, events) {
         state.wanderRemainingMs = Math.max(state.wanderRemainingMs, stepMs * 2)
     }
 
-    return stepCharacter(state, world, tuning.stepSeconds, simulation.random)
+    return stepCharacter(
+        state,
+        world,
+        tuning.stepSeconds,
+        simulation.random,
+        target ? tuning.combatPursuitSpeed * state.spriteScale : 0
+    )
 }
 
 function finishDeaths(simulation, events) {
@@ -923,21 +980,57 @@ function finishDeaths(simulation, events) {
             survivors.push(character)
         }
     }
+
+    // The original main loop replaces removed characters while its live count
+    // is below the configured population. Fresh states initialise on the next
+    // host call, consuming the normal seeded spawn draws.
+    while (survivors.length < simulation.desiredPopulation) {
+        var replacement = createCharacter(
+            simulation.animations,
+            simulation.populationSpriteScale
+        )
+        replacement.id = simulation.nextEntityId++
+        survivors.push(replacement)
+        events.push({ type: "character-spawned", entityId: replacement.id })
+    }
     simulation.characters = survivors
 }
 
-function stepEntities(simulation, events) {
+function stepEntities(simulation, world, events) {
     var survivors = []
     var stepMs = tuning.stepSeconds * 1000
     for (var index = 0; index < simulation.entities.length; ++index) {
         var entity = simulation.entities[index]
+        if (entity.behaviour === behaviours.rise) {
+            advanceAnimation(entity, stepMs)
+            entity.phaseRemainingMs -= stepMs
+            if (entity.phaseRemainingMs <= 0) {
+                var previous = setBehaviour(entity, behaviours.depart, actions.depart)
+                entity.speed = tuning.soulInitialRiseSpeed * entity.spriteScale
+                entity.lifetimeRemainingMs = tuning.soulLifetimeMs
+                entity.accelerationRemainingMs = tuning.soulAccelerationIntervalMs
+                events.push(transitionEvent(entity, previous))
+            }
+            survivors.push(entity)
+            continue
+        }
+
         entity.worldY -= entity.speed * tuning.stepSeconds
         entity.lifetimeRemainingMs -= stepMs
-        advanceAnimation(entity, stepMs)
-        if (entity.lifetimeRemainingMs > 0) {
-            survivors.push(entity)
-        } else {
+        entity.accelerationRemainingMs -= stepMs
+        while (entity.accelerationRemainingMs <= 0
+                && entity.speed < tuning.soulMaximumRiseSpeed * entity.spriteScale) {
+            entity.speed = Math.min(
+                tuning.soulMaximumRiseSpeed * entity.spriteScale,
+                entity.speed + tuning.soulAccelerationSpeedStep * entity.spriteScale
+            )
+            entity.accelerationRemainingMs += tuning.soulAccelerationIntervalMs
+        }
+        if (entity.lifetimeRemainingMs <= 0
+                || entity.worldY < world.bounds.y) {
             events.push({ type: "entity-removed", entityId: entity.id })
+        } else {
+            survivors.push(entity)
         }
     }
     simulation.entities = survivors
@@ -980,7 +1073,7 @@ function stepSimulation(simulation, world, elapsedSeconds) {
 
         if (simulation.combatEnabled) {
             finishDeaths(simulation, events)
-            stepEntities(simulation, events)
+            stepEntities(simulation, world, events)
             characters = simulation.characters
         }
 

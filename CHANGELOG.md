@@ -20,6 +20,16 @@ reads from: the Windows build has its number written into the payload by
   explicitly provisional.
 - Golden traces moved to format 2 and include ids, behaviour state,
   non-character entities and typed events.
+- Recovered the original combat constants directly from the PE: 250 px target
+  range, 14 px melee range, four-tick kick, three-tick recoil, immediate
+  damage, 10 px/tick knockback and death on the sixth hit. Added a reproducible
+  PE extractor.
+- Corrected each 25-cell soul block to eight directions × three death poses
+  plus one final departure pose. Souls now use the original 90 ms pose phase,
+  accelerating rise and six-second maximum lifetime.
+- Maintained the configured population after deaths, matching the original
+  main loop, with deterministic replacement ids and `character-spawned`
+  events.
 
 ### Original executable analysis
 
@@ -48,10 +58,10 @@ reads from: the Windows build has its number written into the payload by
 
 ### The atlas catalogue
 
-- **1,101 of the 1,179 usable cells are grouped, into 382 animations**, against
+- **1,101 of the 1,179 usable cells are grouped, into 414 animations**, against
   160 and 40 before. Only the 78 particle cells at 819–896 are left.
-  `core/js/Simulation.js` and every QML file are untouched: animations are
-  looked up by id, so a larger manifest changes nothing for the engine.
+  The manifest remains generated from the reviewed layout; the simulation now
+  consumes the corrected directional soul ids.
 - `tools/build-sprites.py` prints a coverage line and the unclaimed cell
   ranges, and renders `research/sheets/cells-*.png` — every cell in index
   order, labelled, claimed ones dimmed. That sheet is what makes a sequence

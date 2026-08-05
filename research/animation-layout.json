@@ -853,10 +853,11 @@
       },
       "playback": {
         "loop": false,
-        "frameDurationMs": 120
+        "frameDurationMs": 90
       },
       "notes": [
         "A brave taking a blow, one frame per direction. Identified by the author from the original: it is the recoil, not the attack.",
+        "The hit state countdown is three original 30 ms ticks, so its one pose lasts the full 90 ms reaction.",
         "The one-frame case of the reversed cell-width signature scores exactly on all four blocks.",
         "The direction sense was confirmed by the author against research/brave_hit.gif."
       ]
@@ -942,11 +943,12 @@
       },
       "playback": {
         "loop": false,
-        "frameDurationMs": 120
+        "frameDurationMs": 60
       },
       "notes": [
         "A brave kicking. The wide pale arc sweeping around the character is the leg, not a weapon; identified by the author from the original.",
         "Two frames per direction, four tribes, no neutral variant.",
+        "The renderer advances the kick counter once per 30 ms update and divides it by two when selecting its pose, hence 60 ms per pose.",
         "The direction sense was confirmed by the author against research/brave_kick.gif.",
         "Mirrored directions are stored at the opposite phase: the arc falls on frame 1 going west and on frame 2 going east. That is what the reversed cell-width signature measures.",
         "The yellow block scores 0.67 rather than 1.0 on the signature, from a single cell differing in width."
@@ -954,26 +956,25 @@
     },
     {
       "id": "soul_rise",
-      "kind": "sequence",
       "entity": "soul",
       "action": "rise",
       "confidence": "high",
       "sourceRanges": [
         {
           "firstSprite": 719,
-          "frameCount": 25
+          "frameCount": 24
         },
         {
           "firstSprite": 744,
-          "frameCount": 25
+          "frameCount": 24
         },
         {
           "firstSprite": 769,
-          "frameCount": 25
+          "frameCount": 24
         },
         {
           "firstSprite": 794,
-          "frameCount": 25
+          "frameCount": 24
         }
       ],
       "layout": {
@@ -983,16 +984,52 @@
           "yellow",
           "green"
         ],
-        "framesPerAnimation": 25
+        "directions": [
+          { "id": "south", "dx": 0, "dy": 1 },
+          { "id": "south_east", "dx": 1, "dy": 1 },
+          { "id": "east", "dx": 1, "dy": 0 },
+          { "id": "north_east", "dx": 1, "dy": -1 },
+          { "id": "north", "dx": 0, "dy": -1 },
+          { "id": "north_west", "dx": -1, "dy": -1 },
+          { "id": "west", "dx": -1, "dy": 0 },
+          { "id": "south_west", "dx": -1, "dy": 1 }
+        ],
+        "framesPerAnimation": 3,
+        "order": ["tribe", "direction", "frame"]
       },
       "playback": {
         "loop": false,
-        "frameDurationMs": 100
+        "frameDurationMs": 30
       },
       "notes": [
         "The soul flying away when a brave or a firewarrior dies. Identified by the author; earlier taken for ground fires and flame bursts.",
-        "Four blocks of 25 at 719, 744, 769, 794. The block boundaries came from classifying each cell by tribe colour: the first cells of each block carry none, which is the soul before its colour appears.",
-        "No facing, so no direction. The frame duration is provisional."
+        "The brave renderer at 0x00411970 proves that each 25-cell tribe block is eight directions times three state-10 poses, followed by one state-11 departure pose.",
+        "State 10 increments its frame counter once per 30 ms update and changes to state 11 after counter 2, making the three-pose phase 90 ms."
+      ]
+    },
+    {
+      "id": "soul_depart",
+      "kind": "sequence",
+      "entity": "soul",
+      "action": "depart",
+      "confidence": "high",
+      "sourceRanges": [
+        { "firstSprite": 743, "frameCount": 1 },
+        { "firstSprite": 768, "frameCount": 1 },
+        { "firstSprite": 793, "frameCount": 1 },
+        { "firstSprite": 818, "frameCount": 1 }
+      ],
+      "layout": {
+        "tribes": ["blue", "red", "yellow", "green"],
+        "framesPerAnimation": 1
+      },
+      "playback": {
+        "loop": false,
+        "frameDurationMs": 30
+      },
+      "notes": [
+        "The final cell of each soul block is selected exclusively by character state 11.",
+        "State 11 starts at -2 px per original tick, accelerates toward -20, and lasts at most 200 ticks or until it crosses the top edge."
       ]
     },
     {

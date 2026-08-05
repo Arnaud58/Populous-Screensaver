@@ -14,7 +14,7 @@ var manifest = {
     "anchor": "relative-to-cropped-frame"
   },
   "statistics": {
-    "animations": 382,
+    "animations": 414,
     "uniqueSourceFrames": 1105
   },
   "animations": {
@@ -11231,7 +11231,7 @@ var manifest = {
         "dy": 1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 90,
       "frames": [
         {
           "sourceId": "sprite_0623",
@@ -11255,7 +11255,7 @@ var manifest = {
         "dy": 1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 90,
       "frames": [
         {
           "sourceId": "sprite_0624",
@@ -11279,7 +11279,7 @@ var manifest = {
         "dy": 0
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 90,
       "frames": [
         {
           "sourceId": "sprite_0625",
@@ -11303,7 +11303,7 @@ var manifest = {
         "dy": -1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 90,
       "frames": [
         {
           "sourceId": "sprite_0626",
@@ -11327,7 +11327,7 @@ var manifest = {
         "dy": -1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 90,
       "frames": [
         {
           "sourceId": "sprite_0627",
@@ -11351,7 +11351,7 @@ var manifest = {
         "dy": -1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 90,
       "frames": [
         {
           "sourceId": "sprite_0628",
@@ -11375,7 +11375,7 @@ var manifest = {
         "dy": 0
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 90,
       "frames": [
         {
           "sourceId": "sprite_0629",
@@ -11399,7 +11399,7 @@ var manifest = {
         "dy": 1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 90,
       "frames": [
         {
           "sourceId": "sprite_0630",
@@ -11423,7 +11423,7 @@ var manifest = {
         "dy": 1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 90,
       "frames": [
         {
           "sourceId": "sprite_0631",
@@ -11447,7 +11447,7 @@ var manifest = {
         "dy": 1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 90,
       "frames": [
         {
           "sourceId": "sprite_0632",
@@ -11471,7 +11471,7 @@ var manifest = {
         "dy": 0
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 90,
       "frames": [
         {
           "sourceId": "sprite_0633",
@@ -11495,7 +11495,7 @@ var manifest = {
         "dy": -1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 90,
       "frames": [
         {
           "sourceId": "sprite_0634",
@@ -11519,7 +11519,7 @@ var manifest = {
         "dy": -1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 90,
       "frames": [
         {
           "sourceId": "sprite_0635",
@@ -11543,7 +11543,7 @@ var manifest = {
         "dy": -1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 90,
       "frames": [
         {
           "sourceId": "sprite_0636",
@@ -11567,7 +11567,7 @@ var manifest = {
         "dy": 0
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 90,
       "frames": [
         {
           "sourceId": "sprite_0637",
@@ -11591,7 +11591,7 @@ var manifest = {
         "dy": 1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 90,
       "frames": [
         {
           "sourceId": "sprite_0638",
@@ -11615,7 +11615,7 @@ var manifest = {
         "dy": 1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 90,
       "frames": [
         {
           "sourceId": "sprite_0639",
@@ -11639,7 +11639,7 @@ var manifest = {
         "dy": 1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 90,
       "frames": [
         {
           "sourceId": "sprite_0640",
@@ -11663,7 +11663,7 @@ var manifest = {
         "dy": 0
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 90,
       "frames": [
         {
           "sourceId": "sprite_0641",
@@ -11687,7 +11687,7 @@ var manifest = {
         "dy": -1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 90,
       "frames": [
         {
           "sourceId": "sprite_0642",
@@ -11711,7 +11711,7 @@ var manifest = {
         "dy": -1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 90,
       "frames": [
         {
           "sourceId": "sprite_0643",
@@ -11735,7 +11735,7 @@ var manifest = {
         "dy": -1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 90,
       "frames": [
         {
           "sourceId": "sprite_0644",
@@ -11759,7 +11759,7 @@ var manifest = {
         "dy": 0
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 90,
       "frames": [
         {
           "sourceId": "sprite_0645",
@@ -11783,7 +11783,7 @@ var manifest = {
         "dy": 1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 90,
       "frames": [
         {
           "sourceId": "sprite_0646",
@@ -11807,7 +11807,7 @@ var manifest = {
         "dy": 1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 90,
       "frames": [
         {
           "sourceId": "sprite_0647",
@@ -11831,7 +11831,7 @@ var manifest = {
         "dy": 1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 90,
       "frames": [
         {
           "sourceId": "sprite_0648",
@@ -11855,7 +11855,7 @@ var manifest = {
         "dy": 0
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 90,
       "frames": [
         {
           "sourceId": "sprite_0649",
@@ -11879,7 +11879,7 @@ var manifest = {
         "dy": -1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 90,
       "frames": [
         {
           "sourceId": "sprite_0650",
@@ -11903,7 +11903,7 @@ var manifest = {
         "dy": -1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 90,
       "frames": [
         {
           "sourceId": "sprite_0651",
@@ -11927,7 +11927,7 @@ var manifest = {
         "dy": -1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 90,
       "frames": [
         {
           "sourceId": "sprite_0652",
@@ -11951,7 +11951,7 @@ var manifest = {
         "dy": 0
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 90,
       "frames": [
         {
           "sourceId": "sprite_0653",
@@ -11975,7 +11975,7 @@ var manifest = {
         "dy": 1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 90,
       "frames": [
         {
           "sourceId": "sprite_0654",
@@ -11999,7 +11999,7 @@ var manifest = {
         "dy": 1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 60,
       "frames": [
         {
           "sourceId": "sprite_0655",
@@ -12032,7 +12032,7 @@ var manifest = {
         "dy": 1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 60,
       "frames": [
         {
           "sourceId": "sprite_0657",
@@ -12065,7 +12065,7 @@ var manifest = {
         "dy": 0
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 60,
       "frames": [
         {
           "sourceId": "sprite_0659",
@@ -12098,7 +12098,7 @@ var manifest = {
         "dy": -1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 60,
       "frames": [
         {
           "sourceId": "sprite_0661",
@@ -12131,7 +12131,7 @@ var manifest = {
         "dy": -1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 60,
       "frames": [
         {
           "sourceId": "sprite_0663",
@@ -12164,7 +12164,7 @@ var manifest = {
         "dy": -1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 60,
       "frames": [
         {
           "sourceId": "sprite_0665",
@@ -12197,7 +12197,7 @@ var manifest = {
         "dy": 0
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 60,
       "frames": [
         {
           "sourceId": "sprite_0667",
@@ -12230,7 +12230,7 @@ var manifest = {
         "dy": 1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 60,
       "frames": [
         {
           "sourceId": "sprite_0669",
@@ -12263,7 +12263,7 @@ var manifest = {
         "dy": 1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 60,
       "frames": [
         {
           "sourceId": "sprite_0671",
@@ -12296,7 +12296,7 @@ var manifest = {
         "dy": 1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 60,
       "frames": [
         {
           "sourceId": "sprite_0673",
@@ -12329,7 +12329,7 @@ var manifest = {
         "dy": 0
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 60,
       "frames": [
         {
           "sourceId": "sprite_0675",
@@ -12362,7 +12362,7 @@ var manifest = {
         "dy": -1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 60,
       "frames": [
         {
           "sourceId": "sprite_0677",
@@ -12395,7 +12395,7 @@ var manifest = {
         "dy": -1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 60,
       "frames": [
         {
           "sourceId": "sprite_0679",
@@ -12428,7 +12428,7 @@ var manifest = {
         "dy": -1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 60,
       "frames": [
         {
           "sourceId": "sprite_0681",
@@ -12461,7 +12461,7 @@ var manifest = {
         "dy": 0
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 60,
       "frames": [
         {
           "sourceId": "sprite_0683",
@@ -12494,7 +12494,7 @@ var manifest = {
         "dy": 1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 60,
       "frames": [
         {
           "sourceId": "sprite_0685",
@@ -12527,7 +12527,7 @@ var manifest = {
         "dy": 1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 60,
       "frames": [
         {
           "sourceId": "sprite_0687",
@@ -12560,7 +12560,7 @@ var manifest = {
         "dy": 1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 60,
       "frames": [
         {
           "sourceId": "sprite_0689",
@@ -12593,7 +12593,7 @@ var manifest = {
         "dy": 0
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 60,
       "frames": [
         {
           "sourceId": "sprite_0691",
@@ -12626,7 +12626,7 @@ var manifest = {
         "dy": -1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 60,
       "frames": [
         {
           "sourceId": "sprite_0693",
@@ -12659,7 +12659,7 @@ var manifest = {
         "dy": -1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 60,
       "frames": [
         {
           "sourceId": "sprite_0695",
@@ -12692,7 +12692,7 @@ var manifest = {
         "dy": -1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 60,
       "frames": [
         {
           "sourceId": "sprite_0697",
@@ -12725,7 +12725,7 @@ var manifest = {
         "dy": 0
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 60,
       "frames": [
         {
           "sourceId": "sprite_0699",
@@ -12758,7 +12758,7 @@ var manifest = {
         "dy": 1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 60,
       "frames": [
         {
           "sourceId": "sprite_0701",
@@ -12791,7 +12791,7 @@ var manifest = {
         "dy": 1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 60,
       "frames": [
         {
           "sourceId": "sprite_0703",
@@ -12824,7 +12824,7 @@ var manifest = {
         "dy": 1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 60,
       "frames": [
         {
           "sourceId": "sprite_0705",
@@ -12857,7 +12857,7 @@ var manifest = {
         "dy": 0
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 60,
       "frames": [
         {
           "sourceId": "sprite_0707",
@@ -12890,7 +12890,7 @@ var manifest = {
         "dy": -1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 60,
       "frames": [
         {
           "sourceId": "sprite_0709",
@@ -12923,7 +12923,7 @@ var manifest = {
         "dy": -1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 60,
       "frames": [
         {
           "sourceId": "sprite_0711",
@@ -12956,7 +12956,7 @@ var manifest = {
         "dy": -1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 60,
       "frames": [
         {
           "sourceId": "sprite_0713",
@@ -12989,7 +12989,7 @@ var manifest = {
         "dy": 0
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 60,
       "frames": [
         {
           "sourceId": "sprite_0715",
@@ -13022,7 +13022,7 @@ var manifest = {
         "dy": 1
       },
       "loop": false,
-      "frameDurationMs": 120,
+      "frameDurationMs": 60,
       "frames": [
         {
           "sourceId": "sprite_0717",
@@ -13045,13 +13045,17 @@ var manifest = {
       ],
       "sourceStream": "brave_kick"
     },
-    "soul.blue.rise": {
+    "soul.blue.rise.south": {
       "entity": "soul",
       "tribe": "blue",
       "action": "rise",
-      "direction": null,
+      "direction": {
+        "id": "south",
+        "dx": 0,
+        "dy": 1
+      },
       "loop": false,
-      "frameDurationMs": 100,
+      "frameDurationMs": 30,
       "frames": [
         {
           "sourceId": "sprite_0719",
@@ -13079,7 +13083,22 @@ var manifest = {
           "height": 46,
           "anchorX": 9.0,
           "anchorY": 46
-        },
+        }
+      ],
+      "sourceStream": "soul_rise"
+    },
+    "soul.blue.rise.south_east": {
+      "entity": "soul",
+      "tribe": "blue",
+      "action": "rise",
+      "direction": {
+        "id": "south_east",
+        "dx": 1,
+        "dy": 1
+      },
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
         {
           "sourceId": "sprite_0722",
           "x": 65,
@@ -13106,7 +13125,22 @@ var manifest = {
           "height": 46,
           "anchorX": 9.5,
           "anchorY": 46
-        },
+        }
+      ],
+      "sourceStream": "soul_rise"
+    },
+    "soul.blue.rise.east": {
+      "entity": "soul",
+      "tribe": "blue",
+      "action": "rise",
+      "direction": {
+        "id": "east",
+        "dx": 1,
+        "dy": 0
+      },
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
         {
           "sourceId": "sprite_0725",
           "x": 136,
@@ -13133,7 +13167,22 @@ var manifest = {
           "height": 46,
           "anchorX": 10.0,
           "anchorY": 46
-        },
+        }
+      ],
+      "sourceStream": "soul_rise"
+    },
+    "soul.blue.rise.north_east": {
+      "entity": "soul",
+      "tribe": "blue",
+      "action": "rise",
+      "direction": {
+        "id": "north_east",
+        "dx": 1,
+        "dy": -1
+      },
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
         {
           "sourceId": "sprite_0728",
           "x": 211,
@@ -13160,7 +13209,22 @@ var manifest = {
           "height": 46,
           "anchorX": 9.5,
           "anchorY": 46
-        },
+        }
+      ],
+      "sourceStream": "soul_rise"
+    },
+    "soul.blue.rise.north": {
+      "entity": "soul",
+      "tribe": "blue",
+      "action": "rise",
+      "direction": {
+        "id": "north",
+        "dx": 0,
+        "dy": -1
+      },
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
         {
           "sourceId": "sprite_0731",
           "x": 280,
@@ -13187,7 +13251,22 @@ var manifest = {
           "height": 46,
           "anchorX": 9.0,
           "anchorY": 46
-        },
+        }
+      ],
+      "sourceStream": "soul_rise"
+    },
+    "soul.blue.rise.north_west": {
+      "entity": "soul",
+      "tribe": "blue",
+      "action": "rise",
+      "direction": {
+        "id": "north_west",
+        "dx": -1,
+        "dy": -1
+      },
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
         {
           "sourceId": "sprite_0734",
           "x": 338,
@@ -13214,7 +13293,22 @@ var manifest = {
           "height": 46,
           "anchorX": 13.0,
           "anchorY": 46
-        },
+        }
+      ],
+      "sourceStream": "soul_rise"
+    },
+    "soul.blue.rise.west": {
+      "entity": "soul",
+      "tribe": "blue",
+      "action": "rise",
+      "direction": {
+        "id": "west",
+        "dx": -1,
+        "dy": 0
+      },
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
         {
           "sourceId": "sprite_0737",
           "x": 407,
@@ -13241,7 +13335,22 @@ var manifest = {
           "height": 46,
           "anchorX": 14.5,
           "anchorY": 46
-        },
+        }
+      ],
+      "sourceStream": "soul_rise"
+    },
+    "soul.blue.rise.south_west": {
+      "entity": "soul",
+      "tribe": "blue",
+      "action": "rise",
+      "direction": {
+        "id": "south_west",
+        "dx": -1,
+        "dy": 1
+      },
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
         {
           "sourceId": "sprite_0740",
           "x": 482,
@@ -13268,26 +13377,21 @@ var manifest = {
           "height": 46,
           "anchorX": 13.0,
           "anchorY": 46
-        },
-        {
-          "sourceId": "sprite_0743",
-          "x": 553,
-          "y": 757,
-          "width": 14,
-          "height": 46,
-          "anchorX": 7.0,
-          "anchorY": 46
         }
       ],
       "sourceStream": "soul_rise"
     },
-    "soul.red.rise": {
+    "soul.red.rise.south": {
       "entity": "soul",
       "tribe": "red",
       "action": "rise",
-      "direction": null,
+      "direction": {
+        "id": "south",
+        "dx": 0,
+        "dy": 1
+      },
       "loop": false,
-      "frameDurationMs": 100,
+      "frameDurationMs": 30,
       "frames": [
         {
           "sourceId": "sprite_0744",
@@ -13315,7 +13419,22 @@ var manifest = {
           "height": 46,
           "anchorX": 9.0,
           "anchorY": 46
-        },
+        }
+      ],
+      "sourceStream": "soul_rise"
+    },
+    "soul.red.rise.south_east": {
+      "entity": "soul",
+      "tribe": "red",
+      "action": "rise",
+      "direction": {
+        "id": "south_east",
+        "dx": 1,
+        "dy": 1
+      },
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
         {
           "sourceId": "sprite_0747",
           "x": 1,
@@ -13342,7 +13461,22 @@ var manifest = {
           "height": 46,
           "anchorX": 9.5,
           "anchorY": 46
-        },
+        }
+      ],
+      "sourceStream": "soul_rise"
+    },
+    "soul.red.rise.east": {
+      "entity": "soul",
+      "tribe": "red",
+      "action": "rise",
+      "direction": {
+        "id": "east",
+        "dx": 1,
+        "dy": 0
+      },
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
         {
           "sourceId": "sprite_0750",
           "x": 72,
@@ -13369,7 +13503,22 @@ var manifest = {
           "height": 46,
           "anchorX": 10.0,
           "anchorY": 46
-        },
+        }
+      ],
+      "sourceStream": "soul_rise"
+    },
+    "soul.red.rise.north_east": {
+      "entity": "soul",
+      "tribe": "red",
+      "action": "rise",
+      "direction": {
+        "id": "north_east",
+        "dx": 1,
+        "dy": -1
+      },
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
         {
           "sourceId": "sprite_0753",
           "x": 147,
@@ -13396,7 +13545,22 @@ var manifest = {
           "height": 46,
           "anchorX": 9.5,
           "anchorY": 46
-        },
+        }
+      ],
+      "sourceStream": "soul_rise"
+    },
+    "soul.red.rise.north": {
+      "entity": "soul",
+      "tribe": "red",
+      "action": "rise",
+      "direction": {
+        "id": "north",
+        "dx": 0,
+        "dy": -1
+      },
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
         {
           "sourceId": "sprite_0756",
           "x": 216,
@@ -13423,7 +13587,22 @@ var manifest = {
           "height": 46,
           "anchorX": 9.0,
           "anchorY": 46
-        },
+        }
+      ],
+      "sourceStream": "soul_rise"
+    },
+    "soul.red.rise.north_west": {
+      "entity": "soul",
+      "tribe": "red",
+      "action": "rise",
+      "direction": {
+        "id": "north_west",
+        "dx": -1,
+        "dy": -1
+      },
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
         {
           "sourceId": "sprite_0759",
           "x": 274,
@@ -13450,7 +13629,22 @@ var manifest = {
           "height": 46,
           "anchorX": 13.0,
           "anchorY": 46
-        },
+        }
+      ],
+      "sourceStream": "soul_rise"
+    },
+    "soul.red.rise.west": {
+      "entity": "soul",
+      "tribe": "red",
+      "action": "rise",
+      "direction": {
+        "id": "west",
+        "dx": -1,
+        "dy": 0
+      },
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
         {
           "sourceId": "sprite_0762",
           "x": 343,
@@ -13477,7 +13671,22 @@ var manifest = {
           "height": 46,
           "anchorX": 14.5,
           "anchorY": 46
-        },
+        }
+      ],
+      "sourceStream": "soul_rise"
+    },
+    "soul.red.rise.south_west": {
+      "entity": "soul",
+      "tribe": "red",
+      "action": "rise",
+      "direction": {
+        "id": "south_west",
+        "dx": -1,
+        "dy": 1
+      },
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
         {
           "sourceId": "sprite_0765",
           "x": 418,
@@ -13504,26 +13713,21 @@ var manifest = {
           "height": 46,
           "anchorX": 13.0,
           "anchorY": 46
-        },
-        {
-          "sourceId": "sprite_0768",
-          "x": 489,
-          "y": 804,
-          "width": 14,
-          "height": 46,
-          "anchorX": 7.0,
-          "anchorY": 46
         }
       ],
       "sourceStream": "soul_rise"
     },
-    "soul.yellow.rise": {
+    "soul.yellow.rise.south": {
       "entity": "soul",
       "tribe": "yellow",
       "action": "rise",
-      "direction": null,
+      "direction": {
+        "id": "south",
+        "dx": 0,
+        "dy": 1
+      },
       "loop": false,
-      "frameDurationMs": 100,
+      "frameDurationMs": 30,
       "frames": [
         {
           "sourceId": "sprite_0769",
@@ -13551,7 +13755,22 @@ var manifest = {
           "height": 46,
           "anchorX": 9.0,
           "anchorY": 46
-        },
+        }
+      ],
+      "sourceStream": "soul_rise"
+    },
+    "soul.yellow.rise.south_east": {
+      "entity": "soul",
+      "tribe": "yellow",
+      "action": "rise",
+      "direction": {
+        "id": "south_east",
+        "dx": 1,
+        "dy": 1
+      },
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
         {
           "sourceId": "sprite_0772",
           "x": 567,
@@ -13578,7 +13797,22 @@ var manifest = {
           "height": 46,
           "anchorX": 9.5,
           "anchorY": 46
-        },
+        }
+      ],
+      "sourceStream": "soul_rise"
+    },
+    "soul.yellow.rise.east": {
+      "entity": "soul",
+      "tribe": "yellow",
+      "action": "rise",
+      "direction": {
+        "id": "east",
+        "dx": 1,
+        "dy": 0
+      },
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
         {
           "sourceId": "sprite_0775",
           "x": 1,
@@ -13605,7 +13839,22 @@ var manifest = {
           "height": 46,
           "anchorX": 10.0,
           "anchorY": 46
-        },
+        }
+      ],
+      "sourceStream": "soul_rise"
+    },
+    "soul.yellow.rise.north_east": {
+      "entity": "soul",
+      "tribe": "yellow",
+      "action": "rise",
+      "direction": {
+        "id": "north_east",
+        "dx": 1,
+        "dy": -1
+      },
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
         {
           "sourceId": "sprite_0778",
           "x": 76,
@@ -13632,7 +13881,22 @@ var manifest = {
           "height": 46,
           "anchorX": 9.5,
           "anchorY": 46
-        },
+        }
+      ],
+      "sourceStream": "soul_rise"
+    },
+    "soul.yellow.rise.north": {
+      "entity": "soul",
+      "tribe": "yellow",
+      "action": "rise",
+      "direction": {
+        "id": "north",
+        "dx": 0,
+        "dy": -1
+      },
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
         {
           "sourceId": "sprite_0781",
           "x": 145,
@@ -13659,7 +13923,22 @@ var manifest = {
           "height": 46,
           "anchorX": 9.0,
           "anchorY": 46
-        },
+        }
+      ],
+      "sourceStream": "soul_rise"
+    },
+    "soul.yellow.rise.north_west": {
+      "entity": "soul",
+      "tribe": "yellow",
+      "action": "rise",
+      "direction": {
+        "id": "north_west",
+        "dx": -1,
+        "dy": -1
+      },
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
         {
           "sourceId": "sprite_0784",
           "x": 203,
@@ -13686,7 +13965,22 @@ var manifest = {
           "height": 46,
           "anchorX": 13.0,
           "anchorY": 46
-        },
+        }
+      ],
+      "sourceStream": "soul_rise"
+    },
+    "soul.yellow.rise.west": {
+      "entity": "soul",
+      "tribe": "yellow",
+      "action": "rise",
+      "direction": {
+        "id": "west",
+        "dx": -1,
+        "dy": 0
+      },
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
         {
           "sourceId": "sprite_0787",
           "x": 272,
@@ -13713,7 +14007,22 @@ var manifest = {
           "height": 46,
           "anchorX": 14.5,
           "anchorY": 46
-        },
+        }
+      ],
+      "sourceStream": "soul_rise"
+    },
+    "soul.yellow.rise.south_west": {
+      "entity": "soul",
+      "tribe": "yellow",
+      "action": "rise",
+      "direction": {
+        "id": "south_west",
+        "dx": -1,
+        "dy": 1
+      },
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
         {
           "sourceId": "sprite_0790",
           "x": 347,
@@ -13740,26 +14049,21 @@ var manifest = {
           "height": 46,
           "anchorX": 13.0,
           "anchorY": 46
-        },
-        {
-          "sourceId": "sprite_0793",
-          "x": 418,
-          "y": 851,
-          "width": 14,
-          "height": 46,
-          "anchorX": 7.0,
-          "anchorY": 46
         }
       ],
       "sourceStream": "soul_rise"
     },
-    "soul.green.rise": {
+    "soul.green.rise.south": {
       "entity": "soul",
       "tribe": "green",
       "action": "rise",
-      "direction": null,
+      "direction": {
+        "id": "south",
+        "dx": 0,
+        "dy": 1
+      },
       "loop": false,
-      "frameDurationMs": 100,
+      "frameDurationMs": 30,
       "frames": [
         {
           "sourceId": "sprite_0794",
@@ -13787,7 +14091,22 @@ var manifest = {
           "height": 46,
           "anchorX": 9.0,
           "anchorY": 46
-        },
+        }
+      ],
+      "sourceStream": "soul_rise"
+    },
+    "soul.green.rise.south_east": {
+      "entity": "soul",
+      "tribe": "green",
+      "action": "rise",
+      "direction": {
+        "id": "south_east",
+        "dx": 1,
+        "dy": 1
+      },
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
         {
           "sourceId": "sprite_0797",
           "x": 496,
@@ -13814,7 +14133,22 @@ var manifest = {
           "height": 46,
           "anchorX": 9.5,
           "anchorY": 46
-        },
+        }
+      ],
+      "sourceStream": "soul_rise"
+    },
+    "soul.green.rise.east": {
+      "entity": "soul",
+      "tribe": "green",
+      "action": "rise",
+      "direction": {
+        "id": "east",
+        "dx": 1,
+        "dy": 0
+      },
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
         {
           "sourceId": "sprite_0800",
           "x": 567,
@@ -13841,7 +14175,22 @@ var manifest = {
           "height": 46,
           "anchorX": 10.0,
           "anchorY": 46
-        },
+        }
+      ],
+      "sourceStream": "soul_rise"
+    },
+    "soul.green.rise.north_east": {
+      "entity": "soul",
+      "tribe": "green",
+      "action": "rise",
+      "direction": {
+        "id": "north_east",
+        "dx": 1,
+        "dy": -1
+      },
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
         {
           "sourceId": "sprite_0803",
           "x": 21,
@@ -13868,7 +14217,22 @@ var manifest = {
           "height": 46,
           "anchorX": 9.5,
           "anchorY": 46
-        },
+        }
+      ],
+      "sourceStream": "soul_rise"
+    },
+    "soul.green.rise.north": {
+      "entity": "soul",
+      "tribe": "green",
+      "action": "rise",
+      "direction": {
+        "id": "north",
+        "dx": 0,
+        "dy": -1
+      },
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
         {
           "sourceId": "sprite_0806",
           "x": 90,
@@ -13895,7 +14259,22 @@ var manifest = {
           "height": 46,
           "anchorX": 9.0,
           "anchorY": 46
-        },
+        }
+      ],
+      "sourceStream": "soul_rise"
+    },
+    "soul.green.rise.north_west": {
+      "entity": "soul",
+      "tribe": "green",
+      "action": "rise",
+      "direction": {
+        "id": "north_west",
+        "dx": -1,
+        "dy": -1
+      },
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
         {
           "sourceId": "sprite_0809",
           "x": 148,
@@ -13922,7 +14301,22 @@ var manifest = {
           "height": 46,
           "anchorX": 13.0,
           "anchorY": 46
-        },
+        }
+      ],
+      "sourceStream": "soul_rise"
+    },
+    "soul.green.rise.west": {
+      "entity": "soul",
+      "tribe": "green",
+      "action": "rise",
+      "direction": {
+        "id": "west",
+        "dx": -1,
+        "dy": 0
+      },
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
         {
           "sourceId": "sprite_0812",
           "x": 217,
@@ -13949,7 +14343,22 @@ var manifest = {
           "height": 46,
           "anchorX": 14.5,
           "anchorY": 46
-        },
+        }
+      ],
+      "sourceStream": "soul_rise"
+    },
+    "soul.green.rise.south_west": {
+      "entity": "soul",
+      "tribe": "green",
+      "action": "rise",
+      "direction": {
+        "id": "south_west",
+        "dx": -1,
+        "dy": 1
+      },
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
         {
           "sourceId": "sprite_0815",
           "x": 292,
@@ -13976,7 +14385,78 @@ var manifest = {
           "height": 46,
           "anchorX": 13.0,
           "anchorY": 46
-        },
+        }
+      ],
+      "sourceStream": "soul_rise"
+    },
+    "soul.blue.depart": {
+      "entity": "soul",
+      "tribe": "blue",
+      "action": "depart",
+      "direction": null,
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
+        {
+          "sourceId": "sprite_0743",
+          "x": 553,
+          "y": 757,
+          "width": 14,
+          "height": 46,
+          "anchorX": 7.0,
+          "anchorY": 46
+        }
+      ],
+      "sourceStream": "soul_depart"
+    },
+    "soul.red.depart": {
+      "entity": "soul",
+      "tribe": "red",
+      "action": "depart",
+      "direction": null,
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
+        {
+          "sourceId": "sprite_0768",
+          "x": 489,
+          "y": 804,
+          "width": 14,
+          "height": 46,
+          "anchorX": 7.0,
+          "anchorY": 46
+        }
+      ],
+      "sourceStream": "soul_depart"
+    },
+    "soul.yellow.depart": {
+      "entity": "soul",
+      "tribe": "yellow",
+      "action": "depart",
+      "direction": null,
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
+        {
+          "sourceId": "sprite_0793",
+          "x": 418,
+          "y": 851,
+          "width": 14,
+          "height": 46,
+          "anchorX": 7.0,
+          "anchorY": 46
+        }
+      ],
+      "sourceStream": "soul_depart"
+    },
+    "soul.green.depart": {
+      "entity": "soul",
+      "tribe": "green",
+      "action": "depart",
+      "direction": null,
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
         {
           "sourceId": "sprite_0818",
           "x": 363,
@@ -13987,7 +14467,7 @@ var manifest = {
           "anchorY": 46
         }
       ],
-      "sourceStream": "soul_rise"
+      "sourceStream": "soul_depart"
     },
     "firewarrior.blue.punch.south": {
       "entity": "firewarrior",

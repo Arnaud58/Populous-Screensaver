@@ -158,6 +158,34 @@ The original therefore aims at roughly 33.3 updates per second and advances by
 ticks, not by measured elapsed time. Timer 2 calls `FUN_00401bd0`, then stops
 until the Armageddon state machine returns to its normal state.
 
+### Brave combat and death constants
+
+`vfunc_00410590` contains the brave update state machine and
+`vfunc_00411970` selects its frames. `tools/extract-original-combat.mjs` reads
+the referenced floats directly from the checked-in PE, independently of
+Ghidra's rendering of integer state fields as tiny floating-point numbers.
+
+```bash
+node tools/extract-original-combat.mjs
+```
+
+The two distance comparisons are squared: `.rdata` address `0x004212a0` holds
+62,500 (250 px acquisition) and `0x004212a4` holds 196 (14 px attack). Pursuit
+sets motion to 2 px per 30 ms update. Entering state 6 immediately increments
+the target's damage, assigns target state 7 and starts countdowns of four and
+three ticks respectively. State 7 moves at −10 px per tick along the stored
+heading. The common tail enters state 10 when damage exceeds five.
+
+State 10 increments three directional soul poses. State 11 then selects the
+25th cell of the tribe block, starts at −2 vertical pixels per tick, accelerates
+by −1 every other tick down to −20, and removes the object on crossing the top
+edge or after 200 ticks. Thus the two phases last 90 ms and at most 6 s.
+
+Back in `FUN_00401cd0`, removal clears the character slot and immediately calls
+the brave constructor when the live count is below `Number of People` and the
+global mode is normal. The new position is offset by half the window size so
+the replacement enters from outside the visible area.
+
 When the state returns to normal, timer 2 is armed again with the configured
 delay. Armageddon therefore **repeats**; it does not end the screen saver.
 

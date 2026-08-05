@@ -164,6 +164,19 @@ test("animation ids match the manifest naming", () => {
     )
 })
 
+test("combat tuning matches the recovered 30 ms original counters", () => {
+    assert.equal(Simulation.tuning.combatAcquireDistance, 250)
+    assert.equal(Simulation.tuning.combatAttackDistance, 14)
+    assert.equal(Simulation.tuning.combatPursuitSpeed, 200 / 3)
+    assert.equal(Simulation.tuning.combatAttackDurationMs, 120)
+    assert.equal(Simulation.tuning.combatImpactMs, 0)
+    assert.equal(Simulation.tuning.combatHitDurationMs, 90)
+    assert.equal(Simulation.tuning.combatHitRecoilSpeed, 1000 / 3)
+    assert.equal(Simulation.tuning.characterHealth, 6)
+    assert.equal(Simulation.tuning.soulPoseDurationMs, 90)
+    assert.equal(Simulation.tuning.soulLifetimeMs, 6000)
+})
+
 test("every combat and soul state resolves to a catalogued animation", () => {
     for (const tribe of Simulation.tribes) {
         for (const direction of Simulation.directions) {
@@ -183,8 +196,11 @@ test("every combat and soul state resolves to a catalogued animation", () => {
         const soul = {
             entity: Simulation.entityTypes.soul,
             tribe,
-            action: Simulation.actions.rise
+            action: Simulation.actions.rise,
+            directionId: "south"
         }
+        assert.ok(manifest.animations[Simulation.stateAnimationId(soul)])
+        soul.action = Simulation.actions.depart
         assert.ok(manifest.animations[Simulation.stateAnimationId(soul)])
         assert.equal(character.entity, Simulation.entityTypes.brave)
     }
@@ -608,7 +624,11 @@ test("combat follows pursue, kick, hit, soul and removal states", () => {
     simulation.characters = [attacker, victim]
     simulation.nextEntityId = 3
 
-    const events = []
+    const events = Simulation.stepSimulation(simulation, WORLD, STEP)
+    assert.ok(events.some(event => event.type === "hit"
+        && event.entityId === victim.id && event.health === 0))
+    assert.ok(victim.worldX < 110)
+
     for (let step = 0; step < 80 && simulation.entities.length === 0; ++step) {
         events.push(...Simulation.stepSimulation(simulation, WORLD, STEP))
     }
@@ -619,22 +639,56 @@ test("combat follows pursue, kick, hit, soul and removal states", () => {
     assert.equal(simulation.entities[0].entity, Simulation.entityTypes.soul)
     assert.equal(
         Simulation.stateAnimationId(simulation.entities[0]),
-        "soul.red.rise"
+        "soul.red.rise.east"
     )
     assert.ok(events.some(event => event.type === "attack-started"
         && event.entityId === attacker.id && event.targetId === victim.id))
-    assert.ok(events.some(event => event.type === "hit"
-        && event.entityId === victim.id && event.health === 0))
     assert.ok(events.some(event => event.type === "soul-spawned"
         && event.characterId === victim.id))
     assert.ok(events.some(event => event.type === "character-removed"
         && event.entityId === victim.id))
 
-    for (let step = 0; step < 100; ++step) {
+    for (let step = 0; step < 200; ++step) {
         events.push(...Simulation.stepSimulation(simulation, WORLD, STEP))
     }
     assert.equal(simulation.entities.length, 0)
     assert.ok(events.some(event => event.type === "entity-removed"))
+})
+
+test("a death deterministically replenishes the configured population", () => {
+    const simulation = Simulation.createSimulation(
+        1998,
+        manifest.animations,
+        { combatEnabled: true }
+    )
+    Simulation.populate(simulation, 2, 1)
+    simulation.characters = [
+        makeCharacter({ id: 1, tribe: "blue", worldX: 100, worldY: 100 }),
+        makeCharacter({
+            id: 2,
+            tribe: "red",
+            worldX: 110,
+            worldY: 100,
+            health: 1
+        })
+    ]
+    simulation.nextEntityId = 3
+
+    const events = []
+    for (let step = 0; step < 30
+            && !events.some(event => event.type === "character-spawned"); ++step) {
+        events.push(...Simulation.stepSimulation(simulation, WORLD, STEP))
+    }
+
+    assert.equal(simulation.characters.length, 2)
+    const replacement = simulation.characters.find(character => character.id === 4)
+    assert.ok(replacement)
+    assert.equal(replacement.initialized, false)
+    assert.ok(events.some(event => event.type === "character-spawned"
+        && event.entityId === replacement.id))
+
+    Simulation.stepSimulation(simulation, WORLD, 0)
+    assert.equal(replacement.initialized, true)
 })
 
 test("combat can be disabled for focused walking scenarios", () => {

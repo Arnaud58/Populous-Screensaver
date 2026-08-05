@@ -99,10 +99,11 @@ implemented, while the reasoning is fresh.
 
 ### 4b — Catalogue the atlas 🔄 nearly done
 
-**1,101 of the 1,179 usable cells are grouped, into 382 animations**, against
-160 and 40 when the phase started. Nothing in `core/` or in any QML file
-changed: the simulation looks animations up by id and does not care how many
-exist. Tests stay at 54 and the golden traces still reproduce.
+**1,101 of the 1,179 usable cells are grouped, into 414 animations**, against
+160 and 40 when the phase started. The increase from 382 to 414 is a structural
+correction rather than new cell coverage: four 25-cell soul sequences became
+32 directional death animations plus four departure poses. The simulation
+still looks animations up by id, and the golden traces guard the new split.
 
 What was found is written up in
 [asset-pipeline.md](asset-pipeline.md#what-the-atlas-turned-out-to-be) — the
@@ -140,11 +141,12 @@ fire and lightning attacks, the “punch” cells are their conversion cast, the
 wave cells are played in Armageddon state 13, and death uses the soul stream.
 The remaining evidence work is narrower:
 
-- **every QML frame duration outside the walk cycles is still provisional.**
-  The original's tick counters are now known, but they must be translated into
-  animation durations and checked against video;
-- exact combat distance constants and probabilities still need conversion
-  from compiler literals into readable units;
+- most QML frame durations outside the walk cycles remain provisional; brave
+  kick, hit and soul timing now come from original tick counters, while the
+  remaining actions still need the same treatment and video checks;
+- combat distances, countdowns, damage threshold and soul acceleration are
+  converted and implemented; only the original pursuit-entry cadence still
+  needs disentangling from cooldowns, reservations and global mode;
 - the 819–896 particle band is partly mapped to effect selectors, but its
   tiny overlapping groups still need a build-pipeline representation;
 - the first recording ends before Armageddon visibly returns to ordinary
@@ -166,10 +168,11 @@ The QML targets enable it; explicit non-combat simulations remain available to
 keep focused fixtures small. Golden traces moved to format 2 and now record the
 new state and event contract.
 
-Before 4d is called exact, translate its distance/timing literals from the
-original and validate them against capture. Then **4e** is conversions and
-spells, **4f** gathering and Armageddon. Regenerate and review the golden JSON
-once per intentional rule change.
+The distance/timing literals and soul layout are now recovered and implemented.
+Before 4d is called exact, reproduce the original pursuit-entry cadence and
+validate the result against capture. Then **4e** is conversions and spells,
+**4f** gathering and Armageddon. Regenerate and review the golden JSON once per
+intentional rule change.
 
 ## Phase 5 — The xscreensaver hack
 

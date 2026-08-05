@@ -97,6 +97,7 @@ Item {
             if (events[index].type === "footprint") {
                 footprints.push(events[index])
             } else if (events[index].type === "soul-spawned"
+                    || events[index].type === "character-spawned"
                     || events[index].type === "character-removed"
                     || events[index].type === "entity-removed") {
                 populationChanged = true

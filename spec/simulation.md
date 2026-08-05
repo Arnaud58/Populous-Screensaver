@@ -345,6 +345,7 @@ has a `type`; actor-related items carry stable numeric ids. Current types are:
 | `hit` | damage landed; includes remaining health |
 | `soul-spawned` | dead character was replaced by a soul entity |
 | `character-removed` | actor left the character population |
+| `character-spawned` | replacement actor was created to maintain population |
 | `entity-removed` | a short-lived entity expired |
 
 The QML renderer filters `footprint`; the complete stream is also exposed as
@@ -368,14 +369,35 @@ Implemented as the first closed chain recovered from original states 2, 6, 7,
 
 Target selection scans character order and retains the first nearest hostile,
 so ties and replay are deterministic. A kick deals one point at its impact
-point and cannot deal twice. A soul rises at constant speed while its atlas
-sequence loops, then expires.
+point and cannot deal twice. A soul plays its directional death poses, changes
+to its departure pose, accelerates upward, then expires.
 
-The chain and animation choices are evidence-backed. The initial values —
-72-pixel acquisition, 16-pixel attack range, 360 ms kick, impact at 180 ms,
-300 ms hit reaction, six health, 24 px/s rise and 1200 ms lifetime — are
-**provisional**, pending conversion of the original compiler literals and
-frame-counter validation against video.
+The chain, animations and numeric values now come from the original brave
+update. Acquisition is 250 px and melee range 14 px. Pursuit moves at 2 px per
+30 ms original tick (66.667 px/s). A kick holds for four ticks (120 ms) and
+applies its damage immediately; hit reaction lasts three ticks (90 ms), with
+the target recoiling at 10 px per tick opposite its heading and the sixth hit
+fatal.
+
+Death first displays three direction-dependent poses, one original tick each.
+The final departure pose then rises from 2 px/tick, accelerates by 1 px/tick
+every two ticks up to 20 px/tick, and is removed at the top edge or after 200
+ticks (6 s). The 60 Hz clean-room engine expresses those tick values as
+milliseconds and speeds; transitions are quantised to its fixed step.
+
+The original main loop immediately allocates a replacement after removal when
+the live count is below the configured population. `populate` records that
+target and the clean-room engine does the same. The replacement receives a new
+stable id and is initialised through the ordinary seeded spawn path on the next
+host call. The original initially offsets it beyond a screen edge; reproducing
+that entrance without breaking non-rectangular multi-monitor geometry remains
+open.
+
+What remains approximate is **when wandering decides to seek combat**. The
+original interleaves several PRNG gates with cooldown, reservation and global
+Armageddon state. Applying those comparisons on every modern 60 Hz step would
+consume a different random sequence and be less faithful than leaving the
+current deterministic acquisition cadence explicit.
 
 ### Conversion, spells, gathering and Armageddon
 
