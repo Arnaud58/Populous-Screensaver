@@ -61,6 +61,10 @@ reads from: the Windows build has its number written into the payload by
   and selects the screen saver, with no elevation. It remembers what was
   selected before and `-Uninstall` restores it — necessary because Windows
   offers no way to browse for a screen saver.
+- The installer refuses a directory holding the screen saver without Qt beside
+  it, such as the CMake build directory. Installing from one used to fail late
+  and obscurely: "no Qt platform plugin could be initialized", raised only once
+  the broken copy was already the selected screen saver.
 - The executable is now named `Populous Screen Saver.scr`. **The settings
   dialog labels an entry by file name**, not by the version resource: a
   `FileDescription` of "Populous Screen Saver" still displayed as `populous`

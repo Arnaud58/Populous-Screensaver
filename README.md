@@ -57,7 +57,7 @@ no compiler, no CMake, no Qt development libraries.
 git clone <this repository>
 cd populous-screensaver
 
-python3 tools/build-targets.py --clean
+python tools/build-targets.py --clean
 kpackagetool6 --type Plasma/Wallpaper --install build/plasma/org.poptheme.populous
 ```
 
@@ -84,7 +84,7 @@ Needs Qt 6.5 or newer and a C++ toolchain. The `package` target builds the
 screen saver, gathers everything it needs to run, and zips the result:
 
 ```bash
-python3 tools/build-targets.py qt-app
+python tools/build-targets.py qt-app
 cmake -S build/qt-app -B build/qt-app-cmake -DCMAKE_PREFIX_PATH=C:/Qt/<version>/msvc2022_64
 cmake --build build/qt-app-cmake --config Release --target package
 ```
@@ -115,7 +115,7 @@ The engine runs in a plain window on any platform Qt 6 supports, with no
 compiler at all:
 
 ```bash
-python3 tools/build-targets.py preview
+python tools/build-targets.py preview
 qml6 build/preview/ui/main.qml
 ```
 
@@ -149,10 +149,3 @@ corresponding simulation features land. The background always stays black.
 | [docs/roadmap.md](docs/roadmap.md) | The five phases, what is done, what is next, and the acceptance checklist |
 | [spec/simulation.md](spec/simulation.md) | Normative rules of the simulation — the contract the C port must reproduce |
 | [CHANGELOG.md](CHANGELOG.md) | Version history |
-
-## Resources and distribution
-
-The images, sounds, names and trademarks of Populous and Bullfrog remain the
-property of their rights holders. The extracted resources are for local use.
-If this project is published, the port's code must be kept separate from the
-original resources.

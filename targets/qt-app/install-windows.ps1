@@ -87,7 +87,18 @@ if ($Uninstall) {
 
 $source = $PSScriptRoot
 if (-not (Test-Path (Join-Path $source $executableName))) {
-    throw "$executableName is not beside this script. Run it from the deployed directory."
+    throw "$executableName is not beside this script. Run it from the unpacked archive."
+}
+
+# The executable alone is not enough, and installing it alone fails late and
+# obscurely: Windows shows "no Qt platform plugin could be initialized" once
+# the screen saver is already selected. The platform plugin is what tells a
+# deployed directory apart from a build directory, where the .scr sits without
+# any of the Qt libraries it needs.
+if (-not (Test-Path (Join-Path $source 'platforms\qwindows.dll'))) {
+    throw ("This directory holds the screen saver but not the Qt libraries it needs. " +
+           "Run the installer from the unpacked archive, or from the deploy directory " +
+           "produced by `cmake --build <build dir> --target deploy`.")
 }
 
 # Remember what was selected before this install, but never overwrite an
