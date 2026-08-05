@@ -18,6 +18,12 @@ reads from: the Windows build has its number written into the payload by
 - Recorded the exact runtime order of all 28 sound resources and a preliminary
   map of the Armageddon state machine. Raw pseudo-C and the Ghidra project stay
   outside Git; only the exporter and evidence-backed findings are versioned.
+- Identified the original's brave, shaman and firewarrior classes from their
+  constructors, vtables, sprite-cell ranges and sound call sites, plus the
+  twelve still-unnamed effect subclasses.
+- Added a reproducible audio matcher. It recovered 145 high-confidence WAV
+  starts from the AAC capture and anchored the first Armageddon's gathering,
+  site-spell, attack and lightning events to reviewed video frames.
 
 ### The atlas catalogue
 

@@ -118,15 +118,18 @@ until something needs it.
 
 ### 4a — Observe and analyse the original 🔄 in progress
 
-The first 167-second capture has been recorded under Wine. A Ghidra 12.1.2
-headless pass also decompiled all 293 recognised internal functions and
+The first 167-second capture has been recorded and indexed under Wine. A Ghidra
+12.1.2 headless pass decompiled all 293 recognised internal functions and
 established the original timer, PRNG, configuration defaults and high-level
-Armageddon state machine. The evidence and reproducible export procedure live
-in [research/reverse-engineering.md](../research/reverse-engineering.md).
+Armageddon state machine. A second pass identified the brave, shaman and
+firewarrior classes, all twelve numeric effect classes, and correlated 145
+sound starts with the capture. The evidence and reproducible procedures live
+in [research/reverse-engineering.md](../research/reverse-engineering.md) and
+[research/original-behaviour.md](../research/original-behaviour.md).
 
-The remaining work is to index the video into
-`research/original-behaviour.md`, label the entity classes and correlate
-numeric states and sound calls with visible events.
+The remaining work is to assign semantic names to the twelve effect selectors,
+map numeric character states to the atlas animations, and record an
+uninterrupted Armageddon through its return to ordinary simulation.
 
 This is now the bottleneck, because the catalogue raised questions only the
 original can answer:
