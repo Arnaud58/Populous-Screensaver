@@ -137,8 +137,14 @@ The Plasma target exposes:
 Changing the population, sprite size or seed starts a fresh world. Turning
 footprints off clears the existing trail without interrupting movement.
 
-Sound, Armageddon timing and multi-monitor mode will appear as the
-corresponding simulation features land. The background always stays black.
+Two more are decided and will appear with the features they control, rather
+than as knobs that move nothing:
+
+- **Armageddon interval**, 60 to 500 seconds, defaulting to the original's 120;
+- **sound**, defaulting to **off**. A 1998 screen saver could reasonably make
+  noise unannounced; software in 2026 should ask first.
+
+Multi-monitor mode will follow. The background always stays black.
 
 ## Documentation
 

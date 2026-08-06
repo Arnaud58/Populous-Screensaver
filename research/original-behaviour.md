@@ -172,6 +172,11 @@ lattice shape appear in ordinary play, not only during Armageddon.
 The four shamans hold the four corners throughout, in ordinary play as well as
 during Armageddon, which is what the disassembly's "corner entities" means.
 
+**Tribe sizes swing widely, and that is correct.** A tribe can be reduced to
+almost nothing and recover; how the four compare depends mostly on the run.
+The port may be a shade less balanced overall than the original, but not
+enough to be worth chasing, and no rule should be added to even it out.
+
 ## Still to explain
 
 - Whether the ring converts everyone inside it or only marks the boundary of

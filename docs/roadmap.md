@@ -229,6 +229,11 @@ jagged paths, white with a blue tinge, 784 px long inside a 61 px envelope,
 lasting 0.25 s and not moving. Segment length matches the disassembly's
 15-point paths. It occurs only during Armageddon.
 
+It also carries a setting: an **Armageddon interval, 60 to 500 s, defaulting
+to the original's 120**. It ships in the same change as the behaviour, and it
+must extend the bound-agreement test in `tests/plasma-config.test.mjs` — see
+[Configuration](../spec/simulation.md#configuration).
+
 Ordinary combat now sits inside the original's measured band — 0.72 deaths per
 second against 0.45 to 1.68 — because unaligned characters neither fight nor
 die and they are the majority of the world. The muster lattice is the piece to

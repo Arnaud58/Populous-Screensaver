@@ -587,6 +587,48 @@ original draws three jagged procedural paths, so it needs a renderer rather
 than an animation. The Armageddon swirl and the four corner formations are
 catalogued in `research/original-state-map.md` and not implemented.
 
+## Configuration
+
+Every setting is declared in three places that must agree, and nothing checks
+that for you:
+
+1. the schema and its default — `targets/plasma/contents/config/main.xml` for
+   Plasma, the `Settings` block of `ConfigDialog.qml` for Windows;
+2. the control offered on the configuration page, with its bounds;
+3. the **clamp in the host** that reads the value back.
+
+A page that offers more than its host honours produces the worst kind of
+defect: a setting the user saves, which is silently ignored. That happened once
+already, with a spin box offering 1000 characters against a wallpaper clamping
+to 100. `tests/plasma-config.test.mjs` now asserts the two bounds agree, and
+**every new bounded setting must extend that test**.
+
+| Setting | Type | Default | Range | Status |
+| ------- | ---- | ------- | ----- | ------ |
+| number of characters | integer | 200 | 10 to 1000 | implemented |
+| sprite size | choice | automatic | automatic, 1x, 2x, 3x | implemented |
+| footprints | boolean | on | — | implemented |
+| random seed | integer | 0 (a different run each time) | 0 to 2147483647 | implemented |
+| **Armageddon interval** | integer, seconds | **120** | **60 to 500** | with [gathering and Armageddon](#gathering-and-armageddon) |
+| **sound** | boolean | **off** | — | with [sound](#sound) |
+
+The two pending settings are deliberately **not** declared yet. A knob that
+moves nothing is the defect described above, so each arrives in the same change
+as the behaviour it controls.
+
+**The Armageddon default of 120 s is the original's**, confirmed both by the
+configuration block in the executable and by the capture, where the first
+Armageddon begins almost exactly two minutes in. The range is wider than the
+original offered.
+
+**Sound defaults to off**, which the original did not. A 1998 screen saver
+could reasonably make noise unannounced; software in 2026 should ask first.
+The 28 effects are extracted either way, and the event stream already carries
+the `sound` field that names them.
+
+Changing the population, sprite size or seed starts a fresh world. Turning
+footprints off clears the existing trail without interrupting movement.
+
 ## Screen-saver invocation
 
 The Windows target is an ordinary executable with a `.scr` extension. Windows
@@ -612,3 +654,10 @@ more than 12 pixels before it counts.
 
 **Planned.** 28 effects are extracted and converted. No target plays any of
 them yet, and no event-to-sound mapping has been decided.
+
+`attack-started`, `cast-started` and `converted` already carry a `sound` field
+naming the original resource family, so the audio layer is a mapping from the
+event stream rather than a second reading of the state machine.
+
+It arrives behind a **sound setting defaulting to off** — see
+[Configuration](#configuration).
