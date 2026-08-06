@@ -6,6 +6,38 @@ reads from: the Windows build has its number written into the payload by
 
 ## Unreleased
 
+### Conversion, shamans and the fire attack
+
+- Added unaligned characters as tribe 0. The atlas settles what one is: the
+  neutral variant has only a walk and a stand block, so an unaligned character
+  never fights, is never struck and never dies. It wanders until converted.
+- Added shamans, one per tribe, on top of the configured population. A shaman
+  seeks an unaligned brave, pauses, casts, and launches a conversion
+  projectile, then waits out a cooldown. It is never a combat target and has no
+  hit or death states, which the absence of those streams in the atlas
+  confirms.
+- Added conversion: the projectile converts every unaligned brave within its
+  radius to the casting shaman's tribe, spawning a flash and a tribe-coloured
+  burst. A share arrive as firewarriors, which is the only way that class
+  enters the world.
+- Added the firewarrior fire attack. A firewarrior pursues like a brave but
+  stops at cast range instead of closing to melee, throws, launches a
+  projectile with a trail, and recovers. The impact spawns an impact effect and
+  a ring and damages hostile combatants in its radius, leaving shamans and
+  unaligned characters untouched. Firewarriors reuse the brave hit cells, as
+  the original does.
+- Added a general effect entity covering the conversion projectile, flash,
+  tribe burst, fire projectile, trail, impact and ring, matching the original's
+  effect selectors.
+- Added `cast-started`, `converted` and `effect-spawned` events, and a `sound`
+  field on the events that correspond to an original resource family. Nothing
+  plays them yet.
+- Every distance, interval and probability in this group is provisional and
+  listed as such in `spec/simulation.md`; only the three cast frames and the
+  8-to-10-tick firewarrior recovery are recovered values.
+- Golden snapshots now drop undefined fields, so an effect without a soul phase
+  and a soul without an effect kind compare equal to their own serialisation.
+
 ### Behaviour and combat foundation
 
 - Added explicit entity, action and behaviour states plus stable entity ids.

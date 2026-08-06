@@ -23,8 +23,9 @@ The **Windows screen saver** works and installs: one window per monitor over a
 single continuous world, a settings dialog, and a self-contained archive with
 its own installer.
 
-The simulation currently has tribespeople walking, turning, avoiding each other
-and leaving coloured footprints. Combat, conversions, shamans, spells and
+The simulation has tribespeople walking, turning, avoiding each other and
+leaving coloured footprints; braves fighting, dying and rising as souls;
+shamans converting the unaligned; and firewarriors throwing fire. Gathering and
 Armageddon are not implemented yet, and no target plays sound.
 
 See the [changelog](CHANGELOG.md) for what changed when, and the
@@ -128,7 +129,7 @@ including the Windows command name.
 
 The Plasma target exposes:
 
-- **number of characters**, from 1 to 100;
+- **number of characters**, from 10 to 1000, defaulting to 200;
 - **sprite size**: automatic, 1×, 2× or 3×;
 - **footprints** on or off;
 - an optional **random seed**, where 0 means a different run each time.

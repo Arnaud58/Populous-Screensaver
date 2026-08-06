@@ -4,9 +4,10 @@ Five phases, ordered so that each one unblocks the next rather than by how
 visible the result is.
 
 Current version: **0.9.0**. Phases 1, 2 and 3 are complete; phase 4 is under
-way — see [4b](#4b--catalogue-the-atlas--nearly-done) for where it stands and
-[4a](#4a--observe-and-analyse-the-original--in-progress) for what to pick up
-next.
+way: 4b, 4c, 4d and 4e are implemented, and
+[4a](#4a--observe-and-analyse-the-original--in-progress) is what to pick up
+next — the provisional spell constants and the Armageddon return both wait on
+the same controlled recording.
 
 ## Phase 1 — Separate assets from targets ✅
 
@@ -160,7 +161,7 @@ Sound/resource call sites and 145 capture timestamps now replace identification
 by ear. The old warning remains useful: a sound name identifies an effect, not
 necessarily the sprite that caused it.
 
-### 4c and first 4d slice — behaviours and combat
+### 4c and 4d — behaviours and combat
 
 **4c is complete.** State carries `entity`, `action` and `behaviour`, animation
 selection is no longer hard-coded to brave walking, and `stepSimulation`
@@ -174,9 +175,42 @@ new state and event contract.
 
 The distance/timing literals and soul layout are now recovered and implemented.
 Before 4d is called exact, reproduce the original pursuit-entry cadence and
-validate the result against capture. Then **4e** is conversions and spells,
-**4f** gathering and Armageddon. Regenerate and review the golden JSON once per
-intentional rule change.
+validate the result against capture.
+
+### 4e — conversions, shamans and the fire attack
+
+**Implemented.** The world now has all three character classes and both
+ordinary spells.
+
+The atlas answered the question the disassembly left open. The neutral variant
+carries a walk block and a stand block and nothing else — no kick, no hit, no
+scratch, no soul — while the four coloured tribes carry all of them. That is
+not a gap in the catalogue: it is the rule. An unaligned character never
+fights, is never struck and never dies; it wanders until a shaman converts it.
+The shaman streams say the same thing about shamans, which have `idle`, `walk`
+and `cast` and no hit or soul at all.
+
+On that footing: shamans seek, pause, cast and cool down; the conversion
+projectile converts every unaligned brave in its radius and turns a share of
+them into firewarriors, which is the only way that class enters the world;
+firewarriors stop at cast range instead of closing to melee, throw fire with a
+trail, and damage hostile combatants at the impact. A general effect entity
+covers all seven visual kinds.
+
+Only two numbers here are recovered — the three cast frames per direction and
+the 8-to-10-tick recovery. The other nine are chosen and tabulated as
+provisional in [spec/simulation.md](../spec/simulation.md#provisional-values).
+A controlled recording with a small population is what replaces them, and it is
+the same recording 4a still needs.
+
+### 4f — gathering and Armageddon
+
+The end state, and whether the run stops or restarts. It needs the four corner
+formations, the six-state global controller, and the swirl. **Lightning has no
+atlas sprite**: the original draws three jagged procedural paths, so it needs a
+renderer of its own rather than an animation.
+
+Regenerate and review the golden JSON once per intentional rule change.
 
 ## Phase 5 — The xscreensaver hack
 

@@ -28,16 +28,34 @@ var directions = [
 
 var tribes = ["blue", "red", "yellow", "green"]
 
+// Tribe 0 in the original. Unaligned characters are what shamans convert, and
+// the atlas is the evidence for what they can do: the neutral brave has a walk
+// and a stand block and nothing else — no kick, no hit, no soul. It therefore
+// neither fights nor dies, and exists only to be converted.
+var unalignedTribe = "neutral"
+
+// The draw at spawn. The first capture shows tribes and unaligned characters
+// coexisting from the first second, so the initial population is mixed rather
+// than wholly unaligned.
+var spawnTribes = [unalignedTribe, "blue", "red", "yellow", "green"]
+
 // Public state vocabulary. Strings keep traces readable and map directly to
 // enums in the future C port.
 var entityTypes = {
     brave: "brave",
-    soul: "soul"
+    shaman: "shaman",
+    firewarrior: "firewarrior",
+    soul: "soul",
+    effect: "effect"
 }
 
 var actions = {
     walk: "walk",
+    stand: "stand",
+    idle: "idle",
     kick: "kick",
+    cast: "cast",
+    punch: "punch",
     hit: "hit",
     rise: "rise",
     depart: "depart"
@@ -48,8 +66,26 @@ var behaviours = {
     pursue: "pursue",
     attack: "attack",
     hit: "hit",
+    seek: "seek",
+    charge: "charge",
+    cast: "cast",
+    recover: "recover",
     rise: "rise",
-    depart: "depart"
+    depart: "depart",
+    fly: "fly",
+    fade: "fade"
+}
+
+// Effect kinds, matching the numeric selectors of the original's effect
+// factory. See research/original-state-map.md for the mapping.
+var effectKinds = {
+    conversion: "conversion",
+    flash: "flash",
+    burst: "burst",
+    fire: "fire",
+    fireTrail: "fire_trail",
+    fireImpact: "fire_impact",
+    ring: "ring"
 }
 
 var tribeColors = {
@@ -100,6 +136,28 @@ var tuning = {
     soulAccelerationIntervalMs: 2 * 30,
     soulMaximumRiseSpeed: 20 * 1000 / 30,
     soulLifetimeMs: 200 * 30,
+    // Conversion and spells. Only the firewarrior recovery window and the cast
+    // frame counts come from the disassembly; every distance and interval below
+    // is chosen to read like the capture and is marked provisional in
+    // spec/simulation.md until a controlled recording measures it.
+    shamanAcquireDistance: 250,
+    shamanCastDistance: 120,
+    shamanChargeDurationMs: 8 * 30,
+    shamanCastCooldownMs: 60 * 30,
+    conversionSpeed: 4 * 1000 / 30,
+    conversionRadius: 20,
+    conversionLifetimeMs: 90 * 30,
+    firewarriorConversionChance: 0.25,
+    fireCastDistance: 150,
+    fireSpeed: 6 * 1000 / 30,
+    fireImpactRadius: 28,
+    fireImpactDamage: 2,
+    fireLifetimeMs: 60 * 30,
+    fireTrailIntervalMs: 2 * 30,
+    // The one recovered value in this group: state 14 lasts 8 to 10 ticks.
+    firewarriorRecoveryMinMs: 8 * 30,
+    firewarriorRecoveryMaxMs: 10 * 30,
+    firewarriorFireCooldownMs: 40 * 30,
     // The simulation advances in fixed slices, independent of how often the
     // host manages to call it. Anything longer than maxAccumulatedSeconds is
     // dropped rather than caught up, so a stalled host cannot teleport
@@ -293,14 +351,33 @@ function animationId(tribe, directionId) {
 }
 
 function stateAnimationId(state) {
+    // Effects name their own stream: several of them are directionless, and
+    // some are tribe-coloured while others are not.
+    if (state.animationKey) {
+        return state.animationKey
+    }
     if (state.entity === entityTypes.soul) {
         if (state.action === actions.depart) {
             return "soul." + state.tribe + ".depart"
         }
         return "soul." + state.tribe + ".rise." + state.directionId
     }
-    return state.entity + "." + state.tribe + "." + state.action
+    // Firewarriors have no hit stream of their own. The original deliberately
+    // selects the brave hit cells for them, and the atlas carries no others.
+    var entity = state.entity === entityTypes.firewarrior
+            && state.action === actions.hit
+        ? entityTypes.brave
+        : state.entity
+    return entity + "." + state.tribe + "." + state.action
         + "." + state.directionId
+}
+
+// Whether a character takes part in ordinary combat. Unaligned characters and
+// shamans do not, and the atlas agrees: neither has a hit or a soul stream.
+function isCombatant(state) {
+    return (state.entity === entityTypes.brave
+            || state.entity === entityTypes.firewarrior)
+        && state.tribe !== unalignedTribe
 }
 
 function directionForVector(dx, dy) {
@@ -321,7 +398,7 @@ function randomDirection(random) {
 }
 
 function randomTribe(random) {
-    return random.pick(tribes)
+    return random.pick(spawnTribes)
 }
 
 function randomWanderInterval(random) {
@@ -397,14 +474,17 @@ function setDirection(state, dx, dy) {
 // Builds a character state. `animations` is the `animations` object of the
 // compiled manifest; the state keeps a reference so it can resolve its own
 // frames whenever its tribe or direction changes.
-function createCharacter(animations, spriteScale) {
+function createCharacter(animations, spriteScale, entity, tribe) {
     var state = {
         id: 0,
-        entity: entityTypes.brave,
+        entity: entity || entityTypes.brave,
         action: actions.walk,
         behaviour: behaviours.wander,
         animations: animations,
-        tribe: "blue",
+        tribe: tribe || "blue",
+        // A shaman belongs to its tribe for the whole run, so its tribe is not
+        // drawn at initialisation.
+        tribePinned: !!tribe,
         directionId: "south",
         directionX: 0,
         directionY: 1,
@@ -421,6 +501,8 @@ function createCharacter(animations, spriteScale) {
         targetId: 0,
         actionRemainingMs: 0,
         attackImpactDone: false,
+        castCooldownMs: 0,
+        castLaunched: false,
         initialized: false,
         frames: null,
         frameCount: 0,
@@ -445,7 +527,13 @@ function initializeCharacter(state, world, random) {
 
     var rect = pickRect(world, random)
     var direction = randomDirection(random)
-    state.tribe = randomTribe(random)
+    // The draw is consumed even for a pinned tribe, so that every character
+    // costs the same sequence of values whatever its class. That keeps the
+    // contract above true of the whole population rather than per entity type.
+    var drawnTribe = randomTribe(random)
+    if (!state.tribePinned) {
+        state.tribe = drawnTribe
+    }
     state.worldX = rect.x + tuning.spawnMarginX
         + random.nextFloat() * Math.max(1, rect.width - tuning.spawnInsetX)
     state.worldY = rect.y + tuning.spawnMarginTop
@@ -459,6 +547,8 @@ function initializeCharacter(state, world, random) {
     state.targetId = 0
     state.actionRemainingMs = 0
     state.attackImpactDone = false
+    state.castCooldownMs = 0
+    state.castLaunched = false
     setBehaviour(state, behaviours.wander, actions.walk)
     setDirection(state, direction.dx, direction.dy)
     state.initialized = true
@@ -493,6 +583,84 @@ function createSoul(character, id) {
     }
     resolveAnimation(soul)
     return soul
+}
+
+// The stream each effect kind draws from, and whether it repeats. A travelling
+// effect repeats because it outlives its own animation; a one-shot decoration
+// plays through and is removed when it ends.
+var effectStreams = {
+    conversion: { key: "effect.sparkle", loop: true },
+    flash: { key: "effect.flash", loop: false },
+    burst: { key: null, loop: false },
+    fire: { key: "effect.fire_trail", loop: true },
+    fire_trail: { key: "effect.fire_trail", loop: false },
+    fire_impact: { key: "effect.fire_impact", loop: false },
+    ring: { key: "effect.ring", loop: false }
+}
+
+// Effects are entities without behaviour of their own beyond a velocity, a
+// lifetime and — for the two projectiles — something to do on arrival. They
+// share the character shape so a view can render them with the same delegate.
+//
+// A lifetime of zero means "as long as the animation lasts", which is what a
+// one-shot decoration wants.
+function createEffect(simulation, options, events) {
+    var stream = effectStreams[options.kind]
+    var animationKey = stream.key
+        ? stream.key
+        : "particle." + options.tribe + ".burst"
+    var effect = {
+        id: simulation.nextEntityId++,
+        entity: entityTypes.effect,
+        kind: options.kind,
+        action: options.kind,
+        behaviour: options.velocityX || options.velocityY
+            ? behaviours.fly
+            : behaviours.fade,
+        animations: simulation.animations,
+        animationKey: animationKey,
+        tribe: options.tribe || unalignedTribe,
+        directionId: "south",
+        directionX: 0,
+        directionY: 0,
+        worldX: options.worldX,
+        worldY: options.worldY,
+        velocityX: options.velocityX || 0,
+        velocityY: options.velocityY || 0,
+        speed: 0,
+        spriteScale: options.spriteScale,
+        sourceId: options.sourceId || 0,
+        targetId: options.targetId || 0,
+        lifetimeRemainingMs: options.lifetimeMs || 0,
+        emitRemainingMs: options.emitIntervalMs || 0,
+        emitIntervalMs: options.emitIntervalMs || 0,
+        frameIndex: 0,
+        animationElapsedMs: 0,
+        initialized: true,
+        frames: null,
+        frameCount: 0,
+        frameDurationMs: tuning.fallbackFrameDurationMs,
+        animationLoop: stream.loop
+    }
+    resolveAnimation(effect)
+    // resolveAnimation reads the manifest's own loop flag, which is false for
+    // every effect stream. A travelling effect overrides it.
+    effect.animationLoop = stream.loop
+    if (effect.lifetimeRemainingMs <= 0) {
+        effect.lifetimeRemainingMs = effect.frameCount * effect.frameDurationMs
+    }
+    simulation.entities.push(effect)
+    if (events) {
+        events.push({
+            type: "effect-spawned",
+            entityId: effect.id,
+            kind: effect.kind,
+            tribe: effect.tribe,
+            worldX: effect.worldX,
+            worldY: effect.worldY
+        })
+    }
+    return effect
 }
 
 // Edge margins depend on the sprite currently displayed.
@@ -755,15 +923,35 @@ function createSimulation(seed, animations, options) {
     }
 }
 
-// Replaces the population with `count` fresh characters.
+// Replaces the population with `count` fresh characters, plus one shaman per
+// tribe.
+//
+// The shamans are additional rather than taken out of the count: the
+// configured number is how many ordinary characters the user asked for, and a
+// world with fewer than four of them would otherwise have no conversion at
+// all. The original likewise treats its four as separate — its Armageddon
+// controller recreates missing "corner entities" independently of the
+// population target.
 function populate(simulation, count, spriteScale) {
     simulation.characters = []
     simulation.desiredPopulation = count
     simulation.populationSpriteScale = spriteScale > 0 ? spriteScale : 1
-    for (var index = 0; index < count; ++index) {
+
+    var index
+    for (index = 0; index < count; ++index) {
         var character = createCharacter(simulation.animations, spriteScale)
         character.id = simulation.nextEntityId++
         simulation.characters.push(character)
+    }
+    for (index = 0; index < tribes.length; ++index) {
+        var shaman = createCharacter(
+            simulation.animations,
+            spriteScale,
+            entityTypes.shaman,
+            tribes[index]
+        )
+        shaman.id = simulation.nextEntityId++
+        simulation.characters.push(shaman)
     }
     return simulation.characters
 }
@@ -785,7 +973,33 @@ function nearestHostile(simulation, state) {
     for (var index = 0; index < simulation.characters.length; ++index) {
         var candidate = simulation.characters[index]
         if (!candidate || candidate === state || !candidate.initialized
-                || candidate.tribe === state.tribe || candidate.health <= 0) {
+                || candidate.tribe === state.tribe || candidate.health <= 0
+                || !isCombatant(candidate)) {
+            continue
+        }
+        var dx = candidate.worldX - state.worldX
+        var dy = candidate.worldY - state.worldY
+        var distance = dx * dx + dy * dy
+        if (distance < bestDistance) {
+            bestDistance = distance
+            best = candidate
+        }
+    }
+    return best
+}
+
+// The nearest character a shaman may convert: an unaligned brave, and nothing
+// else. A shaman does not take an already aligned character from another tribe.
+function nearestUnaligned(simulation, state) {
+    var maximum = tuning.shamanAcquireDistance * state.spriteScale
+    var bestDistance = maximum * maximum
+    var best = null
+
+    for (var index = 0; index < simulation.characters.length; ++index) {
+        var candidate = simulation.characters[index]
+        if (!candidate || !candidate.initialized
+                || candidate.entity !== entityTypes.brave
+                || candidate.tribe !== unalignedTribe) {
             continue
         }
         var dx = candidate.worldX - state.worldX
@@ -824,7 +1038,271 @@ function beginAttack(state, target, events) {
     if (previous !== state.behaviour) {
         events.push(transitionEvent(state, previous))
     }
-    events.push({ type: "attack-started", entityId: state.id, targetId: target.id })
+    events.push({
+        type: "attack-started",
+        entityId: state.id,
+        targetId: target.id,
+        sound: "punch"
+    })
+}
+
+// --- Spells --------------------------------------------------------------
+
+function aimedVelocity(state, target, speed) {
+    var dx = target.worldX - state.worldX
+    var dy = target.worldY - state.worldY
+    var length = Math.sqrt(dx * dx + dy * dy)
+    if (length <= 0) {
+        return { x: 0, y: -speed }
+    }
+    return { x: dx / length * speed, y: dy / length * speed }
+}
+
+function distanceBetween(state, other) {
+    var dx = other.worldX - state.worldX
+    var dy = other.worldY - state.worldY
+    return Math.sqrt(dx * dx + dy * dy)
+}
+
+// A shaman's conversion cast: the pre-cast pause, then the cast itself.
+function beginCharge(state, target, events) {
+    var previous = setBehaviour(state, behaviours.charge, actions.idle)
+    state.targetId = target.id
+    state.actionRemainingMs = tuning.shamanChargeDurationMs
+    if (previous !== state.behaviour) {
+        events.push(transitionEvent(state, previous))
+    }
+}
+
+// Both casts last exactly one play-through of their own three-frame stream.
+// Deciding that separately would only invent a number that has to agree with
+// the manifest anyway — and if it were shorter, the throw would never be seen.
+function castDuration(state) {
+    return Math.max(1, state.frameCount) * state.frameDurationMs
+}
+
+function beginCast(state, target, events) {
+    var previous = setBehaviour(state, behaviours.cast, actions.cast)
+    state.targetId = target.id
+    state.actionRemainingMs = castDuration(state)
+    state.castLaunched = false
+    if (previous !== state.behaviour) {
+        events.push(transitionEvent(state, previous))
+    }
+    events.push({
+        type: "cast-started",
+        entityId: state.id,
+        targetId: target.id,
+        spell: "conversion",
+        sound: "convert_spell"
+    })
+}
+
+function beginFireCast(state, target, events) {
+    var previous = setBehaviour(state, behaviours.cast, actions.punch)
+    state.targetId = target.id
+    state.actionRemainingMs = castDuration(state)
+    state.castLaunched = false
+    if (previous !== state.behaviour) {
+        events.push(transitionEvent(state, previous))
+    }
+    events.push({
+        type: "cast-started",
+        entityId: state.id,
+        targetId: target.id,
+        spell: "fire",
+        sound: "firecast"
+    })
+}
+
+// Turns an unaligned brave into a member of the casting shaman's tribe. A
+// share of them arrive as firewarriors instead, which is the only way that
+// class enters the world.
+function convertCharacter(simulation, character, tribe, events) {
+    var becomesFirewarrior =
+        simulation.random.nextFloat() < tuning.firewarriorConversionChance
+
+    character.tribe = tribe
+    character.entity = becomesFirewarrior
+        ? entityTypes.firewarrior
+        : entityTypes.brave
+    character.health = tuning.characterHealth
+    character.targetId = 0
+    character.castCooldownMs = 0
+    setBehaviour(character, behaviours.wander, actions.walk)
+    // The tribe and class both changed, and setBehaviour only re-resolves the
+    // animation when the action changes — which it did not.
+    resolveAnimation(character)
+
+    createEffect(simulation, {
+        kind: effectKinds.flash,
+        worldX: character.worldX,
+        worldY: character.worldY,
+        spriteScale: character.spriteScale,
+        tribe: tribe
+    }, events)
+    createEffect(simulation, {
+        kind: effectKinds.burst,
+        worldX: character.worldX,
+        worldY: character.worldY,
+        spriteScale: character.spriteScale,
+        tribe: tribe
+    }, events)
+
+    events.push({
+        type: "converted",
+        entityId: character.id,
+        tribe: tribe,
+        entity: character.entity,
+        sound: "convert"
+    })
+}
+
+// The conversion projectile reaching its destination. It converts every
+// unaligned brave within its radius, not only the one it was aimed at.
+function applyConversion(simulation, effect, events) {
+    var radius = tuning.conversionRadius * effect.spriteScale
+    for (var index = 0; index < simulation.characters.length; ++index) {
+        var character = simulation.characters[index]
+        if (!character || !character.initialized
+                || character.entity !== entityTypes.brave
+                || character.tribe !== unalignedTribe) {
+            continue
+        }
+        if (distanceBetween(effect, character) <= radius) {
+            convertCharacter(simulation, character, effect.tribe, events)
+        }
+    }
+}
+
+// The fire projectile landing. It damages hostile combatants in its radius;
+// shamans and unaligned characters are untouched, which is what the original's
+// non-shaman test and the absence of a neutral hit stream both say.
+function applyFireImpact(simulation, effect, events) {
+    createEffect(simulation, {
+        kind: effectKinds.fireImpact,
+        worldX: effect.worldX,
+        worldY: effect.worldY,
+        spriteScale: effect.spriteScale
+    }, events)
+    createEffect(simulation, {
+        kind: effectKinds.ring,
+        worldX: effect.worldX,
+        worldY: effect.worldY,
+        spriteScale: effect.spriteScale
+    }, events)
+
+    var caster = findCharacter(simulation, effect.sourceId)
+    var radius = tuning.fireImpactRadius * effect.spriteScale
+    for (var index = 0; index < simulation.characters.length; ++index) {
+        var character = simulation.characters[index]
+        if (!character || !character.initialized || !isCombatant(character)
+                || character.tribe === effect.tribe || character.health <= 0) {
+            continue
+        }
+        if (distanceBetween(effect, character) > radius) {
+            continue
+        }
+        for (var hit = 0; hit < tuning.fireImpactDamage; ++hit) {
+            if (character.health > 0) {
+                receiveHit(character, caster || character, events)
+            }
+        }
+    }
+}
+
+// A shaman: seek an unaligned brave, pause, cast, then wait out its cooldown.
+// It is never a combat target and has no hit or death states.
+function stepShaman(simulation, state, world, events) {
+    var stepMs = tuning.stepSeconds * 1000
+
+    if (state.castCooldownMs > 0) {
+        state.castCooldownMs = Math.max(0, state.castCooldownMs - stepMs)
+    }
+
+    if (state.behaviour === behaviours.charge) {
+        advanceAnimation(state, stepMs)
+        state.actionRemainingMs = Math.max(0, state.actionRemainingMs - stepMs)
+        if (state.actionRemainingMs <= 0) {
+            var chargeTarget = findCharacter(simulation, state.targetId)
+            if (chargeTarget && chargeTarget.tribe === unalignedTribe) {
+                beginCast(state, chargeTarget, events)
+            } else {
+                var interrupted = setBehaviour(state, behaviours.seek, actions.walk)
+                state.targetId = 0
+                events.push(transitionEvent(state, interrupted))
+            }
+        }
+        return null
+    }
+
+    if (state.behaviour === behaviours.cast) {
+        advanceAnimation(state, stepMs)
+        state.actionRemainingMs = Math.max(0, state.actionRemainingMs - stepMs)
+        if (state.actionRemainingMs <= 0) {
+            var castTarget = findCharacter(simulation, state.targetId)
+            if (!state.castLaunched && castTarget) {
+                state.castLaunched = true
+                var velocity = aimedVelocity(
+                    state, castTarget, tuning.conversionSpeed * state.spriteScale
+                )
+                createEffect(simulation, {
+                    kind: effectKinds.conversion,
+                    worldX: state.worldX,
+                    worldY: state.worldY,
+                    velocityX: velocity.x,
+                    velocityY: velocity.y,
+                    spriteScale: state.spriteScale,
+                    tribe: state.tribe,
+                    sourceId: state.id,
+                    targetId: castTarget.id,
+                    lifetimeMs: tuning.conversionLifetimeMs
+                }, events)
+            }
+            state.castCooldownMs = tuning.shamanCastCooldownMs
+            state.targetId = 0
+            var done = setBehaviour(state, behaviours.seek, actions.walk)
+            events.push(transitionEvent(state, done))
+        }
+        return null
+    }
+
+    var target = state.castCooldownMs > 0
+        ? null
+        : nearestUnaligned(simulation, state)
+
+    if (target) {
+        if (state.behaviour !== behaviours.seek) {
+            var began = setBehaviour(state, behaviours.seek, actions.walk)
+            events.push(transitionEvent(state, began))
+        }
+        state.targetId = target.id
+        var dx = target.worldX - state.worldX
+        var dy = target.worldY - state.worldY
+        if (Math.sqrt(dx * dx + dy * dy)
+                <= tuning.shamanCastDistance * state.spriteScale) {
+            setDirection(state, dx, dy)
+            beginCharge(state, target, events)
+            return null
+        }
+        var heading = directionForVector(dx, dy)
+        if (heading.id !== state.directionId) {
+            setDirection(state, heading.dx, heading.dy)
+        }
+        state.wanderRemainingMs = Math.max(state.wanderRemainingMs, stepMs * 2)
+    } else if (state.behaviour !== behaviours.wander) {
+        var idled = setBehaviour(state, behaviours.wander, actions.walk)
+        state.targetId = 0
+        events.push(transitionEvent(state, idled))
+    }
+
+    return stepCharacter(
+        state,
+        world,
+        tuning.stepSeconds,
+        simulation.random,
+        target ? tuning.combatPursuitSpeed * state.spriteScale : 0
+    )
 }
 
 function receiveHit(state, attacker, events) {
@@ -849,8 +1327,73 @@ function footprintEvent(footprint, entityId) {
     return footprint
 }
 
+// Routes a character to the rules of its class. Unaligned characters have no
+// class behaviour at all: they wander until a shaman converts them.
+function stepBehaviourCharacter(simulation, state, world, events) {
+    if (state.entity === entityTypes.shaman) {
+        return stepShaman(simulation, state, world, events)
+    }
+    if (!isCombatant(state)) {
+        return stepCharacter(state, world, tuning.stepSeconds, simulation.random)
+    }
+    return stepCombatCharacter(simulation, state, world, events)
+}
+
 function stepCombatCharacter(simulation, state, world, events) {
     var stepMs = tuning.stepSeconds * 1000
+
+    if (state.castCooldownMs > 0) {
+        state.castCooldownMs = Math.max(0, state.castCooldownMs - stepMs)
+    }
+
+    // A firewarrior throwing fire, then its short recovery. Both are stationary.
+    if (state.behaviour === behaviours.cast
+            || state.behaviour === behaviours.recover) {
+        advanceAnimation(state, stepMs)
+        state.actionRemainingMs = Math.max(0, state.actionRemainingMs - stepMs)
+        if (state.actionRemainingMs > 0) {
+            return null
+        }
+
+        if (state.behaviour === behaviours.cast) {
+            var fireTarget = findCharacter(simulation, state.targetId)
+            if (!state.castLaunched && fireTarget && fireTarget.health > 0) {
+                state.castLaunched = true
+                var fireVelocity = aimedVelocity(
+                    state, fireTarget, tuning.fireSpeed * state.spriteScale
+                )
+                createEffect(simulation, {
+                    kind: effectKinds.fire,
+                    worldX: state.worldX,
+                    worldY: state.worldY,
+                    velocityX: fireVelocity.x,
+                    velocityY: fireVelocity.y,
+                    spriteScale: state.spriteScale,
+                    tribe: state.tribe,
+                    sourceId: state.id,
+                    targetId: fireTarget.id,
+                    lifetimeMs: tuning.fireLifetimeMs,
+                    emitIntervalMs: tuning.fireTrailIntervalMs
+                }, events)
+            }
+            state.castCooldownMs = tuning.firewarriorFireCooldownMs
+            // Recovery is stationary, so it stands rather than walking on the
+            // spot.
+            var recovering = setBehaviour(state, behaviours.recover, actions.stand)
+            state.actionRemainingMs = tuning.firewarriorRecoveryMinMs
+                + simulation.random.nextInt(
+                    tuning.firewarriorRecoveryMaxMs
+                        - tuning.firewarriorRecoveryMinMs + 1
+                )
+            events.push(transitionEvent(state, recovering))
+            return null
+        }
+
+        var resumed = setBehaviour(state, behaviours.wander, actions.walk)
+        state.targetId = 0
+        events.push(transitionEvent(state, resumed))
+        return null
+    }
 
     if (state.behaviour === behaviours.hit) {
         var recoilLength = Math.sqrt(
@@ -932,8 +1475,19 @@ function stepCombatCharacter(simulation, state, world, events) {
         var dx = target.worldX - state.worldX
         var dy = target.worldY - state.worldY
         var distance = Math.sqrt(dx * dx + dy * dy)
-        if (distance <= tuning.combatAttackDistance * state.spriteScale) {
+        // A firewarrior never closes to melee: it throws fire from a distance.
+        // A brave has no ranged option and must reach its target.
+        var isFirewarrior = state.entity === entityTypes.firewarrior
+        var reach = isFirewarrior
+            ? tuning.fireCastDistance
+            : tuning.combatAttackDistance
+        if (distance <= reach * state.spriteScale
+                && (!isFirewarrior || state.castCooldownMs <= 0)) {
             setDirection(state, dx, dy)
+            if (isFirewarrior) {
+                beginFireCast(state, target, events)
+                return null
+            }
             beginAttack(state, target, events)
             // The original increments damage and forces state 7 in the same
             // update that enters state 6; there is no delayed impact frame.
@@ -984,23 +1538,97 @@ function finishDeaths(simulation, events) {
     // The original main loop replaces removed characters while its live count
     // is below the configured population. Fresh states initialise on the next
     // host call, consuming the normal seeded spawn draws.
-    while (survivors.length < simulation.desiredPopulation) {
+    //
+    // Shamans are outside that count: they never die, and including them would
+    // silently shrink the population the user asked for.
+    var ordinary = 0
+    for (index = 0; index < survivors.length; ++index) {
+        if (survivors[index].entity !== entityTypes.shaman) {
+            ordinary += 1
+        }
+    }
+    while (ordinary < simulation.desiredPopulation) {
         var replacement = createCharacter(
             simulation.animations,
             simulation.populationSpriteScale
         )
         replacement.id = simulation.nextEntityId++
         survivors.push(replacement)
+        ordinary += 1
         events.push({ type: "character-spawned", entityId: replacement.id })
     }
     simulation.characters = survivors
 }
 
+// Advances one effect. Returns false when it is finished, having applied
+// whatever it was carrying.
+//
+// A projectile ends on arrival — within reach of the character it was aimed at
+// — or when its lifetime runs out, which is what stops one chasing a target
+// that walked away. A decoration only ever ends on its lifetime, which
+// createEffect set to the length of its own animation.
+function stepEffect(simulation, effect, events) {
+    var stepMs = tuning.stepSeconds * 1000
+
+    advanceAnimation(effect, stepMs)
+    effect.worldX += effect.velocityX * tuning.stepSeconds
+    effect.worldY += effect.velocityY * tuning.stepSeconds
+    effect.lifetimeRemainingMs -= stepMs
+
+    if (effect.emitIntervalMs > 0) {
+        effect.emitRemainingMs -= stepMs
+        if (effect.emitRemainingMs <= 0) {
+            effect.emitRemainingMs += effect.emitIntervalMs
+            createEffect(simulation, {
+                kind: effectKinds.fireTrail,
+                worldX: effect.worldX,
+                worldY: effect.worldY,
+                spriteScale: effect.spriteScale,
+                tribe: effect.tribe
+            }, events)
+        }
+    }
+
+    var arrived = false
+    if (effect.targetId !== 0) {
+        var target = findCharacter(simulation, effect.targetId)
+        var reach = effect.kind === effectKinds.conversion
+            ? tuning.conversionRadius
+            : tuning.fireImpactRadius
+        if (target
+                && distanceBetween(effect, target) <= reach * effect.spriteScale) {
+            arrived = true
+        }
+    }
+
+    if (!arrived && effect.lifetimeRemainingMs > 0) {
+        return true
+    }
+
+    if (effect.kind === effectKinds.conversion) {
+        applyConversion(simulation, effect, events)
+    } else if (effect.kind === effectKinds.fire) {
+        applyFireImpact(simulation, effect, events)
+    }
+
+    events.push({ type: "entity-removed", entityId: effect.id })
+    return false
+}
+
 function stepEntities(simulation, world, events) {
     var survivors = []
     var stepMs = tuning.stepSeconds * 1000
-    for (var index = 0; index < simulation.entities.length; ++index) {
+    // createEffect appends to the same list, so children spawned during this
+    // pass are stepped from the next one rather than mid-iteration.
+    var count = simulation.entities.length
+    for (var index = 0; index < count; ++index) {
         var entity = simulation.entities[index]
+        if (entity.entity === entityTypes.effect) {
+            if (stepEffect(simulation, entity, events)) {
+                survivors.push(entity)
+            }
+            continue
+        }
         if (entity.behaviour === behaviours.rise) {
             advanceAnimation(entity, stepMs)
             entity.phaseRemainingMs -= stepMs
@@ -1033,6 +1661,10 @@ function stepEntities(simulation, world, events) {
             survivors.push(entity)
         }
     }
+    // Anything spawned during the pass, appended after the frozen count.
+    for (index = count; index < simulation.entities.length; ++index) {
+        survivors.push(simulation.entities[index])
+    }
     simulation.entities = survivors
 }
 
@@ -1064,7 +1696,7 @@ function stepSimulation(simulation, world, elapsedSeconds) {
                 continue
             }
             var result = simulation.combatEnabled
-                ? stepCombatCharacter(simulation, state, world, events)
+                ? stepBehaviourCharacter(simulation, state, world, events)
                 : stepCharacter(state, world, tuning.stepSeconds, simulation.random)
             if (result && result.footprint) {
                 events.push(footprintEvent(result.footprint, state.id))

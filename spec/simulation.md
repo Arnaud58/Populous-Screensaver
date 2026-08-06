@@ -163,8 +163,17 @@ variant 0 has none.
 | `yellow` | 3 | 120 | `#ffe35a` |
 | `green` | 4 | 160 | `#62e85c` |
 
-The simulation currently draws only from the four coloured tribes. Whether the
-original used the neutral variant, and for what, is **unknown**.
+`neutral` is tribe 0 in the original: an **unaligned** character, belonging to
+no tribe. The atlas settles what one can do. The neutral variant has a walk
+block and a stand block and nothing else — no kick, no hit, no scratch, no
+soul — while the four coloured tribes carry all of them. An unaligned character
+therefore never fights, is never struck and never dies. It wanders until a
+shaman converts it, which is the only role its sprites permit.
+
+Spawning draws uniformly from all five, including `neutral`. The first capture
+shows tribes and unaligned characters coexisting from the opening second, so
+the starting population is mixed rather than wholly unaligned. The exact
+starting proportion is **unknown**; a uniform draw is the current choice.
 
 ## Directions
 
@@ -201,9 +210,9 @@ Written by the simulation:
 | Field | Meaning |
 | ----- | ------- |
 | `id` | stable numeric identity within one simulation |
-| `entity` | renderable class; currently `brave` |
-| `action` | animation action: `walk`, `kick` or `hit` |
-| `behaviour` | state-machine state: `wander`, `pursue`, `attack` or `hit` |
+| `entity` | renderable class: `brave`, `shaman` or `firewarrior` |
+| `action` | animation action: `walk`, `idle`, `kick`, `punch`, `cast` or `hit` |
+| `behaviour` | state-machine state: `wander`, `pursue`, `attack`, `hit`, `seek`, `charge`, `cast` or `recover` |
 | `tribe` | one of the tribe ids above |
 | `directionId`, `directionX`, `directionY` | current heading |
 | `worldX`, `worldY` | ground point |
@@ -216,6 +225,9 @@ Written by the simulation:
 | `targetId` | stable id of the current opponent, or 0 |
 | `actionRemainingMs` | remaining time in a kick or hit reaction |
 | `attackImpactDone` | prevents a kick from dealing damage twice |
+| `castCooldownMs` | counts down before the next spell |
+| `castLaunched` | prevents one cast from launching two projectiles |
+| `tribePinned` | true for a shaman, whose tribe survives initialisation |
 | `initialized` | false until the world is large enough to place it |
 
 Resolved by the simulation from the manifest:
@@ -244,13 +256,29 @@ The three countdowns replace what used to be per-character timers. That is what
 makes the state portable: it holds no timer object and no timestamp, only
 remaining durations that a fixed step decrements.
 
-`createCharacter(animations, spriteScale)` builds one; `populate(simulation,
-count, spriteScale)` replaces a whole population.
+`createCharacter(animations, spriteScale, entity, tribe)` builds one.
+`populate(simulation, count, spriteScale)` replaces a whole population with
+`count` ordinary characters **plus one shaman per tribe**. The shamans are
+additional rather than taken out of the count: the configured number is how
+many ordinary characters the user asked for, and a world configured below four
+would otherwise have no conversion at all. Replacement after a death counts
+only the ordinary characters, since a shaman never dies.
 
-`simulation.entities` is a second list for short-lived non-character entities.
-Its first member is the rising soul: it has `entity = soul`, `action = rise`,
-its own position, animation and `lifetimeRemainingMs`. It is deliberately not
-left in the character population after death.
+`simulation.entities` is a second list for short-lived non-character entities,
+rendered by the same delegate as characters.
+
+The rising **soul** has `entity = soul`, `action = rise`, its own position,
+animation and `lifetimeRemainingMs`. It is deliberately not left in the
+character population after death.
+
+An **effect** has `entity = effect` and a `kind` from the original's effect
+factory — `conversion`, `flash`, `burst`, `fire`, `fire_trail`, `fire_impact`
+or `ring`. It carries a velocity, a lifetime, an optional `targetId` and an
+`animationKey` naming its stream directly, because several effect streams are
+directionless and only some are tribe-coloured. A lifetime of zero at creation
+becomes the length of its own animation, which is what a one-shot decoration
+wants. Effects created during a step are stepped from the next one, never
+mid-iteration.
 
 ## Rules
 
@@ -258,6 +286,11 @@ left in the character population after death.
 
 Position is uniform over the world region, inset by a small margin. Tribe and
 direction are uniform. Speed is uniform in its range.
+
+A shaman's tribe is fixed for the run and is not drawn. The draw is still
+**consumed**, so every character costs the same sequence of values whatever its
+class; a C port that skips it for shamans diverges from the first shaman
+onward.
 
 ### Walking
 
@@ -346,7 +379,15 @@ has a `type`; actor-related items carry stable numeric ids. Current types are:
 | `soul-spawned` | dead character was replaced by a soul entity |
 | `character-removed` | actor left the character population |
 | `character-spawned` | replacement actor was created to maintain population |
+| `cast-started` | a shaman or firewarrior began a spell; carries `spell` |
+| `converted` | an unaligned character joined a tribe; carries its new `entity` |
+| `effect-spawned` | a projectile or decoration entered the world; carries `kind` |
 | `entity-removed` | a short-lived entity expired |
+
+`attack-started`, `cast-started` and `converted` carry a `sound` naming the
+original resource family the event corresponds to. Nothing plays them yet; the
+field exists so the audio layer is a mapping rather than a second reading of
+the state machine.
 
 The QML renderer filters `footprint`; the complete stream is also exposed as
 `PopulousSimulation.eventsEmitted` for the future sound and effect layers.
@@ -399,10 +440,88 @@ Armageddon state. Applying those comparisons on every modern 60 Hz step would
 consume a different random sequence and be less faithful than leaving the
 current deterministic acquisition cadence explicit.
 
-### Conversion, spells, gathering and Armageddon
+### Classes
 
-**Planned.** Their atlas animations and original numeric states are catalogued
-in `research/original-state-map.md`; their transitions are not implemented.
+Three character classes share the state machine, and each is routed to its own
+rules by `stepBehaviourCharacter`.
+
+| Class | Ordinary role | Fights | Can die |
+| ----- | ------------- | ------ | ------- |
+| `brave` (unaligned) | wanders, waits to be converted | no | no |
+| `brave` (aligned) | melee combatant | yes, at 14 px | yes |
+| `firewarrior` | ranged combatant | yes, at 150 px | yes |
+| `shaman` | converts unaligned characters | no | no |
+
+A firewarrior has no hit stream of its own. The original selects the **brave**
+hit cells for it, and the atlas carries no alternative, so
+`stateAnimationId` substitutes them.
+
+Shamans are neither attacked nor damaged, which the atlas again settles: they
+have `idle`, `walk` and `cast` and no hit or soul stream at all. The original's
+fire impact also excludes them explicitly.
+
+### Conversion
+
+Implemented, from original shaman states 3, 4 and 5 and effect type 0.
+
+| Current behaviour | Condition | Next behaviour |
+| ----------------- | --------- | -------------- |
+| `wander` | an unaligned brave within acquisition range | `seek` |
+| `seek` | target within cast range | `charge` |
+| `charge` | pause ends and the target is still unaligned | `cast` |
+| `charge` | target was converted meanwhile | `seek` |
+| `cast` | cast ends | launch projectile, `seek`, start cooldown |
+
+The projectile flies along the heading it was launched with — it does not
+home — and ends on reaching its target or when its lifetime runs out. On
+ending it converts **every** unaligned brave within its radius, not only the
+one it was aimed at, which is what the original's scan does.
+
+A converted character joins the casting shaman's tribe. A share of them arrive
+as **firewarriors** instead of braves; that is the only way the class enters
+the world. Each conversion spawns a flash and a tribe-coloured burst.
+
+### The fire attack
+
+Implemented, from original firewarrior states 12 and 14 and effect types 6, 7
+and 9.
+
+A firewarrior pursues like a brave but stops at cast range instead of closing
+to melee. It throws, launches the projectile as the throw ends, then holds a
+short recovery before returning to wandering. The projectile emits a trail
+behind it, and on impact spawns an impact effect and a ring, and damages every
+hostile combatant within its radius. Unaligned characters and shamans are
+untouched.
+
+### Provisional values
+
+Only two numbers in this section are recovered: the three cast frames per
+direction, and the 8-to-10-tick recovery after a fire throw. Every distance,
+interval and probability below is **chosen**, not measured, and a controlled
+recording should replace them.
+
+Neither cast has a duration of its own. Both last exactly one play-through of
+their three-frame stream, so the state cannot outlive its animation or — worse
+— end before the throw has been drawn.
+
+| Rule | Current value |
+| ---- | ------------- |
+| shaman acquisition / cast range | 250 px / 120 px |
+| pre-cast pause | 240 ms |
+| shaman cooldown | 1800 ms |
+| conversion projectile speed / radius | 133 px/s / 20 px |
+| firewarrior share of conversions | 1 in 4 |
+| fire cast range | 150 px |
+| fire projectile speed / impact radius | 200 px/s / 28 px |
+| fire damage | 2 points |
+| firewarrior cooldown | 1200 ms |
+
+### Gathering and Armageddon
+
+**Planned.** Lightning (effect type 10) has no atlas sprite at all: the
+original draws three jagged procedural paths, so it needs a renderer rather
+than an animation. The Armageddon swirl and the four corner formations are
+catalogued in `research/original-state-map.md` and not implemented.
 
 ## Screen-saver invocation
 

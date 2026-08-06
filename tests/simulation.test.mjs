@@ -16,12 +16,16 @@ import {
 const EXPORTS = [
     "directions",
     "tribes",
+    "spawnTribes",
+    "unalignedTribe",
+    "effectKinds",
     "entityTypes",
     "actions",
     "behaviours",
     "tuning",
     "createRandom",
     "createCharacter",
+    "createEffect",
     "createSimulation",
     "populate",
     "createWorld",
@@ -504,7 +508,7 @@ test("initialisation places a character inside the world at a valid speed", () =
         assert.ok(character.worldY <= WORLD.bounds.height)
         assert.ok(character.speed >= Simulation.tuning.speedMin * 2)
         assert.ok(character.speed <= Simulation.tuning.speedMax * 2)
-        assert.ok(Simulation.tribes.includes(character.tribe))
+        assert.ok(Simulation.spawnTribes.includes(character.tribe))
         assert.ok(character.wanderRemainingMs >= Simulation.tuning.wanderIntervalMinMs)
     }
 })
@@ -706,6 +710,265 @@ test("combat can be disabled for focused walking scenarios", () => {
 
     assert.equal(simulation.characters[0].behaviour, Simulation.behaviours.wander)
     assert.equal(events.some(event => event.type === "attack-started"), false)
+})
+
+// --- Conversion and spells -----------------------------------------------
+
+// A simulation with an explicit cast of characters, bypassing populate so a
+// scenario contains only what it is about.
+function combatSimulation(states, seed = 1998) {
+    const simulation = Simulation.createSimulation(
+        seed,
+        manifest.animations,
+        { combatEnabled: true }
+    )
+    simulation.characters = states
+    simulation.nextEntityId = states.length + 1
+    return simulation
+}
+
+function runSteps(simulation, steps, until) {
+    const events = []
+    for (let step = 0; step < steps; ++step) {
+        events.push(...Simulation.stepSimulation(simulation, WORLD, STEP))
+        if (until && until(events)) {
+            break
+        }
+    }
+    return events
+}
+
+test("every conversion and spell state resolves to a catalogued animation", () => {
+    const cases = [
+        [Simulation.entityTypes.shaman, Simulation.tribes, ["idle", "walk", "cast"]],
+        [Simulation.entityTypes.firewarrior, Simulation.tribes,
+            ["walk", "stand", "punch", "hit"]],
+        [Simulation.entityTypes.brave, [Simulation.unalignedTribe], ["walk"]]
+    ]
+
+    for (const [entity, entityTribes, entityActions] of cases) {
+        for (const tribe of entityTribes) {
+            for (const direction of Simulation.directions) {
+                for (const action of entityActions) {
+                    const state = makeCharacter({ tribe })
+                    state.entity = entity
+                    Simulation.setDirection(state, direction.dx, direction.dy)
+                    Simulation.setAction(state, action)
+                    assert.ok(
+                        state.frames && state.frames.length > 0,
+                        `${entity}/${tribe}/${action}/${direction.id} has no frames`
+                    )
+                }
+            }
+        }
+    }
+})
+
+// The neutral brave carries no hit stream, so a firewarrior wearing brave
+// colours is the only thing keeping that class renderable when it is struck.
+test("a firewarrior falls back to the brave hit cells", () => {
+    const state = makeCharacter({ tribe: "blue" })
+    state.entity = Simulation.entityTypes.firewarrior
+    Simulation.setAction(state, Simulation.actions.hit)
+
+    assert.equal(Simulation.stateAnimationId(state), "brave.blue.hit.east")
+    assert.ok(state.frames.length > 0)
+})
+
+test("every effect kind resolves to a catalogued animation", () => {
+    const simulation = combatSimulation([])
+    for (const kind of Object.values(Simulation.effectKinds)) {
+        const effect = Simulation.createEffect(simulation, {
+            kind,
+            worldX: 10,
+            worldY: 10,
+            spriteScale: 1,
+            tribe: "blue"
+        })
+        assert.ok(effect.frames && effect.frames.length > 0, `${kind} has no frames`)
+        assert.ok(effect.lifetimeRemainingMs > 0, `${kind} expires immediately`)
+    }
+})
+
+// An unaligned character has no kick, no hit and no soul in the atlas. It is
+// therefore neither an attacker nor a target, and asserting that here is what
+// stops a future rule from quietly asking it for frames it does not have.
+test("an unaligned character neither attacks nor is attacked", () => {
+    const neutral = makeCharacter({
+        id: 1,
+        tribe: Simulation.unalignedTribe,
+        worldX: 100,
+        speed: 0
+    })
+    const aligned = makeCharacter({ id: 2, tribe: "red", worldX: 105, speed: 0 })
+    const simulation = combatSimulation([neutral, aligned])
+
+    const events = runSteps(simulation, 60)
+
+    assert.equal(events.some(event => event.type === "attack-started"), false)
+    assert.equal(events.some(event => event.type === "hit"), false)
+    assert.equal(neutral.behaviour, Simulation.behaviours.wander)
+    assert.equal(neutral.health, Simulation.tuning.characterHealth)
+    assert.equal(aligned.health, Simulation.tuning.characterHealth)
+})
+
+test("a shaman is never a combat target", () => {
+    const shaman = makeCharacter({ id: 1, tribe: "blue", worldX: 100, speed: 0 })
+    shaman.entity = Simulation.entityTypes.shaman
+    const enemy = makeCharacter({ id: 2, tribe: "red", worldX: 105, speed: 0 })
+    const simulation = combatSimulation([shaman, enemy])
+
+    runSteps(simulation, 60)
+
+    assert.equal(enemy.behaviour, Simulation.behaviours.wander)
+    assert.equal(shaman.health, Simulation.tuning.characterHealth)
+})
+
+test("a shaman charges, casts and converts an unaligned brave", () => {
+    const shaman = makeCharacter({ id: 1, tribe: "blue", worldX: 100, speed: 0 })
+    shaman.entity = Simulation.entityTypes.shaman
+    const target = makeCharacter({
+        id: 2,
+        tribe: Simulation.unalignedTribe,
+        worldX: 150,
+        speed: 0
+    })
+    const simulation = combatSimulation([shaman, target])
+
+    const events = runSteps(simulation, 400,
+        list => list.some(event => event.type === "converted"))
+
+    const order = events
+        .filter(event => event.type === "behaviour-changed"
+            && event.entityId === shaman.id)
+        .map(event => event.to)
+    assert.deepEqual(order.slice(0, 3), [
+        Simulation.behaviours.seek,
+        Simulation.behaviours.charge,
+        Simulation.behaviours.cast
+    ])
+
+    const cast = events.find(event => event.type === "cast-started")
+    assert.equal(cast.spell, "conversion")
+    assert.equal(cast.sound, "convert_spell")
+
+    const converted = events.find(event => event.type === "converted")
+    assert.equal(converted.entityId, target.id)
+    assert.equal(target.tribe, "blue")
+    assert.ok(target.frames && target.frames.length > 0)
+    assert.ok([Simulation.entityTypes.brave, Simulation.entityTypes.firewarrior]
+        .includes(target.entity))
+    // The conversion projectile is gone and its flash and burst took its place.
+    assert.ok(events.some(event => event.type === "effect-spawned"
+        && event.kind === Simulation.effectKinds.conversion))
+    assert.ok(events.some(event => event.type === "effect-spawned"
+        && event.kind === Simulation.effectKinds.flash))
+})
+
+// Conversion is the only way a firewarrior enters the world, so if the split
+// ever collapses to one class the world quietly loses the ranged one.
+test("conversion produces both braves and firewarriors", () => {
+    const produced = new Set()
+
+    for (let seed = 1; seed <= 40 && produced.size < 2; ++seed) {
+        const shaman = makeCharacter({ id: 1, tribe: "green", worldX: 100, speed: 0 })
+        shaman.entity = Simulation.entityTypes.shaman
+        const target = makeCharacter({
+            id: 2,
+            tribe: Simulation.unalignedTribe,
+            worldX: 140,
+            speed: 0
+        })
+        const simulation = combatSimulation([shaman, target], seed)
+
+        runSteps(simulation, 400,
+            list => list.some(event => event.type === "converted"))
+        assert.equal(target.tribe, "green")
+        produced.add(target.entity)
+    }
+
+    assert.deepEqual([...produced].sort(), ["brave", "firewarrior"])
+})
+
+test("a firewarrior throws fire instead of closing to melee", () => {
+    const firewarrior = makeCharacter({
+        id: 1,
+        tribe: "blue",
+        worldX: 100,
+        speed: 0
+    })
+    firewarrior.entity = Simulation.entityTypes.firewarrior
+    const victim = makeCharacter({ id: 2, tribe: "red", worldX: 200, speed: 0 })
+    const simulation = combatSimulation([firewarrior, victim])
+
+    const events = runSteps(simulation, 300,
+        list => list.some(event => event.type === "hit"))
+
+    const cast = events.find(event => event.type === "cast-started")
+    assert.equal(cast.spell, "fire")
+    assert.equal(cast.sound, "firecast")
+    assert.equal(events.some(event => event.type === "attack-started"), false)
+
+    // It struck without ever entering melee reach, which is 14 px.
+    assert.ok(
+        victim.worldX - firewarrior.worldX > Simulation.tuning.combatAttackDistance,
+        "the firewarrior closed to melee instead of throwing fire"
+    )
+    assert.equal(
+        victim.health,
+        Simulation.tuning.characterHealth - Simulation.tuning.fireImpactDamage
+    )
+    assert.ok(events.some(event => event.type === "effect-spawned"
+        && event.kind === Simulation.effectKinds.fire))
+    assert.ok(events.some(event => event.type === "effect-spawned"
+        && event.kind === Simulation.effectKinds.fireTrail))
+    assert.ok(events.some(event => event.type === "effect-spawned"
+        && event.kind === Simulation.effectKinds.ring))
+})
+
+test("populate adds one shaman per tribe on top of the configured count", () => {
+    const simulation = Simulation.createSimulation(1998, manifest.animations)
+    Simulation.populate(simulation, 10, 1)
+
+    const shamans = simulation.characters
+        .filter(state => state.entity === Simulation.entityTypes.shaman)
+    assert.equal(simulation.characters.length, 10 + Simulation.tribes.length)
+    assert.deepEqual(shamans.map(state => state.tribe), Simulation.tribes)
+
+    // Their tribe survives initialisation; the drawn one is discarded.
+    Simulation.stepSimulation(simulation, WORLD, 0)
+    assert.deepEqual(shamans.map(state => state.tribe), Simulation.tribes)
+})
+
+test("replacing the dead ignores shamans when counting the population", () => {
+    const simulation = Simulation.createSimulation(1998, manifest.animations)
+    Simulation.populate(simulation, 6, 1)
+    Simulation.stepSimulation(simulation, WORLD, 0)
+
+    const victim = simulation.characters
+        .find(state => state.entity !== Simulation.entityTypes.shaman)
+    victim.tribe = "red"
+    victim.health = 1
+    const killer = makeCharacter({
+        id: 999,
+        tribe: "blue",
+        worldX: victim.worldX + 5,
+        worldY: victim.worldY,
+        speed: 0
+    })
+    simulation.characters.push(killer)
+
+    runSteps(simulation, 120,
+        list => list.some(event => event.type === "character-removed"))
+
+    const ordinary = simulation.characters
+        .filter(state => state.entity !== Simulation.entityTypes.shaman).length
+    assert.ok(ordinary >= simulation.desiredPopulation)
+    assert.equal(
+        simulation.characters
+            .filter(state => state.entity === Simulation.entityTypes.shaman).length,
+        Simulation.tribes.length
+    )
 })
 
 test("characters stay inside the world over a long run", () => {

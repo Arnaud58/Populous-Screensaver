@@ -84,8 +84,15 @@ function rounded(value) {
         return value.map(rounded)
     }
     if (value && typeof value === "object") {
+        // Undefined entries are dropped rather than kept, because JSON drops
+        // them too. Keeping them would make a freshly generated snapshot
+        // unequal to the same snapshot read back from disk, and the entity
+        // snapshot has genuinely optional fields: an effect has no soul phase
+        // and a soul has no effect kind.
         return Object.fromEntries(
-            Object.entries(value).map(([key, entry]) => [key, rounded(entry)])
+            Object.entries(value)
+                .filter(([, entry]) => entry !== undefined)
+                .map(([key, entry]) => [key, rounded(entry)])
         )
     }
     return value
@@ -113,6 +120,8 @@ function characterSnapshot(character) {
         health: character.health,
         targetId: character.targetId,
         actionRemainingMs: character.actionRemainingMs,
+        castCooldownMs: character.castCooldownMs,
+        castLaunched: character.castLaunched,
         initialized: character.initialized
     }
 }
@@ -121,11 +130,14 @@ function entitySnapshot(entity) {
     return {
         id: entity.id,
         entity: entity.entity,
+        kind: entity.kind,
         action: entity.action,
         behaviour: entity.behaviour,
         tribe: entity.tribe,
         worldX: entity.worldX,
         worldY: entity.worldY,
+        velocityX: entity.velocityX,
+        velocityY: entity.velocityY,
         spriteScale: entity.spriteScale,
         frameIndex: entity.frameIndex,
         animationElapsedMs: entity.animationElapsedMs,
