@@ -19,8 +19,8 @@ Kirigami.FormLayout {
     SpinBox {
         id: characterCount
 
-        from: 1
-        to: 100
+        from: 10
+        to: 1000
         editable: true
         Kirigami.FormData.label: qsTr("Characters:")
     }

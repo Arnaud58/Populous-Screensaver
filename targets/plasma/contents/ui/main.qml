@@ -9,10 +9,12 @@ WallpaperItem {
 
     PopulousWorld {
         anchors.fill: parent
+        // The ceiling has to match the configuration page's spin box, or the
+        // page offers a number the wallpaper silently refuses to honour.
         characterCount: Math.max(
             1,
             Math.min(
-                100,
+                1000,
                 wallpaper.configuration
                     && wallpaper.configuration.CharacterCount !== undefined
                     ? wallpaper.configuration.CharacterCount

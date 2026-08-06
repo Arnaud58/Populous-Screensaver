@@ -23,7 +23,7 @@ Window {
 
         category: "General"
 
-        property int characterCount: 24
+        property int characterCount: 200
         property int spriteScale: 0
         property bool footprintsEnabled: true
         property int randomSeed: 0
@@ -46,8 +46,8 @@ Window {
                 id: characterCount
 
                 Layout.fillWidth: true
-                from: 1
-                to: 100
+                from: 10
+                to: 1000
                 value: settings.characterCount
             }
 
