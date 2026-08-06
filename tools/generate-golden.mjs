@@ -8,6 +8,7 @@ const PROJECT = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const SIMULATION_PATH = join(PROJECT, "core/js/Simulation.js")
 const ANIMATIONS_PATH = join(PROJECT, "core/js/Animations.js")
 const GOLDEN_DIR = join(PROJECT, "tests/golden")
+const HOST_STEP_SECONDS = 1 / 60
 
 const SIMULATION_EXPORTS = [
     "tuning",
@@ -108,6 +109,8 @@ function characterSnapshot(character) {
         directionId: character.directionId,
         directionX: character.directionX,
         directionY: character.directionY,
+        headingX: character.headingX,
+        headingY: character.headingY,
         worldX: character.worldX,
         worldY: character.worldY,
         speed: character.speed,
@@ -118,6 +121,14 @@ function characterSnapshot(character) {
         footprintSide: character.footprintSide,
         collisionCooldownMs: character.collisionCooldownMs,
         wanderRemainingMs: character.wanderRemainingMs,
+        legacyState: character.legacyState,
+        legacySubstate: character.legacySubstate,
+        legacyTimerTicks: character.legacyTimerTicks,
+        legacyMod11: character.legacyMod11,
+        legacyMod2: character.legacyMod2,
+        legacyTurnTicks: character.legacyTurnTicks,
+        legacyTurnRadians: character.legacyTurnRadians,
+        formationSlot: character.formationSlot,
         health: character.health,
         targetId: character.targetId,
         actionRemainingMs: character.actionRemainingMs,
@@ -187,7 +198,7 @@ export async function generateScenario(scenario) {
         events.push(...Simulation.stepSimulation(
             simulation,
             world,
-            Simulation.tuning.stepSeconds
+            HOST_STEP_SECONDS
         ))
         if (step % scenario.snapshotIntervalSteps === 0) {
             capture(step)
@@ -202,7 +213,8 @@ export async function generateScenario(scenario) {
             characterCount: scenario.characterCount,
             spriteScale: scenario.spriteScale,
             steps: scenario.steps,
-            stepSeconds: rounded(Simulation.tuning.stepSeconds),
+            stepSeconds: rounded(HOST_STEP_SECONDS),
+            simulationStepSeconds: rounded(Simulation.tuning.stepSeconds),
             snapshotIntervalSteps: scenario.snapshotIntervalSteps,
             worldRects: scenario.worldRects
         },

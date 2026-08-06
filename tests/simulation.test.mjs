@@ -49,6 +49,8 @@ const EXPORTS = [
     "randomDirection",
     "randomTribe",
     "randomWanderInterval"
+    ,"blendFootprintChannel"
+    ,"launchFormationGroup"
 ]
 
 function loadPragmaLibrary(relativePath, exports) {
@@ -118,6 +120,14 @@ test("the same seed replays the same sequence", () => {
     }
 })
 
+test("the random source matches the Microsoft C runtime sequence", () => {
+    const random = Simulation.createRandom(1)
+    assert.deepEqual(
+        Array.from({ length: 10 }, () => random.nextOriginal()),
+        [41, 18467, 6334, 26500, 19169, 15724, 11478, 29358, 26962, 24464]
+    )
+})
+
 test("different seeds diverge", () => {
     const a = Simulation.createRandom(1)
     const b = Simulation.createRandom(2)
@@ -133,7 +143,7 @@ test("the random source stays inside its ranges", () => {
     for (let i = 0; i < 5000; ++i) {
         const value = random.nextUint32()
         assert.ok(Number.isInteger(value))
-        assert.ok(value >= 0 && value <= 0xffffffff)
+        assert.ok(value >= 0 && value <= 0x7fff)
 
         const float = random.nextFloat()
         assert.ok(float >= 0 && float < 1)
@@ -382,10 +392,8 @@ test("a 2x2 footprint is dropped every other original tick while moving", () => 
     const random = Simulation.createRandom(1)
 
     let footprint = null
-    for (let i = 0; i < 3; ++i) {
-        footprint = Simulation.stepCharacter(character, WORLD, STEP, random).footprint
-        assert.equal(footprint, null)
-    }
+    footprint = Simulation.stepCharacter(character, WORLD, STEP, random).footprint
+    assert.equal(footprint, null)
     footprint = Simulation.stepCharacter(character, WORLD, STEP, random).footprint
 
     assert.notEqual(footprint, null)
@@ -393,19 +401,41 @@ test("a 2x2 footprint is dropped every other original tick while moving", () => 
     assert.equal(footprint.directionX, 1)
     assert.equal(footprint.spriteScale, 1)
     assert.equal(footprint.size, 2)
-    assert.equal(footprint.groundY, 100)
-    assert.equal(footprint.groundX, 113)
+    assert.equal(footprint.groundY, 99)
+    assert.ok(Math.abs(footprint.groundX - 109.6) < 1e-9)
+    assert.equal(footprint.sourceX >= 0, true)
 })
 
-test("wandering fires when its countdown runs out", () => {
-    const character = makeCharacter({ wanderRemainingMs: STEP * 1000 })
-    const random = Simulation.createRandom(7)
+test("ordinary roaming consumes PRNG only at the recovered decision gates", () => {
+    let calls = 0
+    const random = {
+        nextOriginal() { calls += 1; return 0 },
+        nextUint32() { return this.nextOriginal() },
+        nextFloat() { return this.nextOriginal() / 32768 },
+        nextInt(maximum) { return Math.floor(this.nextFloat() * maximum) },
+        pick(values) { return values[this.nextInt(values.length)] }
+    }
+    const simulation = Simulation.createSimulation(1)
+    simulation.random = random
+    simulation.characters = [makeCharacter({
+        legacyState: 0,
+        legacyMod11: 8,
+        legacyTimerTicks: 1
+    })]
 
-    const result = Simulation.stepCharacter(character, WORLD, STEP, random)
+    Simulation.stepSimulation(simulation, WORLD, STEP)
+    assert.equal(calls, 1)
+    Simulation.stepSimulation(simulation, WORLD, STEP)
+    assert.equal(calls, 2)
+    Simulation.stepSimulation(simulation, WORLD, STEP)
+    assert.equal(calls, 4)
+})
 
-    assert.equal(result.directionChanged, true)
-    assert.ok(character.wanderRemainingMs >= Simulation.tuning.wanderIntervalMinMs)
-    assert.ok(character.wanderRemainingMs <= Simulation.tuning.wanderIntervalMaxMs)
+test("the recovered GDI channel blend is exact on a black background", () => {
+    assert.equal(Simulation.blendFootprintChannel(120, 0, 100, false, false, "red"), 100)
+    assert.equal(Simulation.blendFootprintChannel(100, 0, 100, false, true, "red"), 115)
+    assert.equal(Simulation.blendFootprintChannel(100, 0, 100, false, true, "green"), 90)
+    assert.equal(Simulation.blendFootprintChannel(100, 200, 99, true, false, "blue"), 125)
 })
 
 // --- Avoidance -----------------------------------------------------------
@@ -526,7 +556,8 @@ test("initialisation places a character inside the world at a valid speed", () =
         assert.ok(character.speed >= Simulation.tuning.speedMin * 2)
         assert.ok(character.speed <= Simulation.tuning.speedMax * 2)
         assert.ok(Simulation.spawnTribes.includes(character.tribe))
-        assert.ok(character.wanderRemainingMs >= Simulation.tuning.wanderIntervalMinMs)
+        assert.ok(character.legacyMod11 >= 0 && character.legacyMod11 <= 10)
+        assert.ok(character.legacyMod2 >= 0 && character.legacyMod2 <= 2)
     }
 })
 
@@ -649,6 +680,15 @@ test("combat follows pursue, kick, hit, soul and removal states", () => {
     })
     simulation.characters = [attacker, victim]
     simulation.nextEntityId = 3
+    simulation.random = {
+        nextOriginal: () => 0x7fff,
+        nextUint32: () => 0x7fff,
+        nextFloat: () => 0.999,
+        nextInt: maximum => maximum - 1,
+        pick: values => values[values.length - 1]
+    }
+    attacker.legacyState = 2
+    attacker.targetId = victim.id
 
     const events = Simulation.stepSimulation(simulation, WORLD, STEP)
     assert.ok(events.some(event => event.type === "hit"
@@ -699,6 +739,15 @@ test("a death deterministically replenishes the configured population", () => {
         })
     ]
     simulation.nextEntityId = 3
+    simulation.random = {
+        nextOriginal: () => 0x7fff,
+        nextUint32: () => 0x7fff,
+        nextFloat: () => 0.999,
+        nextInt: maximum => maximum - 1,
+        pick: values => values[values.length - 1]
+    }
+    simulation.characters[0].legacyState = 2
+    simulation.characters[0].targetId = 2
 
     const events = []
     for (let step = 0; step < 30
@@ -1211,8 +1260,57 @@ test("formation slots reproduce the original rotated 8-column table", () => {
     assert.ok(Math.abs((ninth.y - first.y) - 20 * Math.cos(-0.75)) < 1e-9)
 })
 
+test("state 9 launches one leader and at most fifteen ready followers", () => {
+    const simulation = Simulation.createSimulation(1)
+    simulation.random = {
+        nextOriginal: () => 0x7fff,
+        nextUint32: () => 0x7fff,
+        nextFloat: () => 0.999,
+        nextInt: maximum => maximum - 1,
+        pick: values => values[values.length - 1]
+    }
+    const leader = makeCharacter({
+        id: 1, tribe: "blue", legacyState: 9,
+        legacySubstate: 4, formationSlot: 0
+    })
+    const followers = Array.from({ length: 20 }, (_, index) =>
+        makeCharacter({
+            id: index + 2,
+            tribe: "blue",
+            legacyState: 9,
+            legacySubstate: 4,
+            formationSlot: index + 1,
+            worldX: 100 + index
+        })
+    )
+    const targets = Array.from({ length: 3 }, (_, index) =>
+        makeCharacter({
+            id: index + 100,
+            tribe: "red",
+            worldX: 200 + index,
+            worldY: 100
+        })
+    )
+    simulation.characters = [leader, ...followers, ...targets]
+    const events = []
+
+    assert.equal(Simulation.launchFormationGroup(simulation, leader, events), true)
+    assert.equal(leader.legacyState, 2)
+    assert.equal(followers.filter(state => state.legacyState === 2).length, 15)
+    assert.equal(followers.filter(state => state.legacyState === 9).length, 5)
+    assert.equal(events.at(-1).type, "war-party-launched")
+    assert.equal(events.at(-1).followers, 15)
+})
+
 test("Armageddon conscripts every unaligned character", () => {
-    const { simulation, events } = runCycle(ARMAGEDDON_AT + 1)
+    const simulation = Simulation.createSimulation(1998, manifest.animations, {
+        combatEnabled: true,
+        armageddonIntervalMs: Simulation.tuning.armageddonIntervalMinMs
+    })
+    Simulation.populate(simulation, 40, 1)
+    Simulation.stepSimulation(simulation, BIG_WORLD, 0)
+    simulation.armageddon.phaseRemainingMs = Simulation.tuning.originalTickMs
+    const events = Simulation.stepSimulation(simulation, BIG_WORLD, STEP)
 
     const started = events.find(event => event.type === "armageddon-started")
     assert.notEqual(started, undefined)
@@ -1223,6 +1321,38 @@ test("Armageddon conscripts every unaligned character", () => {
         assert.notEqual(character.tribe, Simulation.unalignedTribe,
             `an unaligned ${character.entity} survived the draft`)
     }
+})
+
+test("the rare winner branch enters original global states 3 and 4", () => {
+    const simulation = Simulation.createSimulation(1, manifest.animations, {
+        combatEnabled: true
+    })
+    simulation.desiredPopulation = 8
+    simulation.populationSpriteScale = 1
+    simulation.armageddon.mode = "battle"
+    simulation.armageddon.cycleVariant = 1
+    simulation.characters = [makeCharacter({
+        id: 1, tribe: "blue", legacyState: 2
+    })]
+
+    let events = Simulation.stepSimulation(simulation, BIG_WORLD, STEP)
+    assert.equal(simulation.armageddon.mode, "celebration")
+    assert.equal(simulation.characters.length, 4)
+    assert.ok(simulation.characters.every(state => state.legacyState === 13))
+    assert.ok(events.some(event => event.type === "armageddon-phase"
+        && event.phase === "celebration"))
+
+    for (const character of simulation.characters) {
+        character.celebrationFinished = true
+    }
+    simulation.armageddon.celebrationCompleted = 4
+    simulation.armageddon.phaseRemainingMs = Simulation.tuning.originalTickMs
+    events = Simulation.stepSimulation(simulation, BIG_WORLD, STEP)
+    assert.equal(simulation.armageddon.mode, "celebration_restore")
+    assert.ok(events.some(event => event.phase === "celebration_restore"))
+
+    Simulation.stepSimulation(simulation, BIG_WORLD, STEP)
+    assert.equal(simulation.armageddon.mode, "restore")
 })
 
 test("the draft is random and deterministic rather than artificially balanced", () => {

@@ -66,6 +66,8 @@ var actions = {
     kick: "kick",
     cast: "cast",
     punch: "punch",
+    scratch: "scratch",
+    wave: "wave",
     hit: "hit",
     rise: "rise",
     depart: "depart"
@@ -95,6 +97,8 @@ var armageddonModes = {
     normal: "normal",
     gather: "gather",
     battle: "battle",
+    celebration: "celebration",
+    celebrationRestore: "celebration_restore",
     restore: "restore"
 }
 
@@ -137,8 +141,19 @@ var tuning = {
     footprintSize: 2,
     collisionDistance: 14,
     collisionCooldownMs: 350,
-    wanderIntervalMinMs: 2000,
-    wanderIntervalMaxMs: 7000,
+    idleDecisionThreshold: 12000,
+    groupDecisionThreshold: 27001,
+    directCombatThreshold: 16385,
+    targetGateThreshold: 16384,
+    groupLaunchThreshold: 32700,
+    roamWaitMinTicks: 10,
+    roamWaitSpanTicks: 30,
+    neutralRoamLockMinTicks: 20,
+    neutralRoamLockSpanTicks: 30,
+    scratchTicks: 15,
+    formationWaitTicks: 100,
+    groupFollowerLimit: 15,
+    groupTargetDistanceSquared: 125000,
     avoidanceIntervalMs: 100,
     // Large enough for a scale-3 character's avoidance radius. Queries still
     // expand over several cells when a host supplies a larger sprite scale.
@@ -202,6 +217,10 @@ var tuning = {
     armageddonIntervalMaxMs: 500000,
     armageddonGatherTicks: 201,
     armageddonRestoreTicks: 2,
+    armageddonCelebrationHoldTicks: 40,
+    armageddonCelebrationRestoreTicks: 10,
+    celebrationPathStartDelayTicks: 7,
+    celebrationPathNearSquared: 56,
     armageddonCentreRadius: 70,
     // A shaman in the battle throws at another tribe's shaman rather than
     // converting, alternating fire and lightning.
@@ -218,41 +237,42 @@ var tuning = {
     // host manages to call it. Anything longer than maxAccumulatedSeconds is
     // dropped rather than caught up, so a stalled host cannot teleport
     // characters or lock the loop up trying to catch up.
-    stepSeconds: 1 / 60,
+    // The executable advances the complete world from a 30 ms Windows timer.
+    stepSeconds: 30 / 1000,
     maxAccumulatedSeconds: 0.25,
     minWorldSize: 64
 }
 
 // --- Random source -------------------------------------------------------
 //
-// mulberry32. Chosen because it is five lines, has no state beyond one 32-bit
-// word, and maps to C without ambiguity: every operation below is an explicit
-// unsigned 32-bit one. Math.imul is a 32-bit multiply keeping the low word,
-// which is what a uint32_t multiply does in C.
+// Exact Microsoft C runtime generator used at FUN_00417dd0/FUN_00417de0.
 
 function createRandom(seed) {
     var state = (seed >>> 0) || 1
 
-    function nextUint32() {
-        state = (state + 0x6d2b79f5) >>> 0
-        var t = Math.imul(state ^ (state >>> 15), 1 | state) >>> 0
-        t = ((t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t) >>> 0
-        return (t ^ (t >>> 14)) >>> 0
+    function nextOriginal() {
+        state = (Math.imul(state, 214013) + 2531011) >>> 0
+        return (state >>> 16) & 0x7fff
     }
 
     return {
         seed: state,
-        nextUint32: nextUint32,
+        nextOriginal: nextOriginal,
+        // Retained for the public deterministic interface. The original only
+        // exposes 15 random bits per call.
+        nextUint32: function () {
+            return nextOriginal()
+        },
         // Uniform in [0, 1).
         nextFloat: function () {
-            return nextUint32() / 4294967296
+            return nextOriginal() / 32768
         },
         // Uniform integer in [0, bound).
         nextInt: function (bound) {
-            return Math.floor((nextUint32() / 4294967296) * bound)
+            return Math.floor((nextOriginal() / 32768) * bound)
         },
         pick: function (items) {
-            return items[Math.floor((nextUint32() / 4294967296) * items.length)]
+            return items[Math.floor((nextOriginal() / 32768) * items.length)]
         }
     }
 }
@@ -478,6 +498,9 @@ function stateAnimationId(state) {
         }
         return "soul." + state.tribe + ".rise." + state.directionId
     }
+    if (state.action === actions.wave) {
+        return "brave." + state.tribe + ".wave"
+    }
     // Firewarriors have no hit stream of their own. The original deliberately
     // selects the brave hit cells for them, and the atlas carries no others.
     var entity = state.entity === entityTypes.firewarrior
@@ -518,12 +541,39 @@ function randomTribe(random) {
 }
 
 function randomWanderInterval(random) {
-    var span = tuning.wanderIntervalMaxMs - tuning.wanderIntervalMinMs
-    return tuning.wanderIntervalMinMs + random.nextInt(span + 1)
+    return (Math.floor(
+        random.nextOriginal() * tuning.roamWaitSpanTicks / 0x7fff
+    ) + tuning.roamWaitMinTicks) * tuning.originalTickMs
 }
 
 function tribeColor(tribe) {
     return tribeColors[tribe] || "#d0d0d0"
+}
+
+// FUN_00413f20 blends the pixel already present in the GDI backing surface.
+// Keep the integer truncation explicit: JavaScript's floating-point result is
+// otherwise observably different for the state-13 red/green/blue transforms.
+function truncateTowardZero(value) {
+    return value < 0 ? Math.ceil(value) : Math.floor(value)
+}
+
+function blendFootprintChannel(current, background, amount, hasImage, state13,
+        channel) {
+    current = Math.max(0, Math.min(255, current | 0))
+    background = Math.max(0, Math.min(255, background | 0))
+    if (state13) {
+        var delta = channel === "red" ? current - 255 : current
+        return Math.max(0, Math.min(
+            255, current + truncateTowardZero(delta / -10)
+        ))
+    }
+    if (!hasImage) {
+        return truncateTowardZero(current / (1 + amount * 0.002))
+    }
+    var divisor = 400 / (amount + 1)
+    return Math.max(0, Math.min(
+        255, current + truncateTowardZero((background - current) / divisor)
+    ))
 }
 
 // Caches the frames of the animation matching the character's tribe and
@@ -575,6 +625,11 @@ function currentFrame(state) {
 // Applies a direction to a character and restarts its walk cycle. Returns the
 // resolved direction so the caller can tell which of the eight it snapped to.
 function setDirection(state, dx, dy) {
+    var length = Math.sqrt(dx * dx + dy * dy)
+    if (length > 0) {
+        state.headingX = dx / length
+        state.headingY = dy / length
+    }
     var direction = directionForVector(dx, dy)
     state.directionX = direction.dx
     state.directionY = direction.dy
@@ -583,6 +638,38 @@ function setDirection(state, dx, dy) {
     state.animationElapsedMs = 0
     resolveAnimation(state)
     return direction
+}
+
+function rotateHeading(state, radians) {
+    var x = state.headingX
+    var y = state.headingY
+    var cosine = Math.cos(radians)
+    var sine = Math.sin(radians)
+    state.headingX = x * cosine - y * sine
+    state.headingY = x * sine + y * cosine
+    var visual = directionForVector(state.headingX, state.headingY)
+    if (visual.id !== state.directionId) {
+        state.directionX = visual.dx
+        state.directionY = visual.dy
+        state.directionId = visual.id
+        state.frameIndex = 0
+        state.animationElapsedMs = 0
+        resolveAnimation(state)
+    }
+}
+
+function advanceLegacyCounters(state) {
+    state.legacyMod11 += 1
+    if (state.legacyMod11 > 10) {
+        state.legacyMod11 = 0
+    }
+    state.legacyMod2 += 1
+    if (state.legacyMod2 > 1) {
+        state.legacyMod2 = 0
+    }
+    if (state.legacyTimerTicks > 0) {
+        state.legacyTimerTicks -= 1
+    }
 }
 
 // --- Character rules -----------------------------------------------------
@@ -604,6 +691,8 @@ function createCharacter(animations, spriteScale, entity, tribe) {
         directionId: "south",
         directionX: 0,
         directionY: 1,
+        headingX: 0,
+        headingY: 1,
         worldX: 0,
         worldY: 0,
         speed: 0,
@@ -614,6 +703,16 @@ function createCharacter(animations, spriteScale, entity, tribe) {
         footprintSide: -1,
         collisionCooldownMs: 0,
         wanderRemainingMs: 0,
+        legacyState: 1,
+        legacySubstate: 0,
+        legacyTimerTicks: 0,
+        legacyMod11: 0,
+        legacyMod2: 0,
+        legacyTurnTicks: 0,
+        legacyTurnRadians: 0,
+        formationSlot: -1,
+        celebrationPathIndex: 0,
+        celebrationFinished: false,
         health: tuning.characterHealth,
         targetId: 0,
         actionRemainingMs: 0,
@@ -678,7 +777,17 @@ function initializeCharacter(state, world, random) {
     state.footprintElapsedMs = 0
     state.footprintSide = -1
     state.collisionCooldownMs = 0
-    state.wanderRemainingMs = randomWanderInterval(random)
+    state.wanderRemainingMs = 0
+    state.legacyState = 1
+    state.legacySubstate = 0
+    state.legacyTimerTicks = 0
+    state.legacyMod11 = Math.floor(random.nextOriginal() * 10 / 0x7fff)
+    state.legacyMod2 = Math.floor(random.nextOriginal() * 2 / 0x7fff)
+    state.legacyTurnTicks = 0
+    state.legacyTurnRadians = 0
+    state.formationSlot = -1
+    state.celebrationPathIndex = 0
+    state.celebrationFinished = false
     state.health = tuning.characterHealth
     state.targetId = 0
     state.actionRemainingMs = 0
@@ -892,16 +1001,18 @@ function stepCharacter(state, world, stepSeconds, random, speedOverride) {
         return { directionChanged: directionChanged, footprint: null }
     }
 
-    var length = Math.sqrt(
-        state.directionX * state.directionX + state.directionY * state.directionY
-    )
-    var normalizedX = length > 0 ? state.directionX / length : 0
-    var normalizedY = length > 0 ? state.directionY / length : 0
+    var headingX = Number.isFinite(state.headingX)
+        ? state.headingX : state.directionX
+    var headingY = Number.isFinite(state.headingY)
+        ? state.headingY : state.directionY
+    var length = Math.sqrt(headingX * headingX + headingY * headingY)
+    var normalizedX = length > 0 ? headingX / length : 0
+    var normalizedY = length > 0 ? headingY / length : 0
     var movementSpeed = speedOverride > 0 ? speedOverride : state.speed
     var nextX = state.worldX + normalizedX * movementSpeed * stepSeconds
     var nextY = state.worldY + normalizedY * movementSpeed * stepSeconds
-    var newDirectionX = state.directionX
-    var newDirectionY = state.directionY
+    var newDirectionX = normalizedX
+    var newDirectionY = normalizedY
 
     var margins = {
         x: marginX(state),
@@ -944,7 +1055,7 @@ function stepCharacter(state, world, stepSeconds, random, speedOverride) {
     nextX = acceptedX
     nextY = acceptedY
 
-    if (newDirectionX !== state.directionX || newDirectionY !== state.directionY) {
+    if (newDirectionX !== normalizedX || newDirectionY !== normalizedY) {
         setDirection(state, newDirectionX, newDirectionY)
         directionChanged = true
     }
@@ -956,21 +1067,41 @@ function stepCharacter(state, world, stepSeconds, random, speedOverride) {
     if (travelled > 0) {
         state.footprintElapsedMs += stepMs
     }
-    if (state.footprintElapsedMs >= tuning.footprintIntervalMs) {
+    var footprintStateAllowed = state.legacyState !== 7
+        && state.legacyState !== 10 && state.legacyState !== 11
+    if (state.footprintElapsedMs >= tuning.footprintIntervalMs
+            && footprintStateAllowed) {
         state.footprintElapsedMs %= tuning.footprintIntervalMs
         state.footprintSide = -state.footprintSide
         // FUN_00413f20 writes before the current movement update. Its normal
         // offset is (-3*side*dx + 10, 3*side*dy), over [-1, 1) on both axes.
+        var footprintSize = state.legacyState === 13
+            ? tuning.footprintSize * 2 : tuning.footprintSize
+        var frame = currentFrame(state)
+        var baseX = state.worldX + 10
+            - 3 * state.footprintSide * normalizedX
+        var baseY = state.worldY
+            + 3 * state.footprintSide * normalizedY
+        var groundX = baseX - footprintSize / 2
+        var groundY = baseY - footprintSize / 2
         footprint = {
-            groundX: state.worldX + 10
-                - 3 * state.footprintSide * normalizedX,
-            groundY: state.worldY
-                + 3 * state.footprintSide * normalizedY,
+            groundX: groundX,
+            groundY: groundY,
             directionX: normalizedX,
             directionY: normalizedY,
             tribe: state.tribe,
             spriteScale: state.spriteScale,
-            size: tuning.footprintSize
+            size: footprintSize,
+            state13: state.legacyState === 13,
+            blendAmount: 100,
+            sourceX: frame
+                ? frame.x + (groundX - state.worldX) / state.spriteScale
+                    + frame.anchorX
+                : -1,
+            sourceY: frame
+                ? frame.y + (groundY - state.worldY) / state.spriteScale
+                    + frame.anchorY
+                : -1
         }
     }
 
@@ -981,14 +1112,6 @@ function stepCharacter(state, world, stepSeconds, random, speedOverride) {
 
     if (state.collisionCooldownMs > 0) {
         state.collisionCooldownMs = Math.max(0, state.collisionCooldownMs - stepMs)
-    }
-
-    state.wanderRemainingMs -= stepMs
-    if (state.wanderRemainingMs <= 0) {
-        var wandered = randomDirection(random)
-        setDirection(state, wandered.dx, wandered.dy)
-        state.wanderRemainingMs = randomWanderInterval(random)
-        directionChanged = true
     }
 
     return { directionChanged: directionChanged, footprint: footprint }
@@ -1123,6 +1246,7 @@ function createSimulation(seed, animations, options) {
         desiredPopulation: 0,
         populationSpriteScale: 1,
         tribeState: {},
+        formationReservations: {},
         combatEnabled: !options || options.combatEnabled !== false,
         armageddon: {
             mode: armageddonModes.normal,
@@ -1130,7 +1254,14 @@ function createSimulation(seed, animations, options) {
             intervalMs: armageddonInterval(options),
             originalTickAccumulatorMs: 0,
             gatherIndex: 0,
-            formationCounts: {}
+            formationCounts: {},
+            // FUN_004010c0 starts this at one; FUN_00401bd0 increments it
+            // modulo eleven at the beginning of every Armageddon. State 3 is
+            // therefore deliberately rare rather than the normal ending.
+            cycleVariant: 1,
+            globalMod51: 0,
+            celebrationCompleted: 0,
+            celebrationWinner: null
         },
         nextEntityId: 1,
         accumulatedSeconds: 0,
@@ -1275,6 +1406,7 @@ function transitionEvent(state, previous) {
 }
 
 function beginPursuit(state, target, events) {
+    state.legacyState = 2
     var previous = setBehaviour(state, behaviours.pursue, actions.walk)
     state.targetId = target.id
     if (previous !== state.behaviour) {
@@ -1283,6 +1415,7 @@ function beginPursuit(state, target, events) {
 }
 
 function beginAttack(state, target, events) {
+    state.legacyState = 6
     var previous = setBehaviour(state, behaviours.attack, actions.kick)
     state.targetId = target.id
     state.actionRemainingMs = tuning.combatAttackDurationMs
@@ -1400,6 +1533,8 @@ function convertCharacter(simulation, character, tribe, events) {
     character.health = tuning.characterHealth
     character.targetId = 0
     character.castCooldownMs = 0
+    character.legacyState = 0
+    character.legacySubstate = 0
     setBehaviour(character, behaviours.wander, actions.walk)
     // The tribe and class both changed, and setBehaviour only re-resolves the
     // animation when the action changes — which it did not.
@@ -1661,6 +1796,7 @@ function stepShaman(simulation, state, world, events) {
 }
 
 function receiveHit(state, attacker, events) {
+    state.legacyState = 7
     state.health = Math.max(0, state.health - 1)
     var previous = setBehaviour(state, behaviours.hit, actions.hit)
     state.targetId = attacker.id
@@ -1684,9 +1820,45 @@ function footprintEvent(footprint, entityId) {
 
 // --- Armageddon ----------------------------------------------------------
 
+// The 84 state-13 waypoints written by FUN_00402e90. The executable translates
+// this 500 x 100 drawing around the screen centre, then appends one exit point
+// twenty pixels from the right edge. Keeping the literal table here makes the
+// celebration independently testable and avoids inventing a replacement path.
+var celebrationPath = [
+    [10,84],[23,16],[35,12],[46,14],[55,19],[58,32],[51,44],[39,53],
+    [15,55],[96,35],[107,40],[113,52],[109,71],[98,79],[83,81],[71,71],
+    [70,59],[73,48],[83,39],[95,37],[108,38],[124,48],[137,44],[131,109],
+    [142,44],[157,36],[169,34],[178,41],[179,55],[174,68],[165,77],[151,80],
+    [136,75],[205,19],[205,29],[198,69],[201,78],[214,80],[218,75],[243,33],
+    [243,13],[243,33],[235,77],[256,77],[294,14],[287,8],[282,19],[282,75],
+    [285,79],[330,35],[340,38],[348,43],[351,55],[347,68],[338,79],[325,82],
+    [311,77],[307,64],[310,52],[317,43],[330,36],[339,37],[382,36],[377,33],
+    [377,69],[379,78],[389,79],[399,77],[421,34],[424,14],[421,34],[414,74],
+    [434,74],[465,31],[475,31],[495,31],[475,31],[465,31],[455,45],[464,54],
+    [471,69],[471,77],[460,81],[450,81]
+]
+
+function celebrationPoint(world, index) {
+    var bounds = world.bounds
+    if (index >= celebrationPath.length) {
+        var last = celebrationPath[celebrationPath.length - 1]
+        return {
+            x: bounds.x + bounds.width - 20,
+            y: bounds.y + bounds.height / 2 - 50 + last[1]
+        }
+    }
+    var point = celebrationPath[index]
+    return {
+        x: bounds.x + bounds.width / 2 - 250 + point[0],
+        y: bounds.y + bounds.height / 2 - 50 + point[1]
+    }
+}
+
 function beginArmageddon(simulation, events) {
     // FUN_00401bd0 assigns every still-neutral entry a random tribe. It does
     // not balance the four populations; the near-even capture was incidental.
+    simulation.armageddon.cycleVariant =
+        (simulation.armageddon.cycleVariant + 1) % 11
     var conscripted = 0
     for (var index = 0; index < simulation.characters.length; ++index) {
         var character = simulation.characters[index]
@@ -1737,6 +1909,9 @@ function placeNextArmageddonCharacter(simulation, world) {
     }
     character.health = tuning.characterHealth
     character.targetId = 0
+    character.legacyState = 9
+    character.legacySubstate = 4
+    character.formationSlot = slot
     setBehaviour(character, behaviours.muster, actions.stand)
 }
 
@@ -1751,6 +1926,235 @@ function fightingTribeCount(simulation) {
         }
     }
     return Object.keys(alive).length
+}
+
+function soleFightingTribe(simulation) {
+    var winner = null
+    for (var index = 0; index < simulation.characters.length; ++index) {
+        var character = simulation.characters[index]
+        if (!character || character.entity === entityTypes.shaman
+                || !isCombatant(character) || character.health <= 0) {
+            continue
+        }
+        if (winner !== null && winner !== character.tribe) {
+            return null
+        }
+        winner = character.tribe
+    }
+    return winner
+}
+
+function beginArmageddonCelebration(simulation, world, winner, events) {
+    var shamans = []
+    for (var index = 0; index < simulation.characters.length; ++index) {
+        var character = simulation.characters[index]
+        if (character.entity === entityTypes.shaman) {
+            shamans.push(character)
+        } else {
+            events.push({ type: "character-removed", entityId: character.id })
+        }
+    }
+    simulation.characters = shamans
+    simulation.entities = []
+    simulation.armageddon.mode = armageddonModes.celebration
+    simulation.armageddon.phaseRemainingMs =
+        tuning.armageddonCelebrationHoldTicks * tuning.originalTickMs
+    simulation.armageddon.celebrationCompleted = 0
+    simulation.armageddon.celebrationWinner = winner
+
+    var count = Math.floor(simulation.desiredPopulation / 2)
+    for (index = 0; index < count; ++index) {
+        var wave = createCharacter(
+            simulation.animations, simulation.populationSpriteScale,
+            entityTypes.brave, winner
+        )
+        wave.id = simulation.nextEntityId++
+        wave.initialized = true
+        wave.legacyState = 13
+        wave.legacySubstate = 0
+        wave.celebrationPathIndex = 0
+        wave.celebrationFinished = false
+        wave.worldX = world.bounds.x + index * -6
+        wave.worldY = world.bounds.y + world.bounds.height / 2
+        wave.speed = 2 * 1000 / tuning.originalTickMs
+            * wave.spriteScale
+        setDirection(wave, 0.75, 0.75)
+        setBehaviour(wave, behaviours.muster, actions.wave)
+        simulation.characters.push(wave)
+        events.push({
+            type: "celebration-character-spawned",
+            entityId: wave.id,
+            tribe: winner
+        })
+    }
+    events.push({
+        type: "armageddon-phase",
+        phase: armageddonModes.celebration,
+        winner: winner,
+        population: count
+    })
+}
+
+function resetCelebrationPaths(simulation) {
+    simulation.armageddon.celebrationCompleted = 0
+    for (var index = 0; index < simulation.characters.length; ++index) {
+        var character = simulation.characters[index]
+        if (character.legacyState === 13) {
+            character.legacySubstate = 0
+            character.celebrationPathIndex = 0
+            character.celebrationFinished = false
+        }
+    }
+}
+
+function reservationTable(simulation, tribe) {
+    if (!simulation.formationReservations[tribe]) {
+        simulation.formationReservations[tribe] = new Array(
+            tuning.formationSlotsPerTribe
+        ).fill(false)
+    }
+    return simulation.formationReservations[tribe]
+}
+
+function reserveFormationSlot(simulation, state) {
+    var table = reservationTable(simulation, state.tribe)
+    for (var index = 0; index < table.length; ++index) {
+        if (!table[index]) {
+            table[index] = true
+            state.formationSlot = index
+            return index
+        }
+    }
+    return -1
+}
+
+function releaseFormationSlot(simulation, state) {
+    if (state.formationSlot < 0) {
+        return
+    }
+    var table = reservationTable(simulation, state.tribe)
+    if (state.formationSlot < table.length) {
+        table[state.formationSlot] = false
+    }
+    state.formationSlot = -1
+}
+
+function tribeCounts(simulation) {
+    var counts = { blue: 0, red: 0, yellow: 0, green: 0 }
+    for (var index = 0; index < simulation.characters.length; ++index) {
+        var state = simulation.characters[index]
+        if (state && counts[state.tribe] !== undefined
+                && state.entity !== entityTypes.shaman && state.health > 0) {
+            counts[state.tribe] += 1
+        }
+    }
+    return counts
+}
+
+function groupTargetTribe(simulation, ownTribe) {
+    var counts = tribeCounts(simulation)
+    var selected = null
+    for (var index = 0; index < tribes.length; ++index) {
+        var tribe = tribes[index]
+        if (counts[tribe] > 0
+                && (selected === null || counts[tribe] > counts[selected])) {
+            selected = tribe
+        }
+    }
+    if (selected !== ownTribe) {
+        return selected
+    }
+    selected = null
+    for (index = 0; index < tribes.length; ++index) {
+        tribe = tribes[index]
+        if (tribe !== ownTribe && counts[tribe] > 0
+                && (selected === null || counts[tribe] < counts[selected])) {
+            selected = tribe
+        }
+    }
+    return selected
+}
+
+function nearestGroupTarget(simulation, state, targetTribe, bypassRandomGate) {
+    var best = null
+    var bestSquared = 0
+    for (var index = 0; index < simulation.characters.length; ++index) {
+        var candidate = simulation.characters[index]
+        if (!candidate || candidate === state || candidate.tribe !== targetTribe
+                || !isCombatant(candidate) || candidate.health <= 0
+                || candidate.enteringWorld) {
+            continue
+        }
+        var dx = candidate.worldX - state.worldX
+        var dy = candidate.worldY - state.worldY
+        var squared = dx * dx + dy * dy
+        if ((best === null || squared < bestSquared)
+                && squared < tuning.groupTargetDistanceSquared
+                && (bypassRandomGate
+                    || simulation.random.nextOriginal()
+                        > tuning.targetGateThreshold)) {
+            best = candidate
+            bestSquared = squared
+        }
+    }
+    return best
+}
+
+function beginLegacyPursuit(state, target, events, substate) {
+    state.legacyState = 2
+    state.legacySubstate = substate || 0
+    if (target) {
+        beginPursuit(state, target, events)
+    } else {
+        var previous = setBehaviour(state, behaviours.pursue, actions.walk)
+        state.targetId = 0
+        if (previous !== state.behaviour) {
+            events.push(transitionEvent(state, previous))
+        }
+    }
+}
+
+function launchFormationGroup(simulation, leader, events) {
+    var targetTribe = groupTargetTribe(simulation, leader.tribe)
+    if (!targetTribe) {
+        leader.legacyTimerTicks = 30
+        return false
+    }
+    var target = nearestGroupTarget(simulation, leader, targetTribe)
+    if (!target) {
+        leader.legacyTimerTicks = 30
+        return false
+    }
+
+    releaseFormationSlot(simulation, leader)
+    beginLegacyPursuit(leader, target, events, 9)
+    var followers = 0
+    for (var index = 0; index < simulation.characters.length
+            && followers < tuning.groupFollowerLimit; ++index) {
+        var candidate = simulation.characters[index]
+        if (!candidate || candidate === leader
+                || candidate.entity !== entityTypes.brave
+                || candidate.tribe !== leader.tribe
+                || candidate.legacyState !== 9
+                || candidate.legacySubstate !== 4) {
+            continue
+        }
+        var followerTarget = nearestGroupTarget(simulation, candidate, targetTribe)
+        if (!followerTarget) {
+            continue
+        }
+        releaseFormationSlot(simulation, candidate)
+        beginLegacyPursuit(candidate, followerTarget, events, 9)
+        followers += 1
+    }
+    events.push({
+        type: "war-party-launched",
+        entityId: leader.id,
+        tribe: leader.tribe,
+        targetTribe: targetTribe,
+        followers: followers
+    })
+    return true
 }
 
 function stepArmageddon(simulation, world, events) {
@@ -1775,22 +2179,56 @@ function stepArmageddon(simulation, world, events) {
         if (armageddon.phaseRemainingMs <= 0) {
             armageddon.mode = armageddonModes.battle
             armageddon.phaseRemainingMs = 0
-            for (var index = 0; index < simulation.characters.length; ++index) {
-                var character = simulation.characters[index]
-                if (isCombatant(character)) {
-                    setBehaviour(character, behaviours.wander, actions.walk)
-                }
-            }
             events.push({ type: "armageddon-phase", phase: armageddon.mode })
         }
         return
     }
 
     if (armageddon.mode === armageddonModes.battle) {
-        if (fightingTribeCount(simulation) < 2) {
+        var remainingTribes = fightingTribeCount(simulation)
+        if (remainingTribes < 2) {
+            var winner = remainingTribes === 1
+                ? soleFightingTribe(simulation) : null
+            if (winner && armageddon.cycleVariant === 1) {
+                beginArmageddonCelebration(
+                    simulation, world, winner, events
+                )
+            } else {
+                armageddon.mode = armageddonModes.restore
+                armageddon.phaseRemainingMs =
+                    tuning.armageddonRestoreTicks * tuning.originalTickMs
+                events.push({ type: "armageddon-phase", phase: armageddon.mode })
+            }
+        }
+        return
+    }
+
+    if (armageddon.mode === armageddonModes.celebration) {
+        var expected = Math.floor(simulation.desiredPopulation / 2)
+        if (armageddon.celebrationCompleted < expected) {
+            return
+        }
+        armageddon.phaseRemainingMs -= stepMs
+        if (armageddon.phaseRemainingMs <= 0) {
+            armageddon.mode = armageddonModes.celebrationRestore
+            armageddon.phaseRemainingMs = tuning.originalTickMs
+            resetCelebrationPaths(simulation)
+            events.push({
+                type: "armageddon-phase",
+                phase: armageddon.mode,
+                winner: armageddon.celebrationWinner
+            })
+        }
+        return
+    }
+
+    if (armageddon.mode === armageddonModes.celebrationRestore) {
+        armageddon.phaseRemainingMs -= stepMs
+        if (armageddon.phaseRemainingMs <= 0) {
             armageddon.mode = armageddonModes.restore
             armageddon.phaseRemainingMs =
-                tuning.armageddonRestoreTicks * tuning.originalTickMs
+                tuning.armageddonCelebrationRestoreTicks
+                    * tuning.originalTickMs
             events.push({ type: "armageddon-phase", phase: armageddon.mode })
         }
         return
@@ -1803,6 +2241,22 @@ function stepArmageddon(simulation, world, events) {
         }
         armageddon.mode = armageddonModes.normal
         armageddon.phaseRemainingMs = armageddon.intervalMs
+        simulation.formationReservations = {}
+        if (armageddon.celebrationWinner) {
+            var ordinarySurvivors = []
+            for (var remove = 0; remove < simulation.characters.length; ++remove) {
+                var ending = simulation.characters[remove]
+                if (ending.legacyState === 13) {
+                    events.push({
+                        type: "character-removed", entityId: ending.id
+                    })
+                } else {
+                    ordinarySurvivors.push(ending)
+                }
+            }
+            simulation.characters = ordinarySurvivors
+            armageddon.celebrationWinner = null
+        }
         for (var reset = 0; reset < simulation.characters.length; ++reset) {
             var survivor = simulation.characters[reset]
             survivor.targetId = 0
@@ -1853,6 +2307,245 @@ function lightningPaths(simulation, fromX, fromY, toX, toY) {
 // Armageddon placement is performed centrally, one table entry per original
 // tick. Ordinary aligned characters do not continuously march to a corner:
 // that was a modern approximation, not behaviour present in the executable.
+function enterLegacyRoam(state, events) {
+    state.legacyState = 0
+    state.legacySubstate = 0
+    var previous = setBehaviour(state, behaviours.wander, actions.walk)
+    if (previous !== state.behaviour) {
+        events.push(transitionEvent(state, previous))
+    }
+}
+
+function enterLegacyWait(state, ticks, events) {
+    state.legacyState = 1
+    state.legacySubstate = 0
+    state.legacyTimerTicks = ticks
+    var previous = setBehaviour(state, behaviours.wander, actions.stand)
+    if (previous !== state.behaviour) {
+        events.push(transitionEvent(state, previous))
+    }
+}
+
+function enterLegacyFormation(state, events) {
+    state.legacyState = 9
+    state.legacySubstate = 0
+    state.formationSlot = -1
+    state.targetId = 0
+    var previous = setBehaviour(state, behaviours.muster, actions.walk)
+    if (previous !== state.behaviour) {
+        events.push(transitionEvent(state, previous))
+    }
+}
+
+function stepCelebrationCharacter(simulation, state, world) {
+    var armageddon = simulation.armageddon
+    var stepMs = tuning.originalTickMs
+    if (state.celebrationFinished) {
+        advanceAnimation(state, stepMs)
+        return null
+    }
+    // State 13 waits for the world's modulo-51 counter to reach seven. Global
+    // state 4 bypasses that gate for its single final repaint/update.
+    if (armageddon.mode !== armageddonModes.celebrationRestore
+            && armageddon.globalMod51 < tuning.celebrationPathStartDelayTicks) {
+        advanceAnimation(state, stepMs)
+        return null
+    }
+
+    var point = celebrationPoint(world, state.celebrationPathIndex)
+    var dx = point.x - state.worldX
+    var dy = point.y - state.worldY
+    var squared = dx * dx + dy * dy
+    if (squared <= 28) {
+        state.worldX = point.x
+        state.worldY = point.y
+        state.celebrationPathIndex += 1
+        if (state.celebrationPathIndex > celebrationPath.length) {
+            state.celebrationFinished = true
+            state.legacySubstate = 4
+            state.speed = 0
+            setDirection(state, 0, 1)
+            armageddon.celebrationCompleted += 1
+            advanceAnimation(state, stepMs)
+            return null
+        }
+        point = celebrationPoint(world, state.celebrationPathIndex)
+        dx = point.x - state.worldX
+        dy = point.y - state.worldY
+        squared = dx * dx + dy * dy
+    }
+    setDirection(state, dx, dy)
+    var pixelsPerTick = squared <= tuning.celebrationPathNearSquared ? 1 : 2
+    return stepCharacter(
+        state, world, tuning.stepSeconds, simulation.random,
+        pixelsPerTick * 1000 / tuning.originalTickMs * state.spriteScale
+    )
+}
+
+function stepLegacyRoam(simulation, state, world, events) {
+    var random = simulation.random
+    var stepMs = tuning.originalTickMs
+
+    if (state.legacyState === 8) {
+        advanceAnimation(state, stepMs)
+        if (state.legacyTimerTicks <= 0) {
+            if (state.legacySubstate === 9) {
+                state.legacyState = 9
+                state.legacySubstate = 4
+                setBehaviour(state, behaviours.muster, actions.stand)
+            } else {
+                beginLegacyPursuit(state, null, events, 0)
+            }
+        }
+        return null
+    }
+
+    if (state.legacyState === 9) {
+        if (state.formationSlot < 0
+                && reserveFormationSlot(simulation, state) < 0) {
+            enterLegacyRoam(state, events)
+            return null
+        }
+        if (state.legacySubstate === 4) {
+            advanceAnimation(state, stepMs)
+            if (state.legacyTimerTicks > 0) {
+                return null
+            }
+            var groupGate = random.nextOriginal()
+            if (groupGate >= tuning.groupDecisionThreshold
+                    && state.legacyMod11 === 0) {
+                state.legacyState = 8
+                state.legacySubstate = 9
+                state.legacyTimerTicks = tuning.scratchTicks
+                setBehaviour(state, behaviours.wander, actions.scratch)
+                return null
+            }
+            if (simulation.armageddon.mode === armageddonModes.battle) {
+                var opponents = {
+                    blue: "yellow", red: "green",
+                    yellow: "blue", green: "red"
+                }
+                var battleTarget = nearestGroupTarget(
+                    simulation, state, opponents[state.tribe], true
+                )
+                if (battleTarget) {
+                    releaseFormationSlot(simulation, state)
+                    beginLegacyPursuit(state, battleTarget, events, 0)
+                }
+                return null
+            }
+            if (random.nextOriginal() > tuning.groupLaunchThreshold
+                    && state.legacyMod11 === 0
+                    && simulation.armageddon.mode === armageddonModes.normal) {
+                launchFormationGroup(simulation, state, events)
+            }
+            return null
+        }
+
+        var slot = originalFormationSlot(world, state.tribe, state.formationSlot)
+        if (!slot) {
+            releaseFormationSlot(simulation, state)
+            enterLegacyRoam(state, events)
+            return null
+        }
+        var slotX = slot.x - state.worldX
+        var slotY = slot.y - state.worldY
+        var slotSquared = slotX * slotX + slotY * slotY
+        if (slotSquared <= 28) {
+            state.legacySubstate = 4
+            state.legacyTimerTicks = tuning.formationWaitTicks
+            setBehaviour(state, behaviours.muster, actions.stand)
+            advanceAnimation(state, stepMs)
+            return null
+        }
+        setDirection(state, slotX, slotY)
+        return stepCharacter(
+            state, world, tuning.stepSeconds, random,
+            tuning.combatPursuitSpeed * state.spriteScale
+        )
+    }
+
+    if (state.legacyState === 1) {
+        advanceAnimation(state, stepMs)
+        if (state.legacyTimerTicks > 0
+                || random.nextOriginal() < tuning.idleDecisionThreshold) {
+            return null
+        }
+        if (state.tribe === unalignedTribe) {
+            enterLegacyRoam(state, events)
+            state.legacyTimerTicks = Math.floor(
+                random.nextOriginal() * tuning.neutralRoamLockSpanTicks / 0x7fff
+            ) + tuning.neutralRoamLockMinTicks
+            return null
+        }
+
+        var actionGate = random.nextOriginal()
+        if (actionGate < tuning.groupDecisionThreshold
+                || state.legacyMod11 !== 0) {
+            if (random.nextOriginal() < tuning.directCombatThreshold
+                    || simulation.armageddon.mode === armageddonModes.battle) {
+                beginLegacyPursuit(state, null, events, 0)
+            } else {
+                enterLegacyFormation(state, events)
+            }
+        } else {
+            state.legacyState = 8
+            state.legacySubstate = 0
+            state.legacyTimerTicks = tuning.scratchTicks
+            setBehaviour(state, behaviours.wander, actions.scratch)
+        }
+        return null
+    }
+
+    var moved = stepCharacter(state, world, tuning.stepSeconds, random)
+    var wasTurning = state.legacyTurnTicks > 0
+    if (wasTurning) {
+        rotateHeading(state, state.legacyTurnRadians)
+        state.legacyTurnTicks -= 1
+    } else if (state.legacyMod11 === 0
+            && random.nextOriginal() > 22000) {
+        state.legacyTurnRadians = random.nextOriginal() < 0x4001 ? -0.1 : 0.1
+        state.legacyTurnTicks = 20
+    }
+    if (!wasTurning && state.legacyTurnTicks === 0 && state.legacyTimerTicks === 0
+            && random.nextOriginal() >= tuning.idleDecisionThreshold) {
+        var waitTicks = Math.floor(
+            random.nextOriginal() * tuning.roamWaitSpanTicks / 0x7fff
+        ) + tuning.roamWaitMinTicks
+        enterLegacyWait(state, waitTicks, events)
+    }
+    return moved
+}
+
+function acquireLegacyTarget(simulation, state) {
+    if (state.legacyTimerTicks > 0 || state.legacyMod11 !== 0) {
+        return null
+    }
+    var best = null
+    var bestSquared = 0
+    for (var index = 0; index < simulation.characters.length; ++index) {
+        var candidate = simulation.characters[index]
+        if (!candidate || candidate === state || !isCombatant(candidate)
+                || candidate.tribe === state.tribe || candidate.health <= 0
+                || candidate.enteringWorld) {
+            continue
+        }
+        var dx = candidate.worldX - state.worldX
+        var dy = candidate.worldY - state.worldY
+        var squared = dx * dx + dy * dy
+        if ((best === null || squared < bestSquared)
+                && squared < tuning.combatAcquireDistance
+                    * tuning.combatAcquireDistance
+                && (simulation.armageddon.mode !== armageddonModes.normal
+                    || simulation.random.nextOriginal()
+                        > tuning.targetGateThreshold)) {
+            best = candidate
+            bestSquared = squared
+        }
+    }
+    return best
+}
+
 // Routes a character to the rules of its class. Unaligned characters have no
 // class behaviour at all: they wander until a shaman converts them.
 function stepBehaviourCharacter(simulation, state, world, events) {
@@ -1861,6 +2554,30 @@ function stepBehaviourCharacter(simulation, state, world, events) {
     }
     if (state.entity === entityTypes.shaman) {
         return stepShaman(simulation, state, world, events)
+    }
+    if (state.entity === entityTypes.brave) {
+        if (state.legacyState === 13) {
+            return stepCelebrationCharacter(simulation, state, world)
+        }
+        if (state.legacyState === 2) {
+            var legacyTarget = findCharacter(simulation, state.targetId)
+            if (!legacyTarget || legacyTarget.health <= 0
+                    || legacyTarget.tribe === state.tribe) {
+                legacyTarget = acquireLegacyTarget(simulation, state)
+                if (!legacyTarget) {
+                    enterLegacyWait(state, 10, events)
+                    state.targetId = 0
+                    return null
+                }
+                beginPursuit(state, legacyTarget, events)
+            }
+            return stepCombatCharacter(simulation, state, world, events)
+        }
+        if (state.behaviour === behaviours.attack
+                || state.behaviour === behaviours.hit) {
+            return stepCombatCharacter(simulation, state, world, events)
+        }
+        return stepLegacyRoam(simulation, state, world, events)
     }
     if (!isCombatant(state)) {
         return stepCharacter(state, world, tuning.stepSeconds, simulation.random)
@@ -1955,6 +2672,7 @@ function stepCombatCharacter(simulation, state, world, events) {
                 beginPursuit(state, retaliate, events)
             } else {
                 var recovered = setBehaviour(state, behaviours.wander, actions.walk)
+                state.legacyState = 0
                 state.targetId = 0
                 events.push(transitionEvent(state, recovered))
             }
@@ -1981,6 +2699,7 @@ function stepCombatCharacter(simulation, state, world, events) {
                 beginPursuit(state, attackTarget, events)
             } else {
                 var previous = setBehaviour(state, behaviours.wander, actions.walk)
+                state.legacyState = 0
                 state.targetId = 0
                 events.push(transitionEvent(state, previous))
             }
@@ -2021,7 +2740,9 @@ function stepCombatCharacter(simulation, state, world, events) {
             ? tuning.fireCastDistance
             : tuning.combatAttackDistance
         if (distance <= reach * state.spriteScale
-                && (!isFirewarrior || state.castCooldownMs <= 0)) {
+                && (!isFirewarrior || state.castCooldownMs <= 0)
+                && (isFirewarrior || simulation.random.nextOriginal()
+                    > tuning.targetGateThreshold)) {
             setDirection(state, dx, dy)
             if (isFirewarrior) {
                 beginFireCast(state, target, events)
@@ -2227,11 +2948,17 @@ function stepSimulation(simulation, world, elapsedSeconds) {
     while (simulation.accumulatedSeconds >= tuning.stepSeconds) {
         simulation.accumulatedSeconds -= tuning.stepSeconds
 
+        if (simulation.combatEnabled) {
+            simulation.armageddon.globalMod51 =
+                (simulation.armageddon.globalMod51 + 1) % 51
+        }
+
         for (index = 0; index < characters.length; ++index) {
             var state = characters[index]
             if (!state.initialized) {
                 continue
             }
+            advanceLegacyCounters(state)
             var result = simulation.combatEnabled
                 ? stepBehaviourCharacter(simulation, state, world, events)
                 : stepCharacter(state, world, tuning.stepSeconds, simulation.random)
@@ -2248,23 +2975,6 @@ function stepSimulation(simulation, world, elapsedSeconds) {
             characters = simulation.characters
         }
 
-        simulation.avoidanceElapsedMs += tuning.stepSeconds * 1000
-        if (simulation.avoidanceElapsedMs >= tuning.avoidanceIntervalMs) {
-            simulation.avoidanceElapsedMs -= tuning.avoidanceIntervalMs
-            var spatialIndex = createSpatialIndex(characters, tuning.spatialCellSize)
-            for (index = 0; index < characters.length; ++index) {
-                if (characters[index].initialized && !characters[index].enteringWorld
-                        && (!simulation.combatEnabled
-                            || characters[index].behaviour === behaviours.wander)) {
-                    var collisionRadius =
-                        tuning.collisionDistance * characters[index].spriteScale
-                    avoidCollisions(
-                        characters[index],
-                        nearbyCharacters(characters[index], spatialIndex, collisionRadius)
-                    )
-                }
-            }
-        }
     }
 
     return events

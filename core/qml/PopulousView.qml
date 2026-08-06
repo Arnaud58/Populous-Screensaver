@@ -43,7 +43,12 @@ Item {
                 "x": x,
                 "y": y,
                 "size": footprint.size || 2,
-                "color": Simulation.tribeColor(footprint.tribe)
+                "sourceX": footprint.sourceX,
+                "sourceY": footprint.sourceY,
+                "spriteScale": footprint.spriteScale || 1,
+                "state13": footprint.state13 === true,
+                "blendAmount": footprint.blendAmount === undefined
+                    ? 100 : footprint.blendAmount
             })
         }
         trailLayer.requestPaint()
@@ -131,6 +136,32 @@ Item {
         color: "black"
     }
 
+    // A readable copy of the atlas lets the trail pass reproduce GetPixel on
+    // the actor's old sprite before applying FUN_00413f20's integer blend.
+    // It is kept outside the viewport; the visible Character items still use
+    // the normal Image path.
+    Canvas {
+        id: spriteSampler
+        x: -10000
+        y: -10000
+        width: 640
+        height: 1277
+        renderTarget: Canvas.Image
+        renderStrategy: Canvas.Immediate
+        property url atlasSource: Qt.resolvedUrl("../images/sprites.png")
+        property bool ready: false
+
+        Component.onCompleted: loadImage(atlasSource)
+        onImageLoaded: requestPaint()
+        onPaint: {
+            var context = getContext("2d")
+            context.clearRect(0, 0, width, height)
+            context.drawImage(atlasSource, 0, 0)
+            ready = true
+            trailLayer.requestPaint()
+        }
+    }
+
     Canvas {
         id: trailLayer
 
@@ -144,13 +175,50 @@ Item {
                 context.clearRect(0, 0, width, height)
                 clearRequested = false
             }
+            if (!spriteSampler.ready) {
+                return
+            }
             for (var index = 0; index < pendingMarks.length; ++index) {
                 var mark = pendingMarks[index]
-                context.fillStyle = mark.color
-                context.fillRect(
-                    Math.round(mark.x), Math.round(mark.y),
-                    mark.size, mark.size
+                var left = Math.round(mark.x)
+                var top = Math.round(mark.y)
+                if (mark.sourceX < 0 || mark.sourceY < 0) {
+                    continue
+                }
+                var pixels = context.getImageData(
+                    left, top, mark.size, mark.size
                 )
+                var sampler = spriteSampler.getContext("2d")
+                for (var py = 0; py < mark.size; ++py) {
+                    for (var px = 0; px < mark.size; ++px) {
+                        var source = sampler.getImageData(
+                            Math.floor(mark.sourceX + px / mark.spriteScale),
+                            Math.floor(mark.sourceY + py / mark.spriteScale), 1, 1
+                        ).data
+                        var offset = (py * mark.size + px) * 4
+                        var alpha = source[3] / 255
+                        var red = Math.round(source[0] * alpha
+                            + pixels[offset] * (1 - alpha))
+                        var green = Math.round(source[1] * alpha
+                            + pixels[offset + 1] * (1 - alpha))
+                        var blue = Math.round(source[2] * alpha
+                            + pixels[offset + 2] * (1 - alpha))
+                        pixels[offset] = Simulation.blendFootprintChannel(
+                            red, 0, mark.blendAmount, false,
+                            mark.state13, "red"
+                        )
+                        pixels[offset + 1] = Simulation.blendFootprintChannel(
+                            green, 0, mark.blendAmount, false,
+                            mark.state13, "green"
+                        )
+                        pixels[offset + 2] = Simulation.blendFootprintChannel(
+                            blue, 0, mark.blendAmount, false,
+                            mark.state13, "blue"
+                        )
+                        pixels[offset + 3] = 255
+                    }
+                }
+                context.putImageData(pixels, left, top)
             }
             pendingMarks = []
         }
