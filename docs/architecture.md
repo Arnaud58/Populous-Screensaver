@@ -86,7 +86,8 @@ The left column is described in [asset-pipeline.md](asset-pipeline.md).
   rule and no timer: the view copies four values into it each tick and
   everything visual is a binding derived from them. It renders a region of the
   atlas with `sourceClipRect`, avoiding hundreds of small PNG files.
-- **`core/qml/Footprint.qml`** — a fading footprint pair, tinted per tribe.
+- The `Canvas` trail layer inside **`core/qml/PopulousView.qml`** keeps the
+  recovered persistent 2 × 2 footprint marks without one QML object per mark.
 - **`core/qml/PopulousWorld.qml`** — one simulation and one view wired together.
   This is what a host with a single window wants; drop it into anything that
   gives it a size.

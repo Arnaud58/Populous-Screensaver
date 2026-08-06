@@ -22,9 +22,9 @@ Item {
     readonly property real cullMargin: 64 * (simulation ? simulation.spriteScale : 1)
 
     function clearFootprints() {
-        for (var index = trailLayer.children.length - 1; index >= 0; --index) {
-            trailLayer.children[index].destroy()
-        }
+        trailLayer.pendingMarks = []
+        trailLayer.clearRequested = true
+        trailLayer.requestPaint()
     }
 
     function addFootprints(footprints) {
@@ -39,15 +39,14 @@ Item {
                     || y < -cullMargin || y > height + cullMargin) {
                 continue
             }
-            footprintComponent.createObject(trailLayer, {
-                "groundX": x,
-                "groundY": y,
-                "directionX": footprint.directionX,
-                "directionY": footprint.directionY,
-                "tribeColor": Simulation.tribeColor(footprint.tribe),
-                "spriteScale": footprint.spriteScale
+            trailLayer.pendingMarks.push({
+                "x": x,
+                "y": y,
+                "size": footprint.size || 2,
+                "color": Simulation.tribeColor(footprint.tribe)
             })
         }
+        trailLayer.requestPaint()
     }
 
     // Copies the simulation state into the visual items. This is the whole
@@ -132,16 +131,29 @@ Item {
         color: "black"
     }
 
-    Item {
+    Canvas {
         id: trailLayer
 
         anchors.fill: parent
-    }
+        property var pendingMarks: []
+        property bool clearRequested: false
 
-    Component {
-        id: footprintComponent
-
-        Footprint { }
+        onPaint: {
+            var context = getContext("2d")
+            if (clearRequested) {
+                context.clearRect(0, 0, width, height)
+                clearRequested = false
+            }
+            for (var index = 0; index < pendingMarks.length; ++index) {
+                var mark = pendingMarks[index]
+                context.fillStyle = mark.color
+                context.fillRect(
+                    Math.round(mark.x), Math.round(mark.y),
+                    mark.size, mark.size
+                )
+            }
+            pendingMarks = []
+        }
     }
 
     Repeater {

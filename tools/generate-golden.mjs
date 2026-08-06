@@ -114,7 +114,8 @@ function characterSnapshot(character) {
         spriteScale: character.spriteScale,
         frameIndex: character.frameIndex,
         animationElapsedMs: character.animationElapsedMs,
-        distanceSinceFootprint: character.distanceSinceFootprint,
+        footprintElapsedMs: character.footprintElapsedMs,
+        footprintSide: character.footprintSide,
         collisionCooldownMs: character.collisionCooldownMs,
         wanderRemainingMs: character.wanderRemainingMs,
         health: character.health,
@@ -122,6 +123,11 @@ function characterSnapshot(character) {
         actionRemainingMs: character.actionRemainingMs,
         castCooldownMs: character.castCooldownMs,
         castLaunched: character.castLaunched,
+        enteringWorld: character.enteringWorld,
+        entryTargetX: character.entryTargetX,
+        entryTargetY: character.entryTargetY,
+        entryDirectionX: character.entryDirectionX,
+        entryDirectionY: character.entryDirectionY,
         initialized: character.initialized
     }
 }

@@ -213,14 +213,14 @@ Written by the simulation:
 | `id` | stable numeric identity within one simulation |
 | `entity` | renderable class: `brave`, `shaman` or `firewarrior` |
 | `action` | animation action: `walk`, `idle`, `kick`, `punch`, `cast` or `hit` |
-| `behaviour` | state-machine state: `wander`, `pursue`, `attack`, `hit`, `seek`, `charge`, `cast`, `recover`, `muster` or `raid` |
+| `behaviour` | state-machine state: `wander`, `pursue`, `attack`, `hit`, `seek`, `cast`, `recover` or Armageddon `muster` |
 | `castSpell` | which spell the current cast will launch: `conversion`, `fire` or `lightning` |
 | `tribe` | one of the tribe ids above |
 | `directionId`, `directionX`, `directionY` | current heading |
 | `worldX`, `worldY` | ground point |
-| `speed` | drawn once at spawn, 30 to 48 world pixels per second, times the sprite scale |
+| `speed` | base motion, exactly 2 px per original 30 ms tick (66.667 px/s), times sprite scale |
 | `frameIndex`, `animationElapsedMs` | walk cycle position |
-| `distanceSinceFootprint` | distance walked since the last footprint |
+| `footprintElapsedMs`, `footprintSide` | 60 ms cadence and alternating side of the persistent pixel mark |
 | `collisionCooldownMs` | counts down after an avoidance turn |
 | `wanderRemainingMs` | counts down to the next spontaneous turn |
 | `health` | remaining hits; starts at 6 |
@@ -230,6 +230,9 @@ Written by the simulation:
 | `castCooldownMs` | counts down before the next spell |
 | `castLaunched` | prevents one cast from launching two projectiles |
 | `tribePinned` | true for a shaman, whose tribe survives initialisation |
+| `enteringWorld` | true while an allocated ordinary character is still outside the visible world |
+| `entryTargetX`, `entryTargetY` | seeded interior spawn point toward which an entering character walks |
+| `entryDirectionX`, `entryDirectionY` | seeded ordinary heading restored once entry is complete |
 | `initialized` | false until the world is large enough to place it |
 
 Resolved by the simulation from the manifest:
@@ -259,11 +262,11 @@ makes the state portable: it holds no timer object and no timestamp, only
 remaining durations that a fixed step decrements.
 
 `createCharacter(animations, spriteScale, entity, tribe)` builds one.
-`populate(simulation, count, spriteScale)` starts a world with **one shaman
-per tribe and nobody else**. The shamans are additional rather than taken out
-of the count: the configured number is how many ordinary characters the user
-asked for, and a world configured below four would otherwise have no
-conversion at all. See [Population](#population) for how the rest arrive.
+`populate(simulation, count, spriteScale)` allocates **one shaman per tribe and
+the complete ordinary population**. The shamans are additional rather than
+taken out of the count: the configured number is how many ordinary characters
+the user asked for. Ordinary characters begin outside the visible world; see
+[Population](#population) for how they enter.
 
 `simulation.entities` is a second list for short-lived non-character entities,
 rendered by the same delegate as characters.
@@ -295,14 +298,13 @@ onward.
 
 ### Population
 
-The world does **not** spawn its population at once. It opens on the four
-shamans alone, and ordinary characters arrive one at a time, at most one every
-`populationSpawnIntervalMs`, until the configured count is reached.
-
-One rule covers both filling an empty world and replacing the dead, because
-the capture shows both happening at the same rate: 3 to 4 characters in the
-first six seconds, climbing past 60 by 40 s, and the same ramp again after
-Armageddon has emptied the world.
+The original allocates its complete population immediately. Each ordinary
+character is first positioned inside the world, then shifted by half the
+selected screen's width and height toward the corresponding outside corner.
+That is why the capture opens on the four visible shamans and appears to fill
+gradually: the other characters already exist, but are walking in from beyond
+the screen. The same mechanism explains the apparent refill delay after
+Armageddon.
 
 Shamans are outside the count. They never die, and including them would
 silently shrink the population the user asked for.
@@ -342,14 +344,17 @@ corners a multi-screen world has.
 
 A refused move means the character does not advance that step, so no clamping
 arithmetic is needed against a non-convex region. At 1/60 s and roughly
-40 px/s that is under a pixel, so it reads as stopping at the wall.
+66.667 px/s that is close to one pixel, so it reads as stopping at the wall.
 
 ### Wandering
 
-`wanderRemainingMs` counts down each step. When it reaches zero the character
-picks a uniformly random new direction and the countdown is redrawn from 2 to 7
-seconds. The original's timing is **unknown**; these values were chosen to look
-plausible.
+`wanderRemainingMs` currently counts down each step. When it reaches zero the
+character picks a uniformly random new direction and the countdown is redrawn
+from 2 to 7 seconds. This remains a clean-room approximation. The original
+moves at exactly 2 px per 30 ms tick, uses 0.1-radian turns lasting 20 ticks,
+and can wait for 10–39 ticks, but its PRNG gates are interleaved with state-9
+reservation logic. The port now uses the exact base speed while retaining its
+deterministic high-level turn scheduler until that whole chain can be ported.
 
 A redundant pick — landing on the direction already held — still counts as a
 change and restarts the walk cycle, matching the pre-0.5.0 behaviour.
@@ -377,13 +382,16 @@ scan over distant characters.
 
 ### Footprints
 
-A footprint pair is dropped every 12 scaled pixels of distance actually walked,
-oriented along the direction of travel and tinted with the tribe colour. It
-holds full opacity for 900 ms, then fades over 2600 ms and is destroyed.
+A moving character emits one 2 × 2 pixel mark every other original tick
+(60 ms). Its side sign alternates and its offset follows the arithmetic in
+`FUN_00413f20`. Marks persist on a Canvas until the trail is explicitly
+cleared, matching the original backing-surface behaviour without creating one
+QML object per mark.
 
-Footprints are drawn procedurally as two rectangles. Atlas row 27 holds native
-particle cells that may be the original's footprints, but their mapping to
-tribes and directions is **unconfirmed**, so they are left untouched.
+The original samples and blends pixels already present in its GDI surface. On
+the port's black background there is no equivalent sprite-contaminated backing
+pixel, so the Canvas uses the tribe colour. This colour choice is the remaining
+visual approximation; cadence, dimensions and persistence are recovered.
 
 ### Events
 
@@ -402,8 +410,6 @@ has a `type`; actor-related items carry stable numeric ids. Current types are:
 | `cast-started` | a shaman or firewarrior began a spell; carries `spell` |
 | `converted` | an unaligned character joined a tribe; carries its new `entity` |
 | `effect-spawned` | a projectile or decoration entered the world; carries `kind` |
-| `raid-started` | a tribe's war party set out; carries `tribe` and `targetTribe` |
-| `raid-ended` | the war party's time ran out and it heads home |
 | `armageddon-started` | the countdown fired; carries how many were `conscripted` |
 | `conscripted` | an unaligned character was drafted into a tribe |
 | `armageddon-phase` | the cycle moved on; carries the new `phase` |
@@ -455,10 +461,10 @@ milliseconds and speeds; transitions are quantised to its fixed step.
 The original main loop immediately allocates a replacement after removal when
 the live count is below the configured population. `populate` records that
 target and the clean-room engine does the same. The replacement receives a new
-stable id and is initialised through the ordinary seeded spawn path on the next
-host call. The original initially offsets it beyond a screen edge; reproducing
-that entrance without breaking non-rectangular multi-monitor geometry remains
-open.
+stable id, is initialised immediately through the ordinary seeded spawn path,
+and enters from beyond both axes. Each selected screen uses its own
+half width and height, so the rule remains valid with non-rectangular
+multi-monitor geometry.
 
 What remains approximate is **when wandering decides to seek combat**. The
 original interleaves several PRNG gates with cooldown, reservation and global
@@ -474,8 +480,8 @@ rules by `stepBehaviourCharacter`.
 | Class | Ordinary role | Fights | Can die |
 | ----- | ------------- | ------ | ------- |
 | `brave` (unaligned) | wanders the whole world, waits to be converted | no | no |
-| `brave` (aligned) | musters, raids, melee combatant | yes, at 14 px | yes |
-| `firewarrior` | musters, raids, ranged combatant | yes, at 150 px | yes |
+| `brave` (aligned) | roams and fights; original group reservations not yet ported | yes, at 14 px | yes |
+| `firewarrior` | roams and fights at range | yes, at 500 px | yes |
 | `shaman` | holds its corner and converts | no | no |
 
 A firewarrior has no hit stream of its own. The original selects the **brave**
@@ -486,36 +492,30 @@ Shamans are neither attacked nor damaged, which the atlas again settles: they
 have `idle`, `walk` and `cast` and no hit or soul stream at all. The original's
 fire impact also excludes them explicitly.
 
-### Corners and war parties
+### Corners and ordinary group logic
 
 Each tribe owns a **corner of the world**, as fractions of the bounding box:
 blue top-left, red top-right, yellow bottom-right, green bottom-left. Two
 things follow from it.
 
-**A shaman belongs to its corner.** It is placed there at spawn rather than at
-a random spot, and when it has nothing to convert it walks back and stands
+**A shaman belongs to its corner.** The original creates the four shamans at
+`(50, 50)` and the three positions mirrored through the world width and height.
+When it has nothing to convert it walks back and stands
 instead of wandering off. The corner anchor is pulled into the world with
 `clampIntoWorld`, because the bounding-box corner of a multi-screen world can
 land in a dead zone belonging to no monitor.
 
-**An aligned character with nothing to fight goes to the muster**, a point just
-inside its tribe's corner. Each takes a fixed slot from its own id, on a
-slanted lattice, so a gathering spreads into a formation rather than piling on
-one pixel. Arriving means standing still: holding the slot is the point.
+The former port made every aligned character march permanently to a 6 × 6
+corner lattice and drove each tribe with a shared 10–20 s raid countdown. The
+executable contains neither rule, so both have been removed.
 
-Every tribe then runs one countdown. When it fires and the tribe has at least
-`raidPartyMinimum` members, the tribe picks another tribe at random and **the
-whole group leaves together** for that tribe's corner, until the raid duration
-expires and they drift home. That single shared countdown is the invisible
-signal behind the columns of characters marching diagonally across the
-original: they are not wandering, they are on their way somewhere.
-
-Combat still takes priority. A raider that finds an enemy in range stops and
-fights, and returns to the march when nothing is left nearby.
-
-The slot lattice is a stand-in. The original's Armageddon formations are dense
-diamonds of thirty to forty characters, and reproducing those exactly belongs
-with [gathering and Armageddon](#gathering-and-armageddon).
+The original instead lets individual state-9 leaders reserve a table position,
+select an opposing tribe through PRNG gates and reassign at most 15 eligible
+followers. The 200-entry reservation tables and formation coordinates are
+confirmed, but the full leader/follower transition chain is not yet cleanly
+ported. Until it is, aligned characters roam and use the proven local combat
+rules. This deliberately leaves one feature incomplete instead of presenting
+an invented global timer as original behaviour.
 
 ### Conversion
 
@@ -524,9 +524,7 @@ Implemented, from original shaman states 3, 4 and 5 and effect type 0.
 | Current behaviour | Condition | Next behaviour |
 | ----------------- | --------- | -------------- |
 | `wander` | an unaligned brave within acquisition range | `seek` |
-| `seek` | target within cast range | `charge` |
-| `charge` | pause ends and the target is still unaligned | `cast` |
-| `charge` | target was converted meanwhile | `seek` |
+| `seek` | target within the 100 px cast range | `cast` |
 | `cast` | cast ends | launch projectile, `seek`, start cooldown |
 
 The projectile flies along the heading it was launched with — it does not
@@ -563,52 +561,45 @@ untouched.
 
 ### Provisional values
 
-Only two numbers in this section are recovered: the three cast frames per
-direction, and the 8-to-10-tick recovery after a fire throw. Every distance,
-interval and probability below is **chosen**, not measured, and a controlled
-recording should replace them.
+The unlimited shaman acquisition scan, the three cast frames per direction and
+the 8-to-10-tick recovery after a fire throw are recovered. The remaining
+distances, intervals and probabilities below are **chosen**, not measured, and
+should be replaced as the corresponding static paths are reconstructed.
 
-Neither cast has a duration of its own. Both last exactly one play-through of
-their three-frame stream, so the state cannot outlive its animation or — worse
-— end before the throw has been drawn.
+The shaman cast lasts the recovered 20 ticks (600 ms), independently of the
+three-frame animation stream.
 
 | Rule | Current value |
 | ---- | ------------- |
-| shaman acquisition / cast range | 250 px / 120 px |
-| pre-cast pause | 240 ms |
-| shaman cooldown | 1800 ms |
-| conversion projectile speed | 800 px/s |
-| conversion arrival distance | 14 px |
-| firewarrior share of conversions | 1 in 4 |
-| fire cast range | 150 px |
-| fire projectile speed / impact radius | 200 px/s / 28 px |
+| shaman acquisition / cast range | whole world / 100 px |
+| cast / cooldown | 600 ms / 900 ms |
+| conversion projectile | 333.333 px/s for 12 ticks, then six scans |
+| conversion radius | 80 px |
+| firewarrior share of conversions | 2767 / 32768 (about 8.44%) |
+| fire cast range | 500 px |
+| fire projectile speed / impact radius | 333.333 px/s / 15 px |
 | fire damage | 2 points |
-| firewarrior cooldown | 1200 ms |
+| firewarrior recovery | 8 to 10 ticks, no extra fixed cooldown |
 
 ### Gathering and Armageddon
 
-Implemented. One countdown runs a cycle that never ends, matching the capture,
-where the screen saver loops indefinitely.
+Implemented for the ordinary state-1 → state-2 → state-5 path. The configured
+countdown is re-armed after each cycle.
 
 | Phase | Duration | What happens |
 | ----- | -------- | ------------ |
 | `normal` | the configured interval | ordinary play |
-| `gather` | 7 s | every unaligned character is drafted; all four tribes walk to their corner formations |
-| `converge` | 3 s | the formations leave their corners for the centre |
-| `battle` | 22 s | one melee at the centre |
-| `resolve` | 4 s | whatever survived is removed |
-| `restore` | 1 s | tribe countdowns reset, the interval is re-armed |
+| `gather` | 201 original ticks (6.03 s) | every neutral gets a random tribe; at most one character-table entry is moved to a formation slot per tick |
+| `battle` | conditional | continues until fewer than two tribes have a living non-shaman combatant |
+| `restore` | 2 original ticks on the ordinary path | survivors return to ordinary states and the interval is re-armed |
 
-The durations come from the capture: gathering runs 121 to 128 s, the
-formations have converged by 131 s, the melee lasts until about 153 s and the
-world is empty by 157 s. The population ramp then refills it from nothing,
-exactly as it filled it at the start of the run.
+There is no distinct convergence phase and no fixed 22-second battle in the
+executable. Global states 3 and 4 form a conditional winner/celebration branch;
+they are not universal phases and remain outside the current implementation.
 
-**The draft evens the tribes out.** Every unaligned character joins whichever
-tribe is currently smallest. Conversion has left the four uneven by this point,
-and neither a per-character draw nor a plain round-robin gives the near-equal
-formations the capture shows. The original's own state machine keeps four tribe
-counters, so counting here is in character.
+**The draft is random, not balanced.** Every still-neutral brave draws one of
+the four tribes. The near-equal groups in the first capture do not override the
+direct code evidence.
 
 **Gathering is a truce.** Nobody acquires a target while the formations
 assemble. Without that the field empties before the battle begins — measured:
@@ -619,9 +610,11 @@ formations arrive intact.
 throw at each other over the top of the melee, alternating the fire projectile
 and lightning. That is the only place lightning is ever used.
 
-Formation slots reuse the muster lattice, so a tribe of more than
-`musterSlots` characters has two sharing a slot. The original's formations are
-denser diamonds; matching them exactly is not done.
+Each tribe has the exact 200-slot table built by `FUN_004010c0`: eight columns
+and 25 rows at 20 px spacing, rotated by `-0.75`, `+0.75`, `+2.3` or `-2.3`
+radians around screen centre, then translated horizontally by one third of the
+screen height. For a non-rectangular Plasma desktop, a point falling in a dead
+zone is clamped into the nearest real screen.
 
 ### Lightning
 

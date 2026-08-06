@@ -30,6 +30,7 @@ const EXPORTS = [
     "createSimulation",
     "populate",
     "createWorld",
+    "originalFormationSlot",
     "worldContains",
     "worldAllows",
     "clampIntoWorld",
@@ -180,6 +181,24 @@ test("combat tuning matches the recovered 30 ms original counters", () => {
     assert.equal(Simulation.tuning.characterHealth, 6)
     assert.equal(Simulation.tuning.soulPoseDurationMs, 90)
     assert.equal(Simulation.tuning.soulLifetimeMs, 6000)
+})
+
+test("spell tuning matches the recovered original counters and constants", () => {
+    assert.equal(Simulation.tuning.shamanCastDistance, 100)
+    assert.equal(Simulation.tuning.shamanCastDurationMs, 600)
+    assert.equal(Simulation.tuning.shamanCastCooldownMs, 900)
+    assert.equal(Simulation.tuning.conversionSpeed, 1000 / 3)
+    assert.equal(Simulation.tuning.conversionRadius, 80)
+    assert.equal(Simulation.tuning.conversionTravelMs, 360)
+    assert.equal(Simulation.tuning.conversionLifetimeMs, 570)
+    assert.equal(Simulation.tuning.firewarriorConversionChance, 2767 / 32768)
+    assert.equal(Simulation.tuning.fireCastDistance, 500)
+    assert.equal(Simulation.tuning.fireSpeed, 1000 / 3)
+    assert.equal(Simulation.tuning.fireImpactRadius, 15)
+    assert.equal(Simulation.tuning.fireImpactDamage, 2)
+    assert.equal(Simulation.tuning.fireLifetimeMs, 930)
+    assert.equal(Simulation.tuning.shamanBattleCooldownMinMs, 1200)
+    assert.equal(Simulation.tuning.shamanBattleCooldownMaxMs, 2070)
 })
 
 test("every combat and soul state resolves to a catalogued animation", () => {
@@ -358,27 +377,24 @@ test("the walk animation wraps around its frame count", () => {
     assert.ok(character.frameIndex >= 0 && character.frameIndex < character.frameCount)
 })
 
-test("a footprint is dropped once the spacing has been walked", () => {
+test("a 2x2 footprint is dropped every other original tick while moving", () => {
     const character = makeCharacter({ speed: 120, spriteScale: 1 })
     const random = Simulation.createRandom(1)
-    const spacing = Simulation.tuning.footprintSpacing
 
     let footprint = null
-    let travelled = 0
-    for (let i = 0; i < 200 && !footprint; ++i) {
-        const before = character.worldX
+    for (let i = 0; i < 3; ++i) {
         footprint = Simulation.stepCharacter(character, WORLD, STEP, random).footprint
-        travelled += character.worldX - before
+        assert.equal(footprint, null)
     }
+    footprint = Simulation.stepCharacter(character, WORLD, STEP, random).footprint
 
     assert.notEqual(footprint, null)
-    assert.ok(travelled >= spacing)
     assert.equal(footprint.tribe, "blue")
     assert.equal(footprint.directionX, 1)
     assert.equal(footprint.spriteScale, 1)
-    // The footprint is left one pixel above the ground point, and the
-    // character walks due east, so its Y never moves.
-    assert.equal(footprint.groundY, 99)
+    assert.equal(footprint.size, 2)
+    assert.equal(footprint.groundY, 100)
+    assert.equal(footprint.groundX, 113)
 })
 
 test("wandering fires when its countdown runs out", () => {
@@ -693,12 +709,15 @@ test("a death deterministically replenishes the configured population", () => {
     assert.equal(simulation.characters.length, 2)
     const replacement = simulation.characters.find(character => character.id === 4)
     assert.ok(replacement)
-    assert.equal(replacement.initialized, false)
+    assert.equal(replacement.initialized, true)
+    assert.equal(replacement.enteringWorld, true)
+    assert.equal(replacement.tribe, Simulation.unalignedTribe)
     assert.ok(events.some(event => event.type === "character-spawned"
         && event.entityId === replacement.id))
 
-    Simulation.stepSimulation(simulation, WORLD, 0)
-    assert.equal(replacement.initialized, true)
+    assert.equal(Simulation.worldContains(
+        WORLD, replacement.worldX, replacement.worldY
+    ), false)
 })
 
 test("combat can be disabled for focused walking scenarios", () => {
@@ -851,7 +870,7 @@ test("a shaman is never a combat target", () => {
     assert.equal(shaman.health, Simulation.tuning.characterHealth)
 })
 
-test("a shaman charges, casts and converts an unaligned brave", () => {
+test("a shaman casts directly and converts an unaligned brave", () => {
     const shaman = makeCharacter({ id: 1, tribe: "blue", worldX: 100, speed: 0 })
     shaman.entity = Simulation.entityTypes.shaman
     const target = makeCharacter({
@@ -871,8 +890,8 @@ test("a shaman charges, casts and converts an unaligned brave", () => {
         .map(event => event.to)
     assert.deepEqual(order.slice(0, 3), [
         Simulation.behaviours.seek,
-        Simulation.behaviours.charge,
-        Simulation.behaviours.cast
+        Simulation.behaviours.cast,
+        Simulation.behaviours.seek
     ])
 
     const cast = events.find(event => event.type === "cast-started")
@@ -890,6 +909,30 @@ test("a shaman charges, casts and converts an unaligned brave", () => {
         && event.kind === Simulation.effectKinds.conversion))
     assert.ok(events.some(event => event.type === "effect-spawned"
         && event.kind === Simulation.effectKinds.flash))
+})
+
+test("a shaman acquires the nearest neutral anywhere in the world", () => {
+    const shaman = makeCharacter({
+        id: 1,
+        tribe: "blue",
+        worldX: 100,
+        worldY: 100,
+        speed: 0
+    })
+    shaman.entity = Simulation.entityTypes.shaman
+    const target = makeCharacter({
+        id: 2,
+        tribe: Simulation.unalignedTribe,
+        worldX: 900,
+        worldY: 900,
+        speed: 0
+    })
+    const simulation = combatSimulation([shaman, target])
+
+    Simulation.stepSimulation(simulation, WORLD, STEP)
+
+    assert.equal(shaman.behaviour, Simulation.behaviours.seek)
+    assert.equal(shaman.targetId, target.id)
 })
 
 // Conversion is the only way a firewarrior enters the world, so if the split
@@ -953,58 +996,51 @@ test("a firewarrior throws fire instead of closing to melee", () => {
         && event.kind === Simulation.effectKinds.ring))
 })
 
-test("a world starts with the four shamans and nobody else", () => {
+test("a world allocates four shamans and its whole ordinary population", () => {
     const simulation = Simulation.createSimulation(1998, manifest.animations)
     Simulation.populate(simulation, 10, 1)
 
-    assert.equal(simulation.characters.length, Simulation.tribes.length)
+    assert.equal(simulation.characters.length, Simulation.tribes.length + 10)
     assert.deepEqual(
-        simulation.characters.map(state => state.entity),
+        simulation.characters.slice(0, Simulation.tribes.length).map(state => state.entity),
         Simulation.tribes.map(() => Simulation.entityTypes.shaman)
     )
     assert.deepEqual(
-        simulation.characters.map(state => state.tribe),
+        simulation.characters.slice(0, Simulation.tribes.length).map(state => state.tribe),
         Simulation.tribes
     )
+    assert.ok(simulation.characters.slice(Simulation.tribes.length)
+        .every(state => state.enteringWorld))
 
     // Their tribe survives initialisation; the drawn one is discarded.
     Simulation.stepSimulation(simulation, WORLD, 0)
     assert.deepEqual(
-        simulation.characters.map(state => state.tribe),
+        simulation.characters.slice(0, Simulation.tribes.length).map(state => state.tribe),
         Simulation.tribes
     )
 })
 
-// The capture opens on four characters and reaches its configured population
-// about fifty seconds later. A world that filled instantly would look wrong
-// from the first frame, and nothing else in the suite would notice.
-test("the population fills in one character at a time", () => {
+test("ordinary characters initialize outside the screen and walk in", () => {
     const simulation = Simulation.createSimulation(1998, manifest.animations)
     Simulation.populate(simulation, 6, 1)
+    Simulation.stepSimulation(simulation, WORLD, 0)
 
-    const interval = Simulation.tuning.populationSpawnIntervalMs
-    const steps = Math.ceil(interval / (STEP * 1000))
+    const ordinary = simulation.characters
+        .filter(state => state.entity !== Simulation.entityTypes.shaman)
+    assert.equal(ordinary.length, 6)
+    assert.ok(ordinary.every(state => state.initialized && state.enteringWorld))
+    assert.ok(ordinary.every(state => !Simulation.worldContains(
+        WORLD, state.worldX, state.worldY
+    )))
 
-    for (let expected = 1; expected <= 6; ++expected) {
-        runSteps(simulation, steps)
-        const ordinary = simulation.characters
-            .filter(state => state.entity !== Simulation.entityTypes.shaman)
-        assert.equal(ordinary.length, expected,
-            `after ${expected} intervals the world holds ${ordinary.length}`)
+    for (let step = 0; step < 4000
+            && ordinary.some(state => state.enteringWorld); ++step) {
+        Simulation.stepSimulation(simulation, WORLD, STEP)
     }
-
-    // And it stops at the target rather than growing without bound.
-    runSteps(simulation, steps * 4)
-    assert.equal(
-        simulation.characters
-            .filter(state => state.entity !== Simulation.entityTypes.shaman).length,
-        6
-    )
-    assert.equal(
-        simulation.characters
-            .filter(state => state.entity === Simulation.entityTypes.shaman).length,
-        Simulation.tribes.length
-    )
+    assert.ok(ordinary.every(state => !state.enteringWorld))
+    assert.ok(ordinary.every(state => Simulation.worldContains(
+        WORLD, state.worldX, state.worldY
+    )))
 })
 
 test("a conversion draws its ring at the radius the rule uses", () => {
@@ -1027,9 +1063,11 @@ test("a conversion draws its ring at the radius the rule uses", () => {
         .filter(entity => entity.kind === Simulation.effectKinds.conversionRing)
     assert.equal(ring.length, Simulation.tuning.conversionRingSparks)
 
+    const centreX = ring.reduce((sum, spark) => sum + spark.worldX, 0) / ring.length
+    const centreY = ring.reduce((sum, spark) => sum + spark.worldY, 0) / ring.length
     const radii = ring.map(spark => Math.hypot(
-        spark.worldX - target.worldX,
-        (spark.worldY - target.worldY) / 0.6
+        spark.worldX - centreX,
+        (spark.worldY - centreY) / 0.6
     ))
     for (const radius of radii) {
         assert.ok(
@@ -1055,37 +1093,34 @@ test("ordinary characters are always born unaligned", () => {
     }
 })
 
-test("each shaman stands in its tribe's corner", () => {
+test("each shaman starts exactly 50 pixels from its original corner", () => {
     const world = Simulation.createWorld([rect(0, 0, 1920, 1152)])
     const simulation = Simulation.createSimulation(1998, manifest.animations)
     Simulation.populate(simulation, 20, 1)
     Simulation.stepSimulation(simulation, world, 0)
 
     const corners = {
-        blue: [0, 0],
-        red: [1920, 0],
-        yellow: [1920, 1152],
-        green: [0, 1152]
+        blue: [50, 50],
+        red: [1870, 50],
+        yellow: [1870, 1102],
+        green: [50, 1102]
     }
-    for (const shaman of simulation.characters) {
+    for (const shaman of simulation.characters.filter(
+        state => state.entity === Simulation.entityTypes.shaman
+    )) {
         const [cornerX, cornerY] = corners[shaman.tribe]
-        const reach = Simulation.tuning.shamanCornerInset * 2
-        assert.ok(
-            Math.abs(shaman.worldX - cornerX) < reach
-                && Math.abs(shaman.worldY - cornerY) < reach,
-            `the ${shaman.tribe} shaman is at ${Math.round(shaman.worldX)},`
-                + `${Math.round(shaman.worldY)}, not in its corner`
+        assert.deepEqual(
+            [shaman.worldX, shaman.worldY],
+            [cornerX, cornerY],
+            `unexpected ${shaman.tribe} shaman position`
         )
     }
 })
 
-// The columns of characters marching diagonally across the original are a war
-// party on its way from its own corner to another tribe's. A tribe that only
-// ever wandered would never produce them.
-test("a tribe musters at its corner then leaves together for another", () => {
+test("ordinary play has no invented global muster or raid timer", () => {
     const world = Simulation.createWorld([rect(0, 0, 1920, 1152)])
     const party = []
-    for (let index = 0; index < Simulation.tuning.raidPartyMinimum + 2; ++index) {
+    for (let index = 0; index < 7; ++index) {
         party.push(makeCharacter({
             id: index + 1,
             tribe: "blue",
@@ -1095,32 +1130,12 @@ test("a tribe musters at its corner then leaves together for another", () => {
     }
     const simulation = combatSimulation(party)
 
-    // No enemy exists, so nothing can distract them from the muster.
-    const gathering = []
+    const events = []
     for (let step = 0; step < 60 * 20; ++step) {
-        gathering.push(...Simulation.stepSimulation(simulation, world, STEP))
-        if (gathering.some(event => event.type === "raid-started")) {
-            break
-        }
+        events.push(...Simulation.stepSimulation(simulation, world, STEP))
     }
-
-    const mustered = gathering.filter(event => event.type === "behaviour-changed"
-        && event.to === Simulation.behaviours.muster)
-    assert.ok(mustered.length > 0, "nobody ever mustered")
-
-    const raid = gathering.find(event => event.type === "raid-started")
-    assert.notEqual(raid, undefined, "the war party never set out")
-    assert.equal(raid.tribe, "blue")
-    assert.notEqual(raid.targetTribe, "blue")
-
-    // They all leave, and they all leave for the same place.
-    for (let step = 0; step < 60 * 3; ++step) {
-        Simulation.stepSimulation(simulation, world, STEP)
-    }
-    const raiding = party.filter(state =>
-        state.behaviour === Simulation.behaviours.raid)
-    assert.ok(raiding.length >= party.length - 1,
-        `only ${raiding.length} of ${party.length} joined the raid`)
+    assert.equal(events.some(event => event.type === "raid-started"), false)
+    assert.equal(events.some(event => event.type === "raid-ended"), false)
 })
 
 // --- Armageddon ----------------------------------------------------------
@@ -1134,11 +1149,8 @@ const BIG_WORLD = Simulation.createWorld([rect(0, 0, 1920, 1152)])
 // that quietly gets a different value than it asked for is worse than a slow
 // one.
 const ARMAGEDDON_AT = Simulation.tuning.armageddonIntervalMinMs / 1000
-const CYCLE_LENGTH = (Simulation.tuning.armageddonGatherMs
-    + Simulation.tuning.armageddonConvergeMs
-    + Simulation.tuning.armageddonBattleMs
-    + Simulation.tuning.armageddonResolveMs
-    + Simulation.tuning.armageddonRestoreMs) / 1000
+const GATHER_LENGTH = Simulation.tuning.armageddonGatherTicks
+    * Simulation.tuning.originalTickMs / 1000
 
 function runCycle(seconds, options = {}) {
     const simulation = Simulation.createSimulation(1998, manifest.animations, {
@@ -1180,15 +1192,23 @@ test("the Armageddon interval is clamped to the range the pages offer", () => {
     assert.equal(Simulation.tuning.armageddonIntervalMs, 120000)
 })
 
-test("a run cycles through every phase and returns to ordinary play", () => {
-    // Long enough for one whole cycle plus the start of the next.
-    const { timeline } = runCycle(ARMAGEDDON_AT * 2 + CYCLE_LENGTH + 2)
+test("Armageddon goes directly from its 201-tick gather to battle", () => {
+    const { timeline } = runCycle(ARMAGEDDON_AT + GATHER_LENGTH + 0.1)
 
-    assert.deepEqual(timeline.slice(0, 6), [
-        "gather", "converge", "battle", "resolve", "restore", "normal"
-    ])
-    // And it loops: the capture shows the screen saver doing this indefinitely.
-    assert.ok(timeline.length > 6, "the cycle did not start again")
+    assert.deepEqual(timeline.slice(0, 2), ["gather", "battle"])
+    assert.equal(timeline.includes("converge"), false)
+    assert.equal(timeline.includes("resolve"), false)
+})
+
+test("formation slots reproduce the original rotated 8-column table", () => {
+    const first = Simulation.originalFormationSlot(BIG_WORLD, "blue", 0)
+    const second = Simulation.originalFormationSlot(BIG_WORLD, "blue", 1)
+    const ninth = Simulation.originalFormationSlot(BIG_WORLD, "blue", 8)
+
+    assert.ok(Math.abs((second.x - first.x) - 20 * Math.cos(-0.75)) < 1e-9)
+    assert.ok(Math.abs((second.y - first.y) - 20 * Math.sin(-0.75)) < 1e-9)
+    assert.ok(Math.abs((ninth.x - first.x) + 20 * Math.sin(-0.75)) < 1e-9)
+    assert.ok(Math.abs((ninth.y - first.y) - 20 * Math.cos(-0.75)) < 1e-9)
 })
 
 test("Armageddon conscripts every unaligned character", () => {
@@ -1205,23 +1225,41 @@ test("Armageddon conscripts every unaligned character", () => {
     }
 })
 
-// The four formations in the capture are of very similar size, which a draw
-// per character would not produce.
-test("the draft splits the world evenly between the four tribes", () => {
-    const { simulation } = runCycle(ARMAGEDDON_AT + 1)
+test("the draft is random and deterministic rather than artificially balanced", () => {
+    const simulation = Simulation.createSimulation(1998, manifest.animations, {
+        combatEnabled: true,
+        armageddonIntervalMs: Simulation.tuning.armageddonIntervalMinMs
+    })
+    Simulation.populate(simulation, 40, 1)
+    Simulation.stepSimulation(simulation, BIG_WORLD, 0)
+    simulation.characters = simulation.characters.filter(
+        state => state.entity !== Simulation.entityTypes.shaman
+    )
+    for (let step = 0; step < Math.round((ARMAGEDDON_AT + 1) / STEP); ++step) {
+        Simulation.stepSimulation(simulation, BIG_WORLD, STEP)
+    }
 
-    const sizes = Simulation.tribes.map(tribe => simulation.characters
-        .filter(state => state.entity !== Simulation.entityTypes.shaman
-            && state.tribe === tribe).length)
-    assert.ok(Math.max(...sizes) - Math.min(...sizes) <= 2,
-        `formation sizes ${sizes.join(", ")} are not balanced`)
+    const assigned = simulation.characters.map(state => state.tribe)
+
+    const replay = Simulation.createSimulation(1998, manifest.animations, {
+        combatEnabled: true,
+        armageddonIntervalMs: Simulation.tuning.armageddonIntervalMinMs
+    })
+    Simulation.populate(replay, 40, 1)
+    Simulation.stepSimulation(replay, BIG_WORLD, 0)
+    replay.characters = replay.characters.filter(
+        state => state.entity !== Simulation.entityTypes.shaman
+    )
+    for (let step = 0; step < Math.round((ARMAGEDDON_AT + 1) / STEP); ++step) {
+        Simulation.stepSimulation(replay, BIG_WORLD, STEP)
+    }
+    assert.deepEqual(replay.characters.map(state => state.tribe), assigned)
 })
 
 // Gathering is a truce. Without it the field empties before the battle starts,
 // while the capture's formations assemble intact.
 test("nobody fights while the formations are gathering", () => {
-    const gatherEnds = ARMAGEDDON_AT
-        + Simulation.tuning.armageddonGatherMs / 1000
+    const gatherEnds = ARMAGEDDON_AT + GATHER_LENGTH
     const { events } = runCycle(gatherEnds - 0.5)
 
     const started = events.findIndex(event => event.type === "armageddon-started")
@@ -1233,20 +1271,31 @@ test("nobody fights while the formations are gathering", () => {
     )
 })
 
-test("the field is cleared before ordinary play resumes", () => {
-    const { simulation, events } = runCycle(ARMAGEDDON_AT + CYCLE_LENGTH + 1)
+test("battle ends conditionally and preserves its survivors", () => {
+    const { simulation } = runCycle(ARMAGEDDON_AT + GATHER_LENGTH + 0.1)
+    const survivors = simulation.characters.filter(
+        state => state.entity !== Simulation.entityTypes.shaman
+    )
+    for (const character of survivors) {
+        character.tribe = "blue"
+    }
+    const ending = []
+    for (let step = 0; step < 10; ++step) {
+        ending.push(...Simulation.stepSimulation(simulation, BIG_WORLD, STEP))
+    }
 
-    assert.ok(events.some(event => event.type === "armageddon-ended"))
-    // Only the shamans survive a cycle; everyone else is replaced by the ramp.
-    const shamans = simulation.characters
-        .filter(state => state.entity === Simulation.entityTypes.shaman)
-    assert.equal(shamans.length, Simulation.tribes.length)
+    assert.ok(ending.some(event => event.type === "armageddon-phase"
+        && event.phase === "restore"))
+    assert.ok(ending.some(event => event.type === "armageddon-ended"))
+    assert.equal(simulation.characters.filter(
+        state => state.entity !== Simulation.entityTypes.shaman
+    ).length, survivors.length)
 })
 
 // The shamans hold their corners and throw at each other over the melee, which
 // is the only place lightning is ever used.
 test("shamans throw fire and lightning during the battle", () => {
-    const { events } = runCycle(ARMAGEDDON_AT + CYCLE_LENGTH)
+    const { events } = runCycle(ARMAGEDDON_AT + GATHER_LENGTH + 8)
 
     const shamanSpells = events.filter(event => event.type === "cast-started"
         && (event.spell === "lightning" || event.spell === "fire"))

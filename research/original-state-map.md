@@ -20,12 +20,12 @@ classes share several state numbers but not every state.
 | 1 | all | stationary wait/cooldown before returning to active logic | ordinary idle/stand cells | confirmed |
 | 2 | brave, firewarrior | pursue a reserved hostile target | ordinary walk cells | confirmed |
 | 3 | shaman | pursue an unaligned conversion target; also used while gathering for Armageddon | shaman walk cells | confirmed |
-| 4 | shaman | stationary pre-cast pause | shaman idle, two frames per direction | confirmed |
+| 4 | shaman | ordinary idle animation; also used by global positioning logic | shaman idle, two frames per direction | confirmed; not a required pre-cast state |
 | 5 | shaman | cast: conversion normally, fire or lightning during Armageddon combat | shaman punch/cast, three frames per direction | confirmed; “punch” is only the catalogue name |
 | 6 | brave | close-range kick | `brave.*.kick`, cells 655–718 | confirmed |
 | 7 | brave, firewarrior | receiving a hit/stagger | `brave.*.hit`, cells 623–654 | confirmed; firewarriors deliberately reuse brave cells |
 | 8 | brave | idle scratch | `brave.*.scratch`, cells 495–622 | confirmed |
-| 9 | brave, firewarrior | travel to an Armageddon formation slot | ordinary walk cells | confirmed |
+| 9 | brave, firewarrior | reservation/formation state in ordinary group logic and Armageddon | ordinary walk cells | confirmed |
 | 10 | brave, firewarrior | first death/soul phase | `soul.*.rise`, cells 719–818 | confirmed |
 | 11 | brave, firewarrior | final rising/removal phase | final cell of the corresponding soul stream | confirmed |
 | 12 | firewarrior | close-range firewarrior punch | `firewarrior.*.punch`, source cells 1057–1148 | confirmed |
@@ -77,6 +77,28 @@ The main loop replaces a removed character whenever the live population is
 below the configured target, so ordinary deaths do not drain the screen over
 time. Replacement happens only in the normal global mode.
 
+## Movement, formations and footprints
+
+State 0 moves a brave by exactly 2 pixels per 30 ms update. It protects a
+30-pixel border, turns by 0.1 radians for 20 ticks when its random gate fires,
+and can enter a stationary state-1 wait lasting 10–39 ticks. The complete
+random cadence remains interleaved with reservation logic and is not yet
+ported literally.
+
+`FUN_004010c0` precomputes **200 formation positions per tribe**. Each table
+starts with eight columns spaced by 20 pixels, from `width/2 - 75`, at
+`height/6`; rows are also 20 pixels apart. The point is rotated around screen
+centre by `-0.75`, `+0.75`, `+2.3` or `-2.3` radians and translated horizontally
+by `-height/3`, `+height/3`, `+height/3` or `-height/3`. Armageddon consumes
+these tables one character slot per tick.
+
+`FUN_00413f20` handles footprints before each class update. A moving character
+writes a normal **2 × 2 pixel** mark every other original tick; state 13 uses a
+4 × 4 region. The side sign alternates. The old renderer changes pixels in its
+persistent GDI backing surface with `GetPixel`/`SetPixel`; the QML port keeps
+persistent 2 × 2 marks on a Canvas, but uses the tribe colour because there is
+no GDI surface from which to sample a sprite-contaminated pixel.
+
 ## Effect selectors
 
 `FUN_00401670` allocates effects in the 400-slot array. The selector is stored
@@ -124,6 +146,9 @@ allocation and the global six-state controller.
 - exact user-facing names for generic effect types 1–5, 9 and 11;
 - whether selector 5 is genuinely dead code or only reached through an
   indirect/non-constant selector missed by the static call search;
+- a complete clean transcription of state 9's ordinary leader/follower
+  reservation algorithm (the table, 15-follower cap and target gates are known,
+  but it is not a single tribe-wide timer);
 - the exact cadence for entering pursuit outside Armageddon: its individual
   PRNG comparisons are visible, but they are interleaved with the state-1
   cooldown, population reservations and global Armageddon mode;

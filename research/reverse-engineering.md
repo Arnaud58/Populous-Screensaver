@@ -169,6 +169,13 @@ Ghidra's rendering of integer state fields as tiny floating-point numbers.
 node tools/extract-original-combat.mjs
 ```
 
+Movement, formation, Armageddon and footprint constants have a second direct
+PE extractor:
+
+```bash
+node tools/extract-original-world.mjs
+```
+
 The two distance comparisons are squared: `.rdata` address `0x004212a0` holds
 62,500 (250 px acquisition) and `0x004212a4` holds 196 (14 px attack). Pursuit
 sets motion to 2 px per 30 ms update. Entering state 6 immediately increments
@@ -236,19 +243,24 @@ use 150, subject to performance validation.
 These transitions are structurally confirmed, while their semantic labels
 remain provisional:
 
-1. Timer 2 changes state 0 (normal) to state 1 and assigns every unaligned
-   character to one of four tribes.
-2. State 1 lasts just over 200 frame ticks — about six seconds at 30 ms — and
-   processes characters in sequence.
-3. State 2 operates on the four tribe counts, emits projectiles and removes or
-   relocates characters as tribes are eliminated.
-4. States 3 and 4 run a shorter resolution sequence.
-5. State 5 restores normal state, recreates missing corner entities and lets
-   the window procedure re-arm the configured Armageddon timer.
+1. Timer 2 changes state 0 (normal) to state 1 and randomly assigns every
+   unaligned character to one of four tribes; it does not balance them.
+2. State 1 lasts 201 frame ticks — about 6.03 seconds at 30 ms. On the tick
+   matching a character-table index, that character is moved directly to its
+   tribe's next precomputed formation slot. There is no separate convergence
+   phase.
+3. State 2 is the battle and has no fixed duration. It continues until fewer
+   than two tribes have surviving members.
+4. Most cycles then use state 5 as a two-tick restoration path. States 3 and 4
+   are a conditional winner/celebration branch, not universal timed phases.
+5. State 5 restores ordinary character states, recreates missing corner
+   entities and lets the window procedure re-arm the configured timer. It does
+   not normally delete every survivor.
 
 The state machine explicitly loops over 200 character slots and maintains four
-tribe counters. Exact state names, winner selection and the meaning of every
-projectile type still need correlation with the video.
+tribe counters. The clean-room engine implements the ordinary
+state-1 → state-2 → state-5 path. The rare state-3/state-4 celebration branch
+is documented but not yet reproduced.
 
 ## Audio table
 
@@ -327,12 +339,12 @@ keeps scores and does not silently turn the nearest resource name into a fact.
 ## What is not established yet
 
 - final public names for the generic particle selectors;
-- exact probabilities and distance thresholds inside ordinary combat;
-- a readable, fully checked transcription of ordinary target selection and
-  damage rules;
+- a readable, fully checked transcription of the ordinary state-9
+  leader/follower reservation algorithm;
+- exact PRNG cadence for ordinary roaming and target-selection gates;
 - a build-pipeline representation for the partly mapped particle cells at
   819–896;
-- exact meaning and range of the darkening and footprint settings;
+- a QML equivalent of the original background-image footprint colour blend;
 - timings inside actions that are not directly driven by the two Windows
   timers.
 

@@ -200,18 +200,17 @@ firewarriors stop at cast range instead of closing to melee, throw fire with a
 trail, and damage hostile combatants at the impact. A general effect entity
 covers all seven visual kinds.
 
-A second pass over a full capture then corrected four things: ordinary
-characters are always born unaligned, each tribe's shaman holds a corner of the
-screen, the conversion projectile is fast, and aligned characters gather at
-their corner and leave in war parties for another tribe's. That last one
-explains the diagonal columns the capture shows and the earlier model could not
-produce.
+A second pass over a full capture established that ordinary characters are
+born unaligned and each tribe's shaman holds a corner. Static analysis then
+corrected the spell constants. The first explanation for diagonal columns — a
+shared per-tribe raid timer — was later disproved: the executable uses
+individual state-9 leaders, reservation slots and up to 15 followers.
 
-Only two numbers here are recovered — the three cast frames per direction and
-the 8-to-10-tick recovery. The rest are chosen and tabulated as provisional in
-[spec/simulation.md](../spec/simulation.md#provisional-values). A controlled
-recording with a small population is what replaces them, and it is the same
-recording 4a still needs.
+Cast range/duration, conversion motion and radius, firewarrior probability,
+fire range/speed/radius/damage and recovery are now statically recovered and
+tabulated in [spec/simulation.md](../spec/simulation.md#provisional-values).
+The remaining ordinary state-9 group transition needs a checked transcription,
+not another capture-derived global timer.
 
 ### 4f — gathering and Armageddon ✅
 
@@ -222,12 +221,12 @@ Written up in
 specified under
 [gathering and Armageddon](../spec/simulation.md#gathering-and-armageddon).
 
-The sequence is: the timer fires at 120 s; characters walk to slots in **four
-diamond formations, one per screen corner, one per tribe**, thirty to forty
-each; the formations then leave their corners and converge on the centre for a
-single mass melee, while **the four shamans stay in their corners** and cast
-into it; the world empties; and the population ramps back up. The screen saver
-loops that indefinitely.
+Static analysis supersedes the phase names inferred from the capture. The
+timer fires at 120 s; global state 1 lasts 201 ticks and directly places one
+character-table entry per tick in one of four formations; state 2 fights until
+fewer than two tribes remain; and the ordinary state-5 restoration path lasts
+two ticks. There is no separate convergence state and no fixed battle duration.
+States 3 and 4 are a conditional winner/celebration branch.
 
 **Lightning has no atlas sprite** and must be drawn: two or three near-parallel
 jagged paths, white with a blue tinge, 784 px long inside a 61 px envelope,
@@ -243,11 +242,10 @@ Ordinary combat sits inside the original's measured band — 0.72 deaths per
 second against 0.45 to 1.68 — because unaligned characters neither fight nor
 die and they are the majority of the world.
 
-**What is left here.** Formation slots reuse the muster lattice, so a tribe
-larger than `musterSlots` has two characters sharing a slot; the original's
-formations are denser diamonds. The Armageddon swirl, effect type 11, is
-catalogued but not implemented, and the `WARLOOP` and `ATTACK99` cues that mark
-the phase boundaries wait on the sound layer.
+The exact formation builder is implemented: 200 slots per tribe, eight columns
+by 25 rows at 20 px spacing, with the four recovered rotations and horizontal
+translations. **What is left here:** the rare state-3/state-4 celebration,
+Armageddon swirl effect type 11, and the `WARLOOP`/`ATTACK99` sound cues.
 
 Regenerate and review the golden JSON once per intentional rule change.
 

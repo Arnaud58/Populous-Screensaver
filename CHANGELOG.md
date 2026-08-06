@@ -8,15 +8,17 @@ reads from: the Windows build has its number written into the payload by
 
 ### Armageddon
 
-- Implemented the whole cycle, on one countdown that never ends: gather the
-  drafted world into four corner formations, converge on the centre, fight it
-  out, clear the field, then hand it back to ordinary play and re-arm. The
-  population ramp refills the world from nothing exactly as it filled it at the
-  start of the run. Phase durations come from the capture.
-- The draft assigns every unaligned character to whichever tribe is smallest,
-  which is what gives the near-equal formations the capture shows. Conversion
-  leaves the tribes uneven, so neither a per-character draw nor a plain
-  round-robin would.
+- Replaced the capture-derived five-phase approximation with the executable's
+  controller: a 201-tick gather places one character-table entry per tick,
+  battle has no fixed duration and ends below two surviving tribes, and the
+  ordinary restoration path lasts two ticks. There is no separate convergence
+  phase and survivors are not normally cleared.
+- Replaced the 6 × 6 stand-in with the exact four 200-slot formation tables:
+  eight columns by 25 rows at 20 px spacing, rotated and translated by the
+  constants extracted from `FUN_004010c0`.
+- Corrected the draft from artificial balancing to the original random tribe
+  assignment. The near-equal first capture was not evidence for a balancing
+  rule.
 - **Gathering is a truce.** Without it 82 of 150 characters died before the
   battle began, while the capture's formations assemble intact.
 - Shamans hold their corners through the whole cycle and throw fire and
@@ -37,6 +39,18 @@ reads from: the Windows build has its number written into the payload by
 
 ### Corners, war parties and unaligned-only spawning
 
+- Corrected the shaman corner inset from the visually chosen 90 px to the
+  original executable's exact 50 px, mirrored through the world dimensions.
+- Removed the invented 250 px shaman acquisition radius. The original scans
+  the complete character table and reserves the nearest eligible neutral,
+  regardless of its distance.
+- Replaced the remaining recovered spell guesses in one pass: shamans cast at
+  100 px for 20 ticks with no separate charge and rest for 30 ticks;
+  conversion travels at 10 px/tick, scans six times in an 80 px radius and
+  creates firewarriors with the original 2767/32768 probability; firewarriors
+  cast at 500 px with a 10 px/tick projectile and a 15 px impact radius.
+- Armageddon shamans now wait 40–69 ticks between casts and choose roughly
+  70% fire versus 30% lightning, instead of a fixed three seconds and 50/50.
 - **No character is born into a tribe any more.** Ordinary spawns are always
   unaligned and conversion is the only way into a tribe, which is what the
   original does. This also closed the death-rate gap on its own: the port now
@@ -45,23 +59,25 @@ reads from: the Windows build has its number written into the payload by
   stalling around 55.
 - **Each tribe owns a corner.** Its shaman is placed there and returns to it
   when idle rather than drifting to the middle of the screen.
-- Added **war parties**: an aligned character with nothing to fight musters at
-  its tribe's corner, taking a fixed lattice slot from its own id, and on a
-  per-tribe countdown the whole group leaves together for another tribe's
-  corner. That is the behaviour behind the diagonal columns of characters seen
-  marching across the original, previously recorded as unexplained.
-- The conversion projectile went from 133 px/s to 800 px/s. The old value was a
-  guess and read as a drifting bubble rather than a spell.
+- Removed the invented per-tribe muster/raid countdown. The original uses
+  individual state-9 position reservations, leaders and at most 15 followers;
+  that transition chain remains explicitly unported instead of being
+  represented by a rule absent from the executable.
+- Corrected ordinary movement to the original fixed 2 px per 30 ms tick and
+  footprints to persistent 2 × 2 marks every other tick. The QML Canvas keeps
+  them without allocating an object per mark.
+- Corrected conversion speed to the recovered 10 px per tick (333.333 px/s).
 
 ### Corrections from a complete original capture
 
 - A second capture covers a whole cycle, including the return to ordinary
   simulation the first one missed. Added `tools/measure-capture.py` so its
   measurements are reproducible rather than eyeballed.
-- **The world now fills in over time.** The original opens on the four shamans
-  alone and adds ordinary characters one at a time; a world that spawned its
-  whole population at once was wrong from the first frame. The same rate
-  refills the world after a death, replacing the former instant top-up.
+- **Corrected after static decompilation:** the original allocates every
+  ordinary character immediately, but shifts each one half a screen beyond
+  both axes. The observed population ramp is their visual entrance, not a
+  350 ms allocation timer. Death replacements now use the same immediate,
+  off-screen path.
 - **Conversion is a zone, not a touch.** The ring measured in the capture is
   180 to 230 px across, about three times a character's height, so the radius
   went from 20 px to 75 px. A ring of sparkles is drawn at exactly the radius

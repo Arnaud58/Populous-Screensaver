@@ -146,8 +146,11 @@ between spawns and deaths.
 | 154–157 s | the world empties: cyan and orange collapse to nothing |
 | 157 s onward | the ramp starts again, and ordinary conversions resume from about 163 s |
 
-The whole cycle is therefore **timer, gather, converge, annihilate, refill**,
-and the screen saver loops it indefinitely.
+Visually this reads as **timer, gather, converge, annihilate, refill**. Static
+analysis later showed that those are not five timer-driven states: state 1
+places entries directly for 201 ticks, state 2 lasts until fewer than two
+tribes remain, and the empty/refill sequence belongs to a conditional winner
+branch. See [reverse-engineering.md](reverse-engineering.md#armageddon-state-machine).
 
 ### Lightning
 
@@ -162,12 +165,14 @@ disassembly's three 15-point paths almost exactly: 784 px over 15 points is
 It occurs only during Armageddon, and it has no atlas sprite: it must be drawn,
 not blitted.
 
-## War parties in ordinary play
+## Ordinary groups in the capture
 
-The diagonal columns are **war parties**, not an artefact. Each tribe gathers
-at its own corner of the screen, and on some shared signal the whole group
-leaves together for another tribe's corner. Formations of the same slanted
-lattice shape appear in ordinary play, not only during Armageddon.
+The diagonal columns are coordinated groups, not a video artefact. The first
+capture-only interpretation was a shared signal sending a whole tribe from one
+corner to another. Decompilation disproved that mechanism: ordinary brave
+state 9 uses per-character reservation slots, a leader and at most 15
+followers, with several PRNG gates. The exact high-level intent of each group
+is less certain than the visible coordination.
 
 The four shamans hold the four corners throughout, in ordinary play as well as
 during Armageddon, which is what the disassembly's "corner entities" means.
@@ -182,7 +187,6 @@ enough to be worth chasing, and no rule should be added to even it out.
 - Whether the ring converts everyone inside it or only marks the boundary of
   a smaller effect. The disassembly's "scans nearby unaligned characters" says
   the former; the capture cannot distinguish them.
-- The exact composition of a formation slot lattice, and what triggers a war
-  party to set out.
-- The starting proportion of unaligned characters, if any: the world appears to
-  begin with none at all besides the shamans.
+- The complete ordinary state-9 leader/follower trigger sequence. The formation
+  table itself is now exact: 200 slots per tribe, eight columns by 25 rows,
+  rotated and translated by `FUN_004010c0`.

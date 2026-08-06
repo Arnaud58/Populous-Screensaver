@@ -74,5 +74,7 @@ Row 27 contains the native 5-pixel-high particle strip. Static analysis now
 ties parts of it to effect selectors 2, 3, 5, 7, 8 and 9; the ranges and call
 chains are recorded in [original-state-map.md](original-state-map.md). The
 cells overlap in ways that do not fit the current one-frame-per-component
-pipeline, so they remain uncompiled. The QML prototype continues to use a
-procedural pixel footprint until that representation is implemented.
+pipeline, so they remain uncompiled. Footprints are not atlas sprites:
+`FUN_00413f20` writes a 2 × 2 pixel region into the GDI backing surface every
+other moving tick. The QML renderer keeps those marks in a persistent Canvas;
+its flat tribe colour approximates the original pixel-sampling blend.

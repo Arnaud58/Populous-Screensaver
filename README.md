@@ -23,12 +23,13 @@ The **Windows screen saver** works and installs: one window per monitor over a
 single continuous world, a settings dialog, and a self-contained archive with
 its own installer.
 
-The simulation is complete apart from sound: tribespeople walk, turn, avoid
-each other and leave coloured footprints; shamans hold the four corners and
-convert the unaligned; tribes muster and raid each other; braves fight, die and
-rise as souls; firewarriors throw fire; and every two minutes Armageddon
-gathers everyone into four corner formations, throws them at each other, and
-starts the world over. No target plays sound yet.
+The simulation is functional, with sound and the original's ordinary
+leader/follower reservation logic still to port: tribespeople walk, turn, avoid
+each other and leave pixel footprints; shamans hold the four corners and
+convert the unaligned; braves fight, die and rise as souls; firewarriors throw
+fire; and every two minutes Armageddon places everyone into the original four
+rotated formations, lets the tribes fight until fewer than two remain, and
+resumes ordinary play. No target plays sound yet.
 
 See the [changelog](CHANGELOG.md) for what changed when, and the
 [roadmap](docs/roadmap.md) for what comes next.
@@ -131,8 +132,9 @@ including the Windows command name.
 
 The Plasma target exposes:
 
-- **number of characters**, from 10 to 1000, defaulting to 200. The world
-  starts with the four shamans alone and fills in over about a minute;
+- **number of characters**, from 10 to 1000, defaulting to 200. The population
+  is allocated immediately, but ordinary characters enter from beyond the
+  screen, so only the four shamans are visible at first;
 - **sprite size**: automatic, 1×, 2× or 3×;
 - **footprints** on or off;
 - an optional **random seed**, where 0 means a different run each time.
