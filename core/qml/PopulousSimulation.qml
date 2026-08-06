@@ -21,6 +21,11 @@ Item {
     // replays exactly, which is what the golden traces rely on.
     property int randomSeed: 0
 
+    // Seconds between Armageddons. The simulation clamps it to the range the
+    // configuration pages offer, so a host cannot ask for a value it then
+    // silently fails to honour.
+    property int armageddonSeconds: 120
+
     // The screens this world spans, in world coordinates. A single-screen host
     // passes one rectangle; a multi-monitor host passes one per monitor and the
     // world becomes continuous across them, with the gaps between mismatched
@@ -68,7 +73,10 @@ Item {
         internal.simulation = Simulation.createSimulation(
             randomSeed || Date.now(),
             animationManifest ? animationManifest.animations : null,
-            { combatEnabled: true }
+            {
+                combatEnabled: true,
+                armageddonIntervalMs: armageddonSeconds * 1000
+            }
         )
         internal.characters = Simulation.populate(
             internal.simulation, characterCount, spriteScale
@@ -122,6 +130,7 @@ Item {
 
     onWorldRectsChanged: rebuildWorld()
     onRandomSeedChanged: restart()
+    onArmageddonSecondsChanged: restart()
     onSpriteScaleChanged: restart()
     onCharacterCountChanged: {
         if (internal.ready) {

@@ -26,6 +26,7 @@ const EXPORTS = [
     "createRandom",
     "createCharacter",
     "createEffect",
+    "lightningPaths",
     "createSimulation",
     "populate",
     "createWorld",
@@ -783,6 +784,11 @@ test("a firewarrior falls back to the brave hit cells", () => {
 test("every effect kind resolves to a catalogued animation", () => {
     const simulation = combatSimulation([])
     for (const kind of Object.values(Simulation.effectKinds)) {
+        // Lightning is the exception, and deliberately so: the original draws
+        // it with line primitives and the atlas holds no cells for it.
+        if (kind === Simulation.effectKinds.lightning) {
+            continue
+        }
         const effect = Simulation.createEffect(simulation, {
             kind,
             worldX: 10,
@@ -793,6 +799,20 @@ test("every effect kind resolves to a catalogued animation", () => {
         assert.ok(effect.frames && effect.frames.length > 0, `${kind} has no frames`)
         assert.ok(effect.lifetimeRemainingMs > 0, `${kind} expires immediately`)
     }
+})
+
+test("lightning carries a path instead of an animation", () => {
+    const simulation = combatSimulation([])
+    const bolt = Simulation.createEffect(simulation, {
+        kind: Simulation.effectKinds.lightning,
+        worldX: 100,
+        worldY: 100,
+        spriteScale: 1,
+        lifetimeMs: Simulation.tuning.lightningDurationMs
+    })
+    assert.equal(bolt.animationKey, null)
+    assert.equal(bolt.frameCount, 0)
+    assert.ok(bolt.lifetimeRemainingMs > 0, "the bolt expires immediately")
 })
 
 // An unaligned character has no kick, no hit and no soul in the atlas. It is
@@ -1101,6 +1121,169 @@ test("a tribe musters at its corner then leaves together for another", () => {
         state.behaviour === Simulation.behaviours.raid)
     assert.ok(raiding.length >= party.length - 1,
         `only ${raiding.length} of ${party.length} joined the raid`)
+})
+
+// --- Armageddon ----------------------------------------------------------
+
+const BIG_WORLD = Simulation.createWorld([rect(0, 0, 1920, 1152)])
+
+// Runs headlessly and records the phase timeline.
+//
+// The interval is the shortest the configuration pages allow. A quicker one
+// would make the fixtures shorter but the simulation clamps it, and a fixture
+// that quietly gets a different value than it asked for is worse than a slow
+// one.
+const ARMAGEDDON_AT = Simulation.tuning.armageddonIntervalMinMs / 1000
+const CYCLE_LENGTH = (Simulation.tuning.armageddonGatherMs
+    + Simulation.tuning.armageddonConvergeMs
+    + Simulation.tuning.armageddonBattleMs
+    + Simulation.tuning.armageddonResolveMs
+    + Simulation.tuning.armageddonRestoreMs) / 1000
+
+function runCycle(seconds, options = {}) {
+    const simulation = Simulation.createSimulation(1998, manifest.animations, {
+        combatEnabled: true,
+        armageddonIntervalMs: Simulation.tuning.armageddonIntervalMinMs,
+        ...options
+    })
+    Simulation.populate(simulation, 40, 1)
+
+    const timeline = []
+    const events = []
+    const steps = Math.round(seconds / STEP)
+    for (let step = 0; step < steps; ++step) {
+        const emitted = Simulation.stepSimulation(simulation, BIG_WORLD, STEP)
+        events.push(...emitted)
+        for (const event of emitted) {
+            if (event.type === "armageddon-started") {
+                timeline.push("gather")
+            } else if (event.type === "armageddon-phase") {
+                timeline.push(event.phase)
+            } else if (event.type === "armageddon-ended") {
+                timeline.push("normal")
+            }
+        }
+    }
+    return { simulation, events, timeline }
+}
+
+test("the Armageddon interval is clamped to the range the pages offer", () => {
+    const low = Simulation.createSimulation(1, manifest.animations,
+        { armageddonIntervalMs: 1000 })
+    const high = Simulation.createSimulation(1, manifest.animations,
+        { armageddonIntervalMs: 9999999 })
+    const missing = Simulation.createSimulation(1, manifest.animations)
+
+    assert.equal(low.armageddon.intervalMs, Simulation.tuning.armageddonIntervalMinMs)
+    assert.equal(high.armageddon.intervalMs, Simulation.tuning.armageddonIntervalMaxMs)
+    assert.equal(missing.armageddon.intervalMs, Simulation.tuning.armageddonIntervalMs)
+    assert.equal(Simulation.tuning.armageddonIntervalMs, 120000)
+})
+
+test("a run cycles through every phase and returns to ordinary play", () => {
+    // Long enough for one whole cycle plus the start of the next.
+    const { timeline } = runCycle(ARMAGEDDON_AT * 2 + CYCLE_LENGTH + 2)
+
+    assert.deepEqual(timeline.slice(0, 6), [
+        "gather", "converge", "battle", "resolve", "restore", "normal"
+    ])
+    // And it loops: the capture shows the screen saver doing this indefinitely.
+    assert.ok(timeline.length > 6, "the cycle did not start again")
+})
+
+test("Armageddon conscripts every unaligned character", () => {
+    const { simulation, events } = runCycle(ARMAGEDDON_AT + 1)
+
+    const started = events.find(event => event.type === "armageddon-started")
+    assert.notEqual(started, undefined)
+    assert.ok(started.conscripted > 0, "nobody was conscripted")
+    assert.equal(simulation.armageddon.mode, "gather")
+
+    for (const character of simulation.characters) {
+        assert.notEqual(character.tribe, Simulation.unalignedTribe,
+            `an unaligned ${character.entity} survived the draft`)
+    }
+})
+
+// The four formations in the capture are of very similar size, which a draw
+// per character would not produce.
+test("the draft splits the world evenly between the four tribes", () => {
+    const { simulation } = runCycle(ARMAGEDDON_AT + 1)
+
+    const sizes = Simulation.tribes.map(tribe => simulation.characters
+        .filter(state => state.entity !== Simulation.entityTypes.shaman
+            && state.tribe === tribe).length)
+    assert.ok(Math.max(...sizes) - Math.min(...sizes) <= 2,
+        `formation sizes ${sizes.join(", ")} are not balanced`)
+})
+
+// Gathering is a truce. Without it the field empties before the battle starts,
+// while the capture's formations assemble intact.
+test("nobody fights while the formations are gathering", () => {
+    const gatherEnds = ARMAGEDDON_AT
+        + Simulation.tuning.armageddonGatherMs / 1000
+    const { events } = runCycle(gatherEnds - 0.5)
+
+    const started = events.findIndex(event => event.type === "armageddon-started")
+    assert.notEqual(started, -1)
+    const duringGather = events.slice(started)
+    assert.equal(
+        duringGather.some(event => event.type === "attack-started"), false,
+        "a fight broke out during the gathering"
+    )
+})
+
+test("the field is cleared before ordinary play resumes", () => {
+    const { simulation, events } = runCycle(ARMAGEDDON_AT + CYCLE_LENGTH + 1)
+
+    assert.ok(events.some(event => event.type === "armageddon-ended"))
+    // Only the shamans survive a cycle; everyone else is replaced by the ramp.
+    const shamans = simulation.characters
+        .filter(state => state.entity === Simulation.entityTypes.shaman)
+    assert.equal(shamans.length, Simulation.tribes.length)
+})
+
+// The shamans hold their corners and throw at each other over the melee, which
+// is the only place lightning is ever used.
+test("shamans throw fire and lightning during the battle", () => {
+    const { events } = runCycle(ARMAGEDDON_AT + CYCLE_LENGTH)
+
+    const shamanSpells = events.filter(event => event.type === "cast-started"
+        && (event.spell === "lightning" || event.spell === "fire"))
+    assert.ok(shamanSpells.length > 0, "no battle spell was ever cast")
+    assert.ok(
+        events.some(event => event.type === "cast-started"
+            && event.spell === "lightning"),
+        "lightning was never cast"
+    )
+    assert.ok(
+        events.some(event => event.type === "effect-spawned"
+            && event.kind === Simulation.effectKinds.lightning),
+        "no lightning bolt reached the world"
+    )
+})
+
+test("a lightning bolt spans its two ends inside a narrow envelope", () => {
+    const simulation = combatSimulation([])
+    const paths = Simulation.lightningPaths(simulation, 100, 100, 100, 900)
+
+    assert.ok(paths.length >= Simulation.tuning.lightningPathsMin)
+    assert.ok(paths.length <= Simulation.tuning.lightningPathsMax)
+
+    for (const points of paths) {
+        assert.equal(points.length, Simulation.tuning.lightningPoints)
+        // Both ends are pinned: a bolt that missed its target at either end
+        // would read as a stray scratch rather than a strike.
+        assert.equal(Math.round(points[0].x), 100)
+        assert.equal(Math.round(points[0].y), 100)
+        assert.equal(Math.round(points[points.length - 1].x), 100)
+        assert.equal(Math.round(points[points.length - 1].y), 900)
+
+        const widest = Math.max(...points.map(point => Math.abs(point.x - 100)))
+        assert.ok(widest <= Simulation.tuning.lightningSpread,
+            `the bolt strays ${widest.toFixed(1)} px off its line`)
+        assert.ok(widest > 0, "the bolt is a straight line, not a jagged one")
+    }
 })
 
 test("characters stay inside the world over a long run", () => {

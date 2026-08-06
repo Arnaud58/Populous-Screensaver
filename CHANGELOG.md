@@ -6,6 +6,35 @@ reads from: the Windows build has its number written into the payload by
 
 ## Unreleased
 
+### Armageddon
+
+- Implemented the whole cycle, on one countdown that never ends: gather the
+  drafted world into four corner formations, converge on the centre, fight it
+  out, clear the field, then hand it back to ordinary play and re-arm. The
+  population ramp refills the world from nothing exactly as it filled it at the
+  start of the run. Phase durations come from the capture.
+- The draft assigns every unaligned character to whichever tribe is smallest,
+  which is what gives the near-equal formations the capture shows. Conversion
+  leaves the tribes uneven, so neither a per-character draw nor a plain
+  round-robin would.
+- **Gathering is a truce.** Without it 82 of 150 characters died before the
+  battle began, while the capture's formations assemble intact.
+- Shamans hold their corners through the whole cycle and throw fire and
+  lightning at each other over the melee, rather than joining it.
+- Implemented **lightning**, the one effect with no sprite in the atlas: two or
+  three near-parallel jagged paths, pinned at both ends, jittered across the
+  bolt so a long one stays inside a narrow envelope. `PopulousView` strokes it
+  onto a canvas — a blue halo and a white core — and repaints only while a bolt
+  exists.
+- Added the **Armageddon interval** setting, 60 to 500 seconds, defaulting to
+  the original's 120, on both Plasma and Windows. The simulation clamps it to
+  the range the pages offer.
+- The bound-agreement test now covers every bounded setting rather than the
+  character count alone, checking floor as well as ceiling.
+- Fixed the Windows fallback for the character count, which was 24 while the
+  settings dialog defaulted to 200: a user who never opened the dialog got a
+  different world from one who opened it and pressed OK.
+
 ### Corners, war parties and unaligned-only spawning
 
 - **No character is born into a tribe any more.** Ordinary spawns are always

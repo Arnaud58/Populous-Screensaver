@@ -18,6 +18,10 @@
       <label>Show footprints</label>
       <default>true</default>
     </entry>
+    <entry name="ArmageddonSeconds" type="Int">
+      <label>Seconds between Armageddons</label>
+      <default>120</default>
+    </entry>
     <entry name="RandomSeed" type="Int">
       <label>Random seed, or zero for a different run each time</label>
       <default>0</default>

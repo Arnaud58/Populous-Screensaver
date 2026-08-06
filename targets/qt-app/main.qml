@@ -19,6 +19,7 @@ QtObject {
     property int spriteScaleOverride: 0
     property bool footprintsEnabled: true
     property int randomSeed: 0
+    property int armageddonSeconds: 120
 
     readonly property var screens: Qt.application.screens
 
@@ -63,6 +64,7 @@ QtObject {
             : host.characterCount
         spriteScale: host.previewMode ? 1 : host.spriteScale
         randomSeed: host.randomSeed
+        armageddonSeconds: host.armageddonSeconds
         worldRects: host.screenRects
     }
 

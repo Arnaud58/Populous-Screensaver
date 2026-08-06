@@ -90,6 +90,18 @@ var behaviours = {
 
 // Effect kinds, matching the numeric selectors of the original's effect
 // factory. See research/original-state-map.md for the mapping.
+// The global phases of a run. The original drives six numeric states from its
+// second Windows timer; these are the same count, named for what the capture
+// shows each one doing rather than for anything in the code.
+var armageddonModes = {
+    normal: "normal",
+    gather: "gather",
+    converge: "converge",
+    battle: "battle",
+    resolve: "resolve",
+    restore: "restore"
+}
+
 var effectKinds = {
     conversion: "conversion",
     conversionRing: "conversion_ring",
@@ -98,7 +110,8 @@ var effectKinds = {
     fire: "fire",
     fireTrail: "fire_trail",
     fireImpact: "fire_impact",
-    ring: "ring"
+    ring: "ring",
+    lightning: "lightning"
 }
 
 var tribeColors = {
@@ -205,6 +218,29 @@ var tuning = {
     musterIntervalMinMs: 10000,
     musterIntervalMaxMs: 20000,
     raidDurationMs: 15000,
+    // Armageddon. The interval is the original's configured default and the
+    // range the configuration page offers; the phase durations are read off the
+    // capture, where gathering runs 121 to 128 s, the formations converge by
+    // 131 s, the melee lasts until about 153 s and the world is empty by 157 s.
+    armageddonIntervalMs: 120000,
+    armageddonIntervalMinMs: 60000,
+    armageddonIntervalMaxMs: 500000,
+    armageddonGatherMs: 7000,
+    armageddonConvergeMs: 3000,
+    armageddonBattleMs: 22000,
+    armageddonResolveMs: 4000,
+    armageddonRestoreMs: 1000,
+    armageddonCentreRadius: 70,
+    // A shaman in the battle throws at another tribe's shaman rather than
+    // converting, alternating fire and lightning.
+    shamanBattleCooldownMs: 3000,
+    // Lightning, measured at 145.4 s: two or three near-parallel jagged paths
+    // spanning 784 px inside a 61 px envelope, held for a quarter of a second.
+    lightningDurationMs: 250,
+    lightningPathsMin: 2,
+    lightningPathsMax: 3,
+    lightningPoints: 15,
+    lightningSpread: 30,
     // The simulation advances in fixed slices, independent of how often the
     // host manages to call it. Anything longer than maxAccumulatedSeconds is
     // dropped rather than caught up, so a stalled host cannot teleport
@@ -585,6 +621,7 @@ function createCharacter(animations, spriteScale, entity, tribe) {
         attackImpactDone: false,
         castCooldownMs: 0,
         castLaunched: false,
+        castSpell: "conversion",
         initialized: false,
         frames: null,
         frameCount: 0,
@@ -640,6 +677,7 @@ function initializeCharacter(state, world, random) {
     state.attackImpactDone = false
     state.castCooldownMs = 0
     state.castLaunched = false
+    state.castSpell = "conversion"
     setBehaviour(state, behaviours.wander, actions.walk)
     setDirection(state, direction.dx, direction.dy)
     state.initialized = true
@@ -687,7 +725,10 @@ var effectStreams = {
     fire: { key: "effect.fire_trail", loop: true },
     fire_trail: { key: "effect.fire_trail", loop: false },
     fire_impact: { key: "effect.fire_impact", loop: false },
-    ring: { key: "effect.ring", loop: false }
+    ring: { key: "effect.ring", loop: false },
+    // The one effect with no sprite at all: the original draws it with line
+    // primitives, so it carries a path instead of an animation.
+    lightning: { key: null, loop: false }
 }
 
 // Effects are entities without behaviour of their own beyond a velocity, a
@@ -700,7 +741,9 @@ function createEffect(simulation, options, events) {
     var stream = effectStreams[options.kind]
     var animationKey = stream.key
         ? stream.key
-        : "particle." + options.tribe + ".burst"
+        : (options.kind === effectKinds.lightning
+            ? null
+            : "particle." + options.tribe + ".burst")
     var effect = {
         id: simulation.nextEntityId++,
         entity: entityTypes.effect,
@@ -1000,6 +1043,19 @@ function nearbyCharacters(state, spatialIndex, radius) {
 // A host shell creates one, populates it, and calls stepSimulation with real
 // elapsed time. It never owns the characters itself, which is what allows
 // several windows to render one world.
+// The configured seconds between Armageddons, clamped to the range the
+// configuration pages offer. A host that asks for more than it advertises gets
+// the ceiling rather than a value the simulation quietly ignores.
+function armageddonInterval(options) {
+    var requested = options && options.armageddonIntervalMs > 0
+        ? options.armageddonIntervalMs
+        : tuning.armageddonIntervalMs
+    return Math.max(
+        tuning.armageddonIntervalMinMs,
+        Math.min(tuning.armageddonIntervalMaxMs, requested)
+    )
+}
+
 function createSimulation(seed, animations, options) {
     return {
         random: createRandom(seed),
@@ -1011,6 +1067,11 @@ function createSimulation(seed, animations, options) {
         spawnRemainingMs: 0,
         tribeState: {},
         combatEnabled: !options || options.combatEnabled !== false,
+        armageddon: {
+            mode: armageddonModes.normal,
+            phaseRemainingMs: armageddonInterval(options),
+            intervalMs: armageddonInterval(options)
+        },
         nextEntityId: 1,
         accumulatedSeconds: 0,
         avoidanceElapsedMs: 0
@@ -1065,6 +1126,10 @@ function ordinaryPopulation(characters) {
 // its target. One rule covers both filling an empty world and replacing the
 // dead, because the capture shows both happening at the same rate.
 function topUpPopulation(simulation, events) {
+    // Armageddon is not the moment to be handing out new characters.
+    if (simulation.armageddon.mode !== armageddonModes.normal) {
+        return
+    }
     simulation.spawnRemainingMs -= tuning.stepSeconds * 1000
     if (simulation.spawnRemainingMs > 0) {
         return
@@ -1208,11 +1273,22 @@ function castDuration(state) {
     return Math.max(1, state.frameCount) * state.frameDurationMs
 }
 
-function beginCast(state, target, events) {
+// `spell` is one of conversion, fire or lightning. A shaman converts in
+// ordinary play and throws at another tribe's shaman during Armageddon; the
+// three share the same three-frame cast animation, which is why the original
+// needs no separate pose for them.
+var castSounds = {
+    conversion: "convert_spell",
+    fire: "firecast",
+    lightning: "lightning"
+}
+
+function beginCast(state, target, events, spell) {
     var previous = setBehaviour(state, behaviours.cast, actions.cast)
     state.targetId = target.id
     state.actionRemainingMs = castDuration(state)
     state.castLaunched = false
+    state.castSpell = spell || "conversion"
     if (previous !== state.behaviour) {
         events.push(transitionEvent(state, previous))
     }
@@ -1220,9 +1296,30 @@ function beginCast(state, target, events) {
         type: "cast-started",
         entityId: state.id,
         targetId: target.id,
-        spell: "conversion",
-        sound: "convert_spell"
+        spell: state.castSpell,
+        sound: castSounds[state.castSpell]
     })
+}
+
+// The nearest shaman of another tribe, which is what a shaman throws at once
+// the world is at war. Shamans never close to melee, so the whole exchange
+// happens corner to corner across the screen.
+function nearestEnemyShaman(simulation, state) {
+    var best = null
+    var bestDistance = Infinity
+    for (var index = 0; index < simulation.characters.length; ++index) {
+        var candidate = simulation.characters[index]
+        if (candidate === state || candidate.entity !== entityTypes.shaman
+                || candidate.tribe === state.tribe || !candidate.initialized) {
+            continue
+        }
+        var distance = distanceBetween(state, candidate)
+        if (distance < bestDistance) {
+            bestDistance = distance
+            best = candidate
+        }
+    }
+    return best
 }
 
 function beginFireCast(state, target, events) {
@@ -1366,6 +1463,44 @@ function applyFireImpact(simulation, effect, events) {
 
 // A shaman: seek an unaligned brave, pause, cast, then wait out its cooldown.
 // It is never a combat target and has no hit or death states.
+function launchShamanSpell(simulation, state, target, events) {
+    if (state.castSpell === "lightning") {
+        var bolt = createEffect(simulation, {
+            kind: effectKinds.lightning,
+            worldX: state.worldX,
+            worldY: state.worldY,
+            spriteScale: state.spriteScale,
+            tribe: state.tribe,
+            sourceId: state.id,
+            lifetimeMs: tuning.lightningDurationMs
+        }, events)
+        bolt.paths = lightningPaths(
+            simulation, state.worldX, state.worldY, target.worldX, target.worldY
+        )
+        return
+    }
+
+    var ranged = state.castSpell === "fire"
+    var velocity = aimedVelocity(
+        state,
+        target,
+        (ranged ? tuning.fireSpeed : tuning.conversionSpeed) * state.spriteScale
+    )
+    createEffect(simulation, {
+        kind: ranged ? effectKinds.fire : effectKinds.conversion,
+        worldX: state.worldX,
+        worldY: state.worldY,
+        velocityX: velocity.x,
+        velocityY: velocity.y,
+        spriteScale: state.spriteScale,
+        tribe: state.tribe,
+        sourceId: state.id,
+        targetId: target.id,
+        lifetimeMs: ranged ? tuning.fireLifetimeMs : tuning.conversionLifetimeMs,
+        emitIntervalMs: ranged ? tuning.fireTrailIntervalMs : 0
+    }, events)
+}
+
 function stepShaman(simulation, state, world, events) {
     var stepMs = tuning.stepSeconds * 1000
 
@@ -1396,27 +1531,37 @@ function stepShaman(simulation, state, world, events) {
             var castTarget = findCharacter(simulation, state.targetId)
             if (!state.castLaunched && castTarget) {
                 state.castLaunched = true
-                var velocity = aimedVelocity(
-                    state, castTarget, tuning.conversionSpeed * state.spriteScale
-                )
-                createEffect(simulation, {
-                    kind: effectKinds.conversion,
-                    worldX: state.worldX,
-                    worldY: state.worldY,
-                    velocityX: velocity.x,
-                    velocityY: velocity.y,
-                    spriteScale: state.spriteScale,
-                    tribe: state.tribe,
-                    sourceId: state.id,
-                    targetId: castTarget.id,
-                    lifetimeMs: tuning.conversionLifetimeMs
-                }, events)
+                launchShamanSpell(simulation, state, castTarget, events)
             }
-            state.castCooldownMs = tuning.shamanCastCooldownMs
+            state.castCooldownMs = state.castSpell === "conversion"
+                ? tuning.shamanCastCooldownMs
+                : tuning.shamanBattleCooldownMs
             state.targetId = 0
             var done = setBehaviour(state, behaviours.seek, actions.walk)
             events.push(transitionEvent(state, done))
         }
+        return null
+    }
+
+    var mode = simulation.armageddon.mode
+    if (mode === armageddonModes.converge || mode === armageddonModes.battle) {
+        // The shamans do not join the melee. They hold their corners and throw
+        // at each other over the top of it.
+        if (state.castCooldownMs <= 0) {
+            var enemy = nearestEnemyShaman(simulation, state)
+            if (enemy) {
+                setDirection(state, enemy.worldX - state.worldX,
+                    enemy.worldY - state.worldY)
+                beginCast(state, enemy, events,
+                    simulation.random.nextFloat() < 0.5 ? "fire" : "lightning")
+                return null
+            }
+        }
+        var waiting = setBehaviour(state, behaviours.wander, actions.idle)
+        if (waiting !== state.behaviour) {
+            events.push(transitionEvent(state, waiting))
+        }
+        advanceAnimation(state, stepMs)
         return null
     }
 
@@ -1586,11 +1731,189 @@ function stepTribes(simulation, events) {
     }
 }
 
+// --- Armageddon ----------------------------------------------------------
+//
+// One countdown runs the whole cycle: gather into four corner formations,
+// converge on the centre, fight it out, clear what is left, then hand the
+// world back to ordinary play and re-arm. The capture shows the loop running
+// indefinitely, so nothing here ever terminates.
+
+function beginArmageddon(simulation, events) {
+    // Every unaligned character is drafted, each into whichever tribe is
+    // currently smallest. The four formations in the capture are of very
+    // similar size, which neither a draw per character nor a plain round-robin
+    // would give: conversion has already left the tribes uneven by this point,
+    // and the draft is what evens them out. The original's own state machine
+    // keeps four tribe counters, so counting here is in character.
+    var sizes = {}
+    var index
+    for (index = 0; index < tribes.length; ++index) {
+        sizes[tribes[index]] = 0
+    }
+    for (index = 0; index < simulation.characters.length; ++index) {
+        var counted = simulation.characters[index]
+        if (counted.entity !== entityTypes.shaman
+                && sizes[counted.tribe] !== undefined) {
+            sizes[counted.tribe] += 1
+        }
+    }
+
+    var next = 0
+    for (index = 0; index < simulation.characters.length; ++index) {
+        var character = simulation.characters[index]
+        if (character.entity !== entityTypes.brave
+                || character.tribe !== unalignedTribe) {
+            continue
+        }
+        var smallest = tribes[0]
+        for (var other = 1; other < tribes.length; ++other) {
+            if (sizes[tribes[other]] < sizes[smallest]) {
+                smallest = tribes[other]
+            }
+        }
+        character.tribe = smallest
+        sizes[smallest] += 1
+        next += 1
+        character.health = tuning.characterHealth
+        resolveAnimation(character)
+        events.push({
+            type: "conscripted",
+            entityId: character.id,
+            tribe: character.tribe
+        })
+    }
+
+    simulation.armageddon.mode = armageddonModes.gather
+    simulation.armageddon.phaseRemainingMs = tuning.armageddonGatherMs
+    events.push({ type: "armageddon-started", conscripted: next })
+}
+
+// Clears the field at the end. Whatever survived the melee is removed, which
+// is what leaves the capture's empty screen before the population ramps back.
+function clearTheField(simulation, events) {
+    var survivors = []
+    for (var index = 0; index < simulation.characters.length; ++index) {
+        var character = simulation.characters[index]
+        if (character.entity === entityTypes.shaman) {
+            survivors.push(character)
+            continue
+        }
+        events.push({ type: "character-removed", entityId: character.id })
+    }
+    simulation.characters = survivors
+}
+
+var armageddonPhases = [
+    { mode: armageddonModes.gather, next: armageddonModes.converge,
+      durationKey: "armageddonConvergeMs" },
+    { mode: armageddonModes.converge, next: armageddonModes.battle,
+      durationKey: "armageddonBattleMs" },
+    { mode: armageddonModes.battle, next: armageddonModes.resolve,
+      durationKey: "armageddonResolveMs" },
+    { mode: armageddonModes.resolve, next: armageddonModes.restore,
+      durationKey: "armageddonRestoreMs" }
+]
+
+function stepArmageddon(simulation, world, events) {
+    var armageddon = simulation.armageddon
+    armageddon.phaseRemainingMs -= tuning.stepSeconds * 1000
+    if (armageddon.phaseRemainingMs > 0) {
+        return
+    }
+
+    if (armageddon.mode === armageddonModes.normal) {
+        beginArmageddon(simulation, events)
+        return
+    }
+
+    if (armageddon.mode === armageddonModes.restore) {
+        armageddon.mode = armageddonModes.normal
+        armageddon.phaseRemainingMs = armageddon.intervalMs
+        // Tribe countdowns restart with the world, so a war party does not set
+        // out from a corner nobody is standing in.
+        simulation.tribeState = {}
+        events.push({ type: "armageddon-ended" })
+        return
+    }
+
+    for (var index = 0; index < armageddonPhases.length; ++index) {
+        var phase = armageddonPhases[index]
+        if (phase.mode !== armageddon.mode) {
+            continue
+        }
+        if (phase.next === armageddonModes.restore) {
+            clearTheField(simulation, events)
+        }
+        armageddon.mode = phase.next
+        armageddon.phaseRemainingMs = tuning[phase.durationKey]
+        events.push({ type: "armageddon-phase", phase: armageddon.mode })
+        return
+    }
+}
+
+// The bolt: two or three jagged paths between two points, generated once and
+// then held still. It has no sprite, so the renderer draws these points with
+// line primitives the way the original does.
+function lightningPaths(simulation, fromX, fromY, toX, toY) {
+    var count = tuning.lightningPathsMin
+        + simulation.random.nextInt(
+            tuning.lightningPathsMax - tuning.lightningPathsMin + 1
+        )
+    var spanX = toX - fromX
+    var spanY = toY - fromY
+    var length = Math.sqrt(spanX * spanX + spanY * spanY)
+    // The jitter is applied across the bolt, not along it, which is what keeps
+    // the whole thing inside a narrow envelope however long it is.
+    var acrossX = length > 0 ? -spanY / length : 1
+    var acrossY = length > 0 ? spanX / length : 0
+    var paths = []
+
+    for (var path = 0; path < count; ++path) {
+        var points = []
+        for (var point = 0; point < tuning.lightningPoints; ++point) {
+            var along = point / (tuning.lightningPoints - 1)
+            // The ends are pinned: a bolt that missed its target at either end
+            // would read as a stray scratch rather than a strike.
+            var edge = along === 0 || along === 1 ? 0 : 1
+            var offset = (simulation.random.nextFloat() - 0.5)
+                * tuning.lightningSpread * edge
+            points.push({
+                x: fromX + spanX * along + acrossX * offset,
+                y: fromY + spanY * along + acrossY * offset
+            })
+        }
+        paths.push(points)
+    }
+    return paths
+}
+
 // Where an aligned character is heading when nothing is fighting it: its own
 // corner while gathering, another tribe's while raiding.
 function musterDestination(simulation, state, world) {
+    var mode = simulation.armageddon.mode
+
+    // Once the formations set off, everyone is heading for the same place.
+    if (mode === armageddonModes.converge || mode === armageddonModes.battle) {
+        var bounds = world.bounds
+        var centre = clampIntoWorld(
+            world,
+            bounds.x + bounds.width / 2,
+            bounds.y + bounds.height / 2,
+            { x: 0, top: 0, bottom: tuning.bottomMargin }
+        )
+        var offset = musterSlot(state)
+        return {
+            x: centre.x + offset.x * state.spriteScale,
+            y: centre.y + offset.y * state.spriteScale,
+            raiding: true
+        }
+    }
+
     var tribe = simulation.tribeState[state.tribe]
-    var raiding = !!(tribe && tribe.raidTargetTribe)
+    // Gathering for Armageddon overrides an ordinary war party: a tribe comes
+    // home rather than continuing a raid it happened to be on.
+    var raiding = mode === armageddonModes.normal
+        && !!(tribe && tribe.raidTargetTribe)
     var anchor = tribeAnchor(
         world,
         raiding ? tribe.raidTargetTribe : state.tribe,
@@ -1739,9 +2062,14 @@ function stepCombatCharacter(simulation, state, world, events) {
         return null
     }
 
-    var target = findCharacter(simulation, state.targetId)
+    // Gathering is a truce. The capture's four formations assemble intact and
+    // only fight once they have converged, so acquiring targets on the way
+    // would empty the field before the battle started.
+    var gathering = simulation.armageddon.mode === armageddonModes.gather
+
+    var target = gathering ? null : findCharacter(simulation, state.targetId)
     if (!target || target.health <= 0 || target.tribe === state.tribe) {
-        target = nearestHostile(simulation, state)
+        target = gathering ? null : nearestHostile(simulation, state)
         if (target) {
             beginPursuit(state, target, events)
         } else {
@@ -1992,6 +2320,7 @@ function stepSimulation(simulation, world, elapsedSeconds) {
             finishDeaths(simulation, events)
             topUpPopulation(simulation, events)
             stepTribes(simulation, events)
+            stepArmageddon(simulation, world, events)
             stepEntities(simulation, world, events)
             characters = simulation.characters
         }

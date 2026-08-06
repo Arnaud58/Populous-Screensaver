@@ -3,11 +3,14 @@
 Five phases, ordered so that each one unblocks the next rather than by how
 visible the result is.
 
-Current version: **0.9.0**. Phases 1, 2 and 3 are complete; phase 4 is under
-way: 4b, 4c, 4d and 4e are implemented, and
-[4a](#4a--observe-and-analyse-the-original--in-progress) is what to pick up
-next — the provisional spell constants and the Armageddon return both wait on
-the same controlled recording.
+Current version: **0.9.0**. Phases 1, 2 and 3 are complete, and **phase 4 is
+complete apart from sound**: 4b through 4f are implemented.
+
+What remains is the **sound layer** — 28 effects extracted, the event stream
+already naming them, and a setting decided at off by default — and the
+provisional spell constants under
+[4a](#4a--observe-and-analyse-the-original--in-progress), which wait on a
+controlled recording with a small population.
 
 ## Phase 1 — Separate assets from targets ✅
 
@@ -210,12 +213,14 @@ the 8-to-10-tick recovery. The rest are chosen and tabulated as provisional in
 recording with a small population is what replaces them, and it is the same
 recording 4a still needs.
 
-### 4f — gathering and Armageddon
+### 4f — gathering and Armageddon ✅
 
-**The whole cycle is now observed**, in a 263-second capture covering an empty
-world, its filling, ordinary play, Armageddon and the return to ordinary
-simulation. Written up in
-[research/original-behaviour.md](../research/original-behaviour.md).
+**Implemented**, from a 263-second capture covering an empty world, its
+filling, ordinary play, Armageddon and the return to ordinary simulation.
+Written up in
+[research/original-behaviour.md](../research/original-behaviour.md) and
+specified under
+[gathering and Armageddon](../spec/simulation.md#gathering-and-armageddon).
 
 The sequence is: the timer fires at 120 s; characters walk to slots in **four
 diamond formations, one per screen corner, one per tribe**, thirty to forty
@@ -229,16 +234,20 @@ jagged paths, white with a blue tinge, 784 px long inside a 61 px envelope,
 lasting 0.25 s and not moving. Segment length matches the disassembly's
 15-point paths. It occurs only during Armageddon.
 
-It also carries a setting: an **Armageddon interval, 60 to 500 s, defaulting
-to the original's 120**. It ships in the same change as the behaviour, and it
-must extend the bound-agreement test in `tests/plasma-config.test.mjs` — see
-[Configuration](../spec/simulation.md#configuration).
+It carries the **Armageddon interval** setting, 60 to 500 s, defaulting to the
+original's 120, on both Plasma and Windows, and the bound-agreement test in
+`tests/plasma-config.test.mjs` now covers every bounded setting rather than the
+character count alone.
 
-Ordinary combat now sits inside the original's measured band — 0.72 deaths per
+Ordinary combat sits inside the original's measured band — 0.72 deaths per
 second against 0.45 to 1.68 — because unaligned characters neither fight nor
-die and they are the majority of the world. The muster lattice is the piece to
-build on: Armageddon formations are the same idea with real slot allocation and
-a global controller driving it.
+die and they are the majority of the world.
+
+**What is left here.** Formation slots reuse the muster lattice, so a tribe
+larger than `musterSlots` has two characters sharing a slot; the original's
+formations are denser diamonds. The Armageddon swirl, effect type 11, is
+catalogued but not implemented, and the `WARLOOP` and `ATTACK99` cues that mark
+the phase boundaries wait on the sound layer.
 
 Regenerate and review the golden JSON once per intentional rule change.
 

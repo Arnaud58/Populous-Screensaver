@@ -214,6 +214,7 @@ Written by the simulation:
 | `entity` | renderable class: `brave`, `shaman` or `firewarrior` |
 | `action` | animation action: `walk`, `idle`, `kick`, `punch`, `cast` or `hit` |
 | `behaviour` | state-machine state: `wander`, `pursue`, `attack`, `hit`, `seek`, `charge`, `cast`, `recover`, `muster` or `raid` |
+| `castSpell` | which spell the current cast will launch: `conversion`, `fire` or `lightning` |
 | `tribe` | one of the tribe ids above |
 | `directionId`, `directionX`, `directionY` | current heading |
 | `worldX`, `worldY` | ground point |
@@ -403,6 +404,10 @@ has a `type`; actor-related items carry stable numeric ids. Current types are:
 | `effect-spawned` | a projectile or decoration entered the world; carries `kind` |
 | `raid-started` | a tribe's war party set out; carries `tribe` and `targetTribe` |
 | `raid-ended` | the war party's time ran out and it heads home |
+| `armageddon-started` | the countdown fired; carries how many were `conscripted` |
+| `conscripted` | an unaligned character was drafted into a tribe |
+| `armageddon-phase` | the cycle moved on; carries the new `phase` |
+| `armageddon-ended` | ordinary play resumes and the interval is re-armed |
 | `entity-removed` | a short-lived entity expired |
 
 `attack-started`, `cast-started` and `converted` carry a `sound` naming the
@@ -582,10 +587,61 @@ their three-frame stream, so the state cannot outlive its animation or — worse
 
 ### Gathering and Armageddon
 
-**Planned.** Lightning (effect type 10) has no atlas sprite at all: the
-original draws three jagged procedural paths, so it needs a renderer rather
-than an animation. The Armageddon swirl and the four corner formations are
-catalogued in `research/original-state-map.md` and not implemented.
+Implemented. One countdown runs a cycle that never ends, matching the capture,
+where the screen saver loops indefinitely.
+
+| Phase | Duration | What happens |
+| ----- | -------- | ------------ |
+| `normal` | the configured interval | ordinary play |
+| `gather` | 7 s | every unaligned character is drafted; all four tribes walk to their corner formations |
+| `converge` | 3 s | the formations leave their corners for the centre |
+| `battle` | 22 s | one melee at the centre |
+| `resolve` | 4 s | whatever survived is removed |
+| `restore` | 1 s | tribe countdowns reset, the interval is re-armed |
+
+The durations come from the capture: gathering runs 121 to 128 s, the
+formations have converged by 131 s, the melee lasts until about 153 s and the
+world is empty by 157 s. The population ramp then refills it from nothing,
+exactly as it filled it at the start of the run.
+
+**The draft evens the tribes out.** Every unaligned character joins whichever
+tribe is currently smallest. Conversion has left the four uneven by this point,
+and neither a per-character draw nor a plain round-robin gives the near-equal
+formations the capture shows. The original's own state machine keeps four tribe
+counters, so counting here is in character.
+
+**Gathering is a truce.** Nobody acquires a target while the formations
+assemble. Without that the field empties before the battle begins — measured:
+82 of 150 characters died during the gather — while the capture's four
+formations arrive intact.
+
+**The shamans do not join in.** They hold their corners for the whole cycle and
+throw at each other over the top of the melee, alternating the fire projectile
+and lightning. That is the only place lightning is ever used.
+
+Formation slots reuse the muster lattice, so a tribe of more than
+`musterSlots` characters has two sharing a slot. The original's formations are
+denser diamonds; matching them exactly is not done.
+
+### Lightning
+
+The one effect with no sprite anywhere in the atlas. The original draws it with
+line primitives, so the simulation carries a path and the renderer strokes it.
+
+Measured at 145.4 s in the capture: **two or three near-parallel jagged paths**,
+white with a blue tinge, spanning 784 px inside a 61 px envelope, held for a
+quarter of a second and not moving. 784 px over the disassembly's 15 points is
+56 px a segment, which is what the capture shows.
+
+The jitter is applied **across** the bolt rather than along it, which keeps it
+inside a narrow envelope however long it is, and both ends are pinned: a bolt
+that missed its target at either end would read as a stray scratch rather than
+a strike.
+
+`PopulousView` collects lightning entities and strokes them onto a `Canvas`
+above everything else, twice per path — a wide blue halo, then a thin white
+core. It repaints only while a bolt exists, and once more to clear the last
+one.
 
 ## Configuration
 
@@ -609,12 +665,16 @@ to 100. `tests/plasma-config.test.mjs` now asserts the two bounds agree, and
 | sprite size | choice | automatic | automatic, 1x, 2x, 3x | implemented |
 | footprints | boolean | on | — | implemented |
 | random seed | integer | 0 (a different run each time) | 0 to 2147483647 | implemented |
-| **Armageddon interval** | integer, seconds | **120** | **60 to 500** | with [gathering and Armageddon](#gathering-and-armageddon) |
+| Armageddon interval | integer, seconds | 120 | 60 to 500 | implemented |
 | **sound** | boolean | **off** | — | with [sound](#sound) |
 
-The two pending settings are deliberately **not** declared yet. A knob that
-moves nothing is the defect described above, so each arrives in the same change
-as the behaviour it controls.
+The sound setting is deliberately **not** declared yet. A knob that moves
+nothing is the defect described above, so it arrives in the same change as the
+behaviour it controls.
+
+The simulation clamps the Armageddon interval to the same range the pages
+offer, so a host that asks for more than it advertises gets the ceiling rather
+than a value quietly ignored.
 
 **The Armageddon default of 120 s is the original's**, confirmed both by the
 configuration block in the executable and by the capture, where the first

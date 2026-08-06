@@ -31,6 +31,19 @@ WallpaperItem {
                     : 0
             )
         )
+        // Same rule as the character count: the ceiling has to match the
+        // configuration page's spin box, or the page offers a number the
+        // wallpaper silently refuses to honour.
+        armageddonSeconds: Math.max(
+            60,
+            Math.min(
+                500,
+                wallpaper.configuration
+                    && wallpaper.configuration.ArmageddonSeconds !== undefined
+                    ? wallpaper.configuration.ArmageddonSeconds
+                    : 120
+            )
+        )
         footprintsEnabled: wallpaper.configuration
             && wallpaper.configuration.FootprintsEnabled !== undefined
             ? wallpaper.configuration.FootprintsEnabled

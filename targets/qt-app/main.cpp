@@ -85,8 +85,13 @@ QVariantMap loadSettings()
     settings.beginGroup(QStringLiteral("General"));
 
     QVariantMap properties;
+    // The fallbacks have to match ConfigDialog.qml's Settings defaults. When
+    // they disagree, a user who never opens the dialog gets one world and a
+    // user who opens it and presses OK gets another.
     properties[QStringLiteral("characterCount")] =
-        settings.value(QStringLiteral("characterCount"), 24).toInt();
+        settings.value(QStringLiteral("characterCount"), 200).toInt();
+    properties[QStringLiteral("armageddonSeconds")] =
+        settings.value(QStringLiteral("armageddonSeconds"), 120).toInt();
     properties[QStringLiteral("spriteScaleOverride")] =
         settings.value(QStringLiteral("spriteScale"), 0).toInt();
     properties[QStringLiteral("footprintsEnabled")] =

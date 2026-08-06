@@ -18,6 +18,7 @@ const hostUi = readFileSync(
 
 const expected = {
     CharacterCount: "200",
+    ArmageddonSeconds: "120",
     SpriteScale: "0",
     FootprintsEnabled: "true",
     RandomSeed: "0"
@@ -27,7 +28,13 @@ const expected = {
 // nothing links them. When they disagreed the page offered up to 1000
 // characters while the wallpaper quietly clamped to 100, so a setting could be
 // saved and have no effect at all.
-const characterCountCeiling = "1000"
+// Each entry is a bounded setting: the id of its spin box on the configuration
+// page, the ceiling that page offers, and the floor and ceiling the wallpaper
+// clamps to. Every new bounded setting belongs here.
+const boundedSettings = [
+    { id: "characterCount", property: "characterCount", floor: "1", ceiling: "1000" },
+    { id: "armageddonSeconds", property: "armageddonSeconds", floor: "60", ceiling: "500" }
+]
 
 test("Plasma configuration accepts the host integration properties", () => {
     assert.match(configUi, /property\s+var\s+configDialog\b/)
@@ -45,20 +52,25 @@ for (const [name, defaultValue] of Object.entries(expected)) {
     })
 }
 
-test("the character count offered and the count honoured agree", () => {
-    const offered = configUi.match(/id:\s*characterCount[\s\S]*?to:\s*(\d+)/)
-    assert.notEqual(offered, null, "the configuration page declares no upper bound")
-    assert.equal(
-        offered[1],
-        characterCountCeiling,
-        "the configuration page's spin box no longer matches the expected ceiling"
-    )
+for (const setting of boundedSettings) {
+    test(`the ${setting.id} offered and the value honoured agree`, () => {
+        const offered = configUi.match(new RegExp(
+            String.raw`id:\s*${setting.id}[\s\S]*?to:\s*(\d+)`
+        ))
+        assert.notEqual(offered, null,
+            `the configuration page declares no upper bound for ${setting.id}`)
+        assert.equal(offered[1], setting.ceiling,
+            `the ${setting.id} spin box no longer matches the expected ceiling`)
 
-    const honoured = hostUi.match(/characterCount:[\s\S]*?Math\.min\(\s*(\d+)/)
-    assert.notEqual(honoured, null, "the wallpaper does not clamp the character count")
-    assert.equal(
-        honoured[1],
-        characterCountCeiling,
-        "the wallpaper clamps the character count below what the page offers"
-    )
-})
+        const honoured = hostUi.match(new RegExp(
+            String.raw`${setting.property}:[\s\S]*?`
+                + String.raw`Math\.max\(\s*(\d+),[\s\S]*?Math\.min\(\s*(\d+)`
+        ))
+        assert.notEqual(honoured, null,
+            `the wallpaper does not clamp ${setting.property}`)
+        assert.equal(honoured[1], setting.floor,
+            `the wallpaper clamps ${setting.property} above what the page offers`)
+        assert.equal(honoured[2], setting.ceiling,
+            `the wallpaper clamps ${setting.property} below what the page offers`)
+    })
+}

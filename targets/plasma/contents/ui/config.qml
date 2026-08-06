@@ -12,6 +12,7 @@ Kirigami.FormLayout {
 
     property alias cfg_CharacterCount: characterCount.value
     property int cfg_SpriteScale: 0
+    property alias cfg_ArmageddonSeconds: armageddonSeconds.value
     property alias cfg_FootprintsEnabled: footprintsEnabled.checked
     property alias cfg_RandomSeed: randomSeed.value
     property alias formLayout: root
@@ -39,6 +40,15 @@ Kirigami.FormLayout {
         currentIndex: indexOfValue(root.cfg_SpriteScale)
         onActivated: root.cfg_SpriteScale = currentValue
         Kirigami.FormData.label: qsTr("Sprite size:")
+    }
+
+    SpinBox {
+        id: armageddonSeconds
+
+        from: 60
+        to: 500
+        editable: true
+        Kirigami.FormData.label: qsTr("Armageddon every (s):")
     }
 
     CheckBox {

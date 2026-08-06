@@ -25,6 +25,9 @@ Item {
     // replays exactly, which is what the golden traces rely on.
     property int randomSeed: 0
 
+    // Seconds between Armageddons.
+    property int armageddonSeconds: 120
+
     // The screens this world spans, in world coordinates. Null means "just this
     // item", which is what a single-screen host wants.
     property var worldRects: null
@@ -45,6 +48,7 @@ Item {
         characterCount: world.characterCount
         spriteScale: world.spriteScale
         randomSeed: world.randomSeed
+        armageddonSeconds: world.armageddonSeconds
         worldRects: world.currentRects()
     }
 

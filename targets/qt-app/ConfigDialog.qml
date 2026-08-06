@@ -25,6 +25,7 @@ Window {
 
         property int characterCount: 200
         property int spriteScale: 0
+        property int armageddonSeconds: 120
         property bool footprintsEnabled: true
         property int randomSeed: 0
     }
@@ -49,6 +50,17 @@ Window {
                 from: 10
                 to: 1000
                 value: settings.characterCount
+            }
+
+            Label { text: "Armageddon every (s)" }
+
+            SpinBox {
+                id: armageddonSeconds
+
+                Layout.fillWidth: true
+                from: 60
+                to: 500
+                value: settings.armageddonSeconds
             }
 
             Label { text: "Sprite size" }
@@ -110,6 +122,7 @@ Window {
                 highlighted: true
                 onClicked: {
                     settings.characterCount = characterCount.value
+                    settings.armageddonSeconds = armageddonSeconds.value
                     settings.spriteScale = spriteScale.currentIndex
                     settings.footprintsEnabled = footprints.checked
                     settings.randomSeed = randomSeed.value
