@@ -134,7 +134,7 @@ def main() -> int:
     }
     rendered = json.dumps(report, indent=2, ensure_ascii=False) + "\n"
     if args.output:
-        args.output.write_text(rendered, encoding="utf-8")
+        args.output.write_text(rendered, encoding="utf-8", newline="\n")
     else:
         print(rendered, end="")
     return 0

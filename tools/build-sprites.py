@@ -845,14 +845,14 @@ def main() -> None:
     serialized = json.dumps(manifest, indent=2, ensure_ascii=False) + "\n"
     for output in (args.research_output, args.assets_output):
         output.parent.mkdir(parents=True, exist_ok=True)
-        output.write_text(serialized, encoding="utf-8")
+        output.write_text(serialized, encoding="utf-8", newline="\n")
 
     args.qml_output.parent.mkdir(parents=True, exist_ok=True)
     args.qml_output.write_text(
         ".pragma library\n\nvar manifest = "
         + json.dumps(manifest, indent=2, ensure_ascii=False)
         + "\n",
-        encoding="utf-8",
+        encoding="utf-8", newline="\n",
     )
 
     atlas = Image.open(args.atlas).convert("RGBA")
