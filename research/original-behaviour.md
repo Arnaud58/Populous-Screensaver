@@ -1,4 +1,4 @@
-# First original-behaviour capture
+# Original-behaviour captures
 
 Observation log for `../captures/original-2026-08-05-201327.mkv`. Timestamps
 below are relative to the capture, not to the original process creation time.
@@ -55,9 +55,129 @@ capture”, not “unused by the executable”: static call sites prove that at 
 `FIRECAST`, `WARLOOP` and `SWIRL` can be requested. Long or overlapping sounds
 are particularly poorly suited to a whole-sample correlation.
 
-## Next capture
+# Second capture: a complete cycle
 
-A useful second recording should run past the return to ordinary simulation
-and avoid interrupting Wine until the video is stopped. It should also use a
-smaller population or a controlled seed if possible, so individual actors can
-be followed through conversion and combat rather than hidden inside groups.
+`ScreenSaver-01.mp4`, 263 s at 1920x1152, 30 fps, running on Windows rather
+than under Wine. It contains **one whole cycle**: an empty world, its filling,
+ordinary play, Armageddon, the wipe, and the world filling again. That is the
+return the first capture missed.
+
+Measurements below are reproducible with:
+
+```bash
+python3 tools/measure-capture.py CAPTURE.mp4 --census
+python3 tools/measure-capture.py CAPTURE.mp4 --souls 60 120
+python3 tools/measure-capture.py CAPTURE.mp4 --effects 116 175
+```
+
+The counts are blob proxies, not engine objects. A crowd merges into one blob,
+so populations are under-reported once characters bunch up. Shapes of curves
+survive that; absolute values do not.
+
+## The world starts empty and fills in
+
+| Time | Characters on screen |
+| ---: | --- |
+| 1–6 s | **3 to 4** — the four shamans and nobody else |
+| 7–20 s | climbing: 4, 5, 8, 11, 15, 21, 24 |
+| 40–60 s | 64 to 66 |
+| 80–120 s | settled around 47 to 53 |
+
+This is the single most consequential correction to the earlier reading. The
+first capture's note that "tribes and unaligned characters coexist" from 0 s
+was made from a recording that had already been running; a world does **not**
+spawn its population at once. Ordinary characters arrive roughly one every
+third of a second until the configured population is reached, which for the
+original's default of 150 takes about fifty seconds.
+
+The same ramp refills the world after Armageddon: 13 characters at 155 s,
+climbing to 86 by 200 s. There is no instant replacement of the dead.
+
+## Conversion is a zone
+
+Conversion casts happen every second or two across the four shamans, and 65
+distinct cyan events occur between 20 s and 120 s.
+
+A cast reads as: a short vertical streak of coloured motes leaving the shaman,
+then a **ring of star sparkles blooming around the target**, then the target's
+own burst of green and white motes as it changes tribe.
+
+| Property | Measured |
+| --- | --- |
+| ring extent | 180 to 230 px wide, 140 to 200 px tall |
+| ring shape | an ellipse, roughly 3:2 — a circle on the ground in shallow perspective |
+| total duration | about 0.8 s: 0.35 s to bloom, then fading |
+| colour over life | white, then cyan, then blue, then magenta |
+| sparkle appearance | staggered around the circle, which reads as travelling |
+
+At sprite scale 1 a brave is about 26 px tall, so the ring is roughly three
+times a character's height across. Modelling conversion as a projectile that
+touches one target and converts it was wrong by an order of magnitude.
+
+## The fire projectile stays small
+
+The fire projectile is native cell 854, 7x5 px, and the capture agrees: it is
+a point of light with a short trail, nothing like the conversion ring. The
+ring sprite at its impact is 26x29 px. Nothing here needed changing.
+
+## Death rate
+
+| Window | Souls | Per second |
+| --- | ---: | ---: |
+| 60–120 s, first cycle while still filling | 27 | **0.45** |
+| 190–250 s, second cycle at full population | 101 | **1.68** |
+
+The rate rises with the population, as it must. This is the number to
+calibrate ordinary combat against: it is what allows the original's population
+to keep growing to its configured size instead of stalling at an equilibrium
+between spawns and deaths.
+
+## Armageddon, observed end to end
+
+| Time | What happens |
+| ---: | --- |
+| ~120 s | the timer fires; ordinary wandering stops |
+| 121–126 s | characters walk to formation slots; heavy cyan and white effects along the approaches |
+| 124–127 s | **four dense diamond formations**, one per screen corner, one per tribe, each holding thirty to forty characters in a lattice |
+| ~128 s | the four formations leave their corners and converge on the centre |
+| 130–153 s | one mass melee at the centre; souls rise continuously; orange effect coverage climbs from 500 to 1400 px |
+| throughout | **the four shamans stay in their corners** and cast into the battle |
+| 145.4 s | a lightning bolt |
+| 154–157 s | the world empties: cyan and orange collapse to nothing |
+| 157 s onward | the ramp starts again, and ordinary conversions resume from about 163 s |
+
+The whole cycle is therefore **timer, gather, converge, annihilate, refill**,
+and the screen saver loops it indefinitely.
+
+### Lightning
+
+Measured at 145.37–145.53 s, about **0.25 s**, and it does not move.
+
+It is **two or three near-parallel jagged lines**, white with a blue tinge,
+spanning 784 px vertically inside a 61 px-wide envelope — very close to
+vertical. Segments deviate by a few pixels every 50 px or so, which matches the
+disassembly's three 15-point paths almost exactly: 784 px over 15 points is
+56 px per segment.
+
+It occurs only during Armageddon, and it has no atlas sprite: it must be drawn,
+not blitted.
+
+## War parties in ordinary play
+
+The diagonal columns are **war parties**, not an artefact. Each tribe gathers
+at its own corner of the screen, and on some shared signal the whole group
+leaves together for another tribe's corner. Formations of the same slanted
+lattice shape appear in ordinary play, not only during Armageddon.
+
+The four shamans hold the four corners throughout, in ordinary play as well as
+during Armageddon, which is what the disassembly's "corner entities" means.
+
+## Still to explain
+
+- Whether the ring converts everyone inside it or only marks the boundary of
+  a smaller effect. The disassembly's "scans nearby unaligned characters" says
+  the former; the capture cannot distinguish them.
+- The exact composition of a formation slot lattice, and what triggers a war
+  party to set out.
+- The starting proportion of unaligned characters, if any: the world appears to
+  begin with none at all besides the shamans.

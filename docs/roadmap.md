@@ -197,18 +197,43 @@ firewarriors stop at cast range instead of closing to melee, throw fire with a
 trail, and damage hostile combatants at the impact. A general effect entity
 covers all seven visual kinds.
 
+A second pass over a full capture then corrected four things: ordinary
+characters are always born unaligned, each tribe's shaman holds a corner of the
+screen, the conversion projectile is fast, and aligned characters gather at
+their corner and leave in war parties for another tribe's. That last one
+explains the diagonal columns the capture shows and the earlier model could not
+produce.
+
 Only two numbers here are recovered — the three cast frames per direction and
-the 8-to-10-tick recovery. The other nine are chosen and tabulated as
-provisional in [spec/simulation.md](../spec/simulation.md#provisional-values).
-A controlled recording with a small population is what replaces them, and it is
-the same recording 4a still needs.
+the 8-to-10-tick recovery. The rest are chosen and tabulated as provisional in
+[spec/simulation.md](../spec/simulation.md#provisional-values). A controlled
+recording with a small population is what replaces them, and it is the same
+recording 4a still needs.
 
 ### 4f — gathering and Armageddon
 
-The end state, and whether the run stops or restarts. It needs the four corner
-formations, the six-state global controller, and the swirl. **Lightning has no
-atlas sprite**: the original draws three jagged procedural paths, so it needs a
-renderer of its own rather than an animation.
+**The whole cycle is now observed**, in a 263-second capture covering an empty
+world, its filling, ordinary play, Armageddon and the return to ordinary
+simulation. Written up in
+[research/original-behaviour.md](../research/original-behaviour.md).
+
+The sequence is: the timer fires at 120 s; characters walk to slots in **four
+diamond formations, one per screen corner, one per tribe**, thirty to forty
+each; the formations then leave their corners and converge on the centre for a
+single mass melee, while **the four shamans stay in their corners** and cast
+into it; the world empties; and the population ramps back up. The screen saver
+loops that indefinitely.
+
+**Lightning has no atlas sprite** and must be drawn: two or three near-parallel
+jagged paths, white with a blue tinge, 784 px long inside a 61 px envelope,
+lasting 0.25 s and not moving. Segment length matches the disassembly's
+15-point paths. It occurs only during Armageddon.
+
+Ordinary combat now sits inside the original's measured band — 0.72 deaths per
+second against 0.45 to 1.68 — because unaligned characters neither fight nor
+die and they are the majority of the world. The muster lattice is the piece to
+build on: Armageddon formations are the same idea with real slot allocation and
+a global controller driving it.
 
 Regenerate and review the golden JSON once per intentional rule change.
 

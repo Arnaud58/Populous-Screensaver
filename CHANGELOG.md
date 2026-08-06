@@ -6,6 +6,49 @@ reads from: the Windows build has its number written into the payload by
 
 ## Unreleased
 
+### Corners, war parties and unaligned-only spawning
+
+- **No character is born into a tribe any more.** Ordinary spawns are always
+  unaligned and conversion is the only way into a tribe, which is what the
+  original does. This also closed the death-rate gap on its own: the port now
+  loses 0.72 characters per second against 0.45 to 1.68 measured in the
+  original, and the configured population is reached and held instead of
+  stalling around 55.
+- **Each tribe owns a corner.** Its shaman is placed there and returns to it
+  when idle rather than drifting to the middle of the screen.
+- Added **war parties**: an aligned character with nothing to fight musters at
+  its tribe's corner, taking a fixed lattice slot from its own id, and on a
+  per-tribe countdown the whole group leaves together for another tribe's
+  corner. That is the behaviour behind the diagonal columns of characters seen
+  marching across the original, previously recorded as unexplained.
+- The conversion projectile went from 133 px/s to 800 px/s. The old value was a
+  guess and read as a drifting bubble rather than a spell.
+
+### Corrections from a complete original capture
+
+- A second capture covers a whole cycle, including the return to ordinary
+  simulation the first one missed. Added `tools/measure-capture.py` so its
+  measurements are reproducible rather than eyeballed.
+- **The world now fills in over time.** The original opens on the four shamans
+  alone and adds ordinary characters one at a time; a world that spawned its
+  whole population at once was wrong from the first frame. The same rate
+  refills the world after a death, replacing the former instant top-up.
+- **Conversion is a zone, not a touch.** The ring measured in the capture is
+  180 to 230 px across, about three times a character's height, so the radius
+  went from 20 px to 75 px. A ring of sparkles is drawn at exactly the radius
+  the rule uses, with staggered start frames to reproduce the original's
+  travelling-around-the-circle look.
+- Separated the projectile's arrival distance from the zone radius; raising one
+  had silently made conversions detonate 75 px short of their target.
+- Recorded the Armageddon cycle end to end: gather into four corner diamond
+  formations, converge on the centre, mass melee with the shamans casting from
+  their corners, wipe, refill. Lightning is a 0.25 s, near-vertical bolt of two
+  or three jagged paths spanning 784 px, and occurs only during Armageddon.
+- Measured the original's death rate at 0.45 to 1.68 souls per second. The port
+  currently kills about 2.3 per second at a third of that population, so the
+  configured character count is a target the world does not reach. Documented
+  under Population in the specification.
+
 ### Conversion, shamans and the fire attack
 
 - Added unaligned characters as tribe 0. The atlas settles what one is: the

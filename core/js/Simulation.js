@@ -34,10 +34,20 @@ var tribes = ["blue", "red", "yellow", "green"]
 // neither fights nor dies, and exists only to be converted.
 var unalignedTribe = "neutral"
 
-// The draw at spawn. The first capture shows tribes and unaligned characters
-// coexisting from the first second, so the initial population is mixed rather
-// than wholly unaligned.
-var spawnTribes = [unalignedTribe, "blue", "red", "yellow", "green"]
+// The draw at spawn. Ordinary characters are **always** born unaligned: no
+// member of a tribe ever appears spontaneously, and conversion is the only way
+// into one. The single-entry list keeps the draw in the sequence, so the spawn
+// contract stays the same for every class.
+var spawnTribes = [unalignedTribe]
+
+// Which corner of the world each tribe belongs to, as fractions of the
+// bounding box. A tribe's shaman stands there and its warriors muster there.
+var tribeCorners = {
+    blue: { x: 0, y: 0 },
+    red: { x: 1, y: 0 },
+    yellow: { x: 1, y: 1 },
+    green: { x: 0, y: 1 }
+}
 
 // Public state vocabulary. Strings keep traces readable and map directly to
 // enums in the future C port.
@@ -70,6 +80,8 @@ var behaviours = {
     charge: "charge",
     cast: "cast",
     recover: "recover",
+    muster: "muster",
+    raid: "raid",
     rise: "rise",
     depart: "depart",
     fly: "fly",
@@ -80,6 +92,7 @@ var behaviours = {
 // factory. See research/original-state-map.md for the mapping.
 var effectKinds = {
     conversion: "conversion",
+    conversionRing: "conversion_ring",
     flash: "flash",
     burst: "burst",
     fire: "fire",
@@ -144,8 +157,19 @@ var tuning = {
     shamanCastDistance: 120,
     shamanChargeDurationMs: 8 * 30,
     shamanCastCooldownMs: 60 * 30,
-    conversionSpeed: 4 * 1000 / 30,
-    conversionRadius: 20,
+    // Fast: the capture's cast streak crosses more than a hundred pixels in
+    // four frames. The earlier 133 px/s was a guess and read as a drifting
+    // bubble rather than a spell.
+    conversionSpeed: 24 * 1000 / 30,
+    // Measured off the capture: the ring of sparkles that blooms on arrival is
+    // roughly 150 px across at sprite scale 1, about three times a brave's
+    // height. Conversion is a zone, not a touch.
+    conversionRadius: 75,
+    conversionRingSparks: 16,
+    // How close the projectile has to get before it detonates. Distinct from
+    // the radius above: one is when the spell lands, the other is how far it
+    // reaches once it has.
+    conversionArrivalDistance: 14,
     conversionLifetimeMs: 90 * 30,
     firewarriorConversionChance: 0.25,
     fireCastDistance: 150,
@@ -158,6 +182,29 @@ var tuning = {
     firewarriorRecoveryMinMs: 8 * 30,
     firewarriorRecoveryMaxMs: 10 * 30,
     firewarriorFireCooldownMs: 40 * 30,
+    // The world fills in rather than appearing at once: the capture opens on
+    // the four shamans alone, and ordinary characters arrive one at a time
+    // over the following minute. The same rate refills the world after
+    // Armageddon has emptied it.
+    populationSpawnIntervalMs: 350,
+    // Corners. A shaman stands in its tribe's corner; its warriors muster just
+    // inside it, spread over a slanted lattice rather than piled on one point.
+    shamanCornerInset: 90,
+    shamanHomeRadius: 30,
+    rallyInset: 190,
+    musterRadius: 46,
+    musterSlotSpacingX: 20,
+    musterSlotSpacingY: 14,
+    musterSlotSlant: 10,
+    musterSlotColumns: 6,
+    musterSlots: 36,
+    // War parties. A tribe gathers, then on a countdown the whole group leaves
+    // together for another tribe's corner — the "invisible signal" that makes
+    // them march in single file across the screen.
+    raidPartyMinimum: 5,
+    musterIntervalMinMs: 10000,
+    musterIntervalMaxMs: 20000,
+    raidDurationMs: 15000,
     // The simulation advances in fixed slices, independent of how often the
     // host manages to call it. Anything longer than maxAccumulatedSeconds is
     // dropped rather than caught up, so a stalled host cannot teleport
@@ -321,6 +368,41 @@ function worldHasUsableRect(world) {
         }
     }
     return false
+}
+
+// The point in the world a tribe owns, `inset` pixels in from its corner of
+// the bounding box.
+//
+// The bounding box corner of a multi-screen world can land in a dead zone
+// belonging to no monitor, so the result is pulled back into the union the
+// same way a stranded character is.
+function tribeAnchor(world, tribe, inset) {
+    var corner = tribeCorners[tribe]
+    if (!corner || world.rects.length === 0) {
+        return null
+    }
+    var bounds = world.bounds
+    return clampIntoWorld(
+        world,
+        corner.x === 0 ? bounds.x + inset : bounds.x + bounds.width - inset,
+        corner.y === 0 ? bounds.y + inset : bounds.y + bounds.height - inset,
+        { x: inset / 2, top: inset / 2, bottom: tuning.bottomMargin }
+    )
+}
+
+// Where one character stands within its tribe's muster, from its own id. A
+// slanted lattice, which is what the original's gatherings look like, and it
+// costs no state: the same character always takes the same slot.
+function musterSlot(state) {
+    var slot = state.id % tuning.musterSlots
+    var row = Math.floor(slot / tuning.musterSlotColumns)
+    var column = slot % tuning.musterSlotColumns
+    var rows = tuning.musterSlots / tuning.musterSlotColumns
+    return {
+        x: (column - (tuning.musterSlotColumns - 1) / 2) * tuning.musterSlotSpacingX
+            + row * tuning.musterSlotSlant,
+        y: (row - (rows - 1) / 2) * tuning.musterSlotSpacingY
+    }
 }
 
 // Picks a rectangle weighted by area, so characters spread evenly over the
@@ -540,6 +622,15 @@ function initializeCharacter(state, world, random) {
         + random.nextFloat() * Math.max(1, rect.height - tuning.spawnInsetY)
     state.speed = (tuning.speedMin + random.nextFloat() * (tuning.speedMax - tuning.speedMin))
         * state.spriteScale
+    // A shaman belongs to its corner, not to a random spot. The draws above are
+    // still consumed, so the sequence stays the same for every class.
+    if (state.entity === entityTypes.shaman) {
+        var corner = tribeAnchor(world, state.tribe, tuning.shamanCornerInset)
+        if (corner) {
+            state.worldX = corner.x
+            state.worldY = corner.y
+        }
+    }
     state.distanceSinceFootprint = 0
     state.collisionCooldownMs = 0
     state.wanderRemainingMs = randomWanderInterval(random)
@@ -590,6 +681,7 @@ function createSoul(character, id) {
 // plays through and is removed when it ends.
 var effectStreams = {
     conversion: { key: "effect.sparkle", loop: true },
+    conversion_ring: { key: "effect.sparkle", loop: false },
     flash: { key: "effect.flash", loop: false },
     burst: { key: null, loop: false },
     fire: { key: "effect.fire_trail", loop: true },
@@ -916,6 +1008,8 @@ function createSimulation(seed, animations, options) {
         entities: [],
         desiredPopulation: 0,
         populationSpriteScale: 1,
+        spawnRemainingMs: 0,
+        tribeState: {},
         combatEnabled: !options || options.combatEnabled !== false,
         nextEntityId: 1,
         accumulatedSeconds: 0,
@@ -923,8 +1017,14 @@ function createSimulation(seed, animations, options) {
     }
 }
 
-// Replaces the population with `count` fresh characters, plus one shaman per
-// tribe.
+// Starts a world: one shaman per tribe, and a target of `count` ordinary
+// characters that arrive over the following minute rather than at once.
+//
+// The capture is unambiguous about this. Its first seconds hold four
+// characters and nothing else — the four shamans — and ordinary characters
+// appear one at a time from about the seventh second, reaching the configured
+// population around fifty seconds in. The same rate refills the world after
+// Armageddon empties it.
 //
 // The shamans are additional rather than taken out of the count: the
 // configured number is how many ordinary characters the user asked for, and a
@@ -936,14 +1036,9 @@ function populate(simulation, count, spriteScale) {
     simulation.characters = []
     simulation.desiredPopulation = count
     simulation.populationSpriteScale = spriteScale > 0 ? spriteScale : 1
+    simulation.spawnRemainingMs = 0
 
-    var index
-    for (index = 0; index < count; ++index) {
-        var character = createCharacter(simulation.animations, spriteScale)
-        character.id = simulation.nextEntityId++
-        simulation.characters.push(character)
-    }
-    for (index = 0; index < tribes.length; ++index) {
+    for (var index = 0; index < tribes.length; ++index) {
         var shaman = createCharacter(
             simulation.animations,
             spriteScale,
@@ -954,6 +1049,38 @@ function populate(simulation, count, spriteScale) {
         simulation.characters.push(shaman)
     }
     return simulation.characters
+}
+
+function ordinaryPopulation(characters) {
+    var count = 0
+    for (var index = 0; index < characters.length; ++index) {
+        if (characters[index].entity !== entityTypes.shaman) {
+            count += 1
+        }
+    }
+    return count
+}
+
+// Adds at most one ordinary character per interval while the world is below
+// its target. One rule covers both filling an empty world and replacing the
+// dead, because the capture shows both happening at the same rate.
+function topUpPopulation(simulation, events) {
+    simulation.spawnRemainingMs -= tuning.stepSeconds * 1000
+    if (simulation.spawnRemainingMs > 0) {
+        return
+    }
+    simulation.spawnRemainingMs = tuning.populationSpawnIntervalMs
+    if (ordinaryPopulation(simulation.characters) >= simulation.desiredPopulation) {
+        return
+    }
+
+    var replacement = createCharacter(
+        simulation.animations,
+        simulation.populationSpriteScale
+    )
+    replacement.id = simulation.nextEntityId++
+    simulation.characters.push(replacement)
+    events.push({ type: "character-spawned", entityId: replacement.id })
 }
 
 function findCharacter(simulation, id) {
@@ -1158,10 +1285,36 @@ function convertCharacter(simulation, character, tribe, events) {
     })
 }
 
-// The conversion projectile reaching its destination. It converts every
-// unaligned brave within its radius, not only the one it was aimed at.
+// The conversion projectile reaching its destination.
+//
+// A ring of sparkles blooms at the radius the spell reaches, and every
+// unaligned brave inside it changes tribe — not only the one it was aimed at.
+// The ring is the visible boundary of the zone, so it is drawn at exactly the
+// radius the rule uses rather than at a decorative one.
+//
+// The sparkles are placed at once but started at staggered frames. That is
+// what produces the travelling-around-the-circle look in the original without
+// any per-sparkle delay to carry in the state.
 function applyConversion(simulation, effect, events) {
     var radius = tuning.conversionRadius * effect.spriteScale
+    var sparks = tuning.conversionRingSparks
+
+    for (var spark = 0; spark < sparks; ++spark) {
+        var angle = 2 * Math.PI * spark / sparks
+        var ringSpark = createEffect(simulation, {
+            kind: effectKinds.conversionRing,
+            worldX: effect.worldX + Math.cos(angle) * radius,
+            // The world is drawn in a shallow perspective, so the ring reads as
+            // an ellipse on the ground rather than a circle facing the viewer.
+            worldY: effect.worldY + Math.sin(angle) * radius * 0.6,
+            spriteScale: effect.spriteScale,
+            tribe: effect.tribe
+        }, events)
+        if (ringSpark.frameCount > 0) {
+            ringSpark.frameIndex = spark % ringSpark.frameCount
+        }
+    }
+
     for (var index = 0; index < simulation.characters.length; ++index) {
         var character = simulation.characters[index]
         if (!character || !character.initialized
@@ -1290,10 +1443,33 @@ function stepShaman(simulation, state, world, events) {
             setDirection(state, heading.dx, heading.dy)
         }
         state.wanderRemainingMs = Math.max(state.wanderRemainingMs, stepMs * 2)
-    } else if (state.behaviour !== behaviours.wander) {
-        var idled = setBehaviour(state, behaviours.wander, actions.walk)
+    } else {
+        // Nothing to convert, so it goes home. A shaman belongs to its corner
+        // and drifts back to it rather than wandering off across the world.
         state.targetId = 0
-        events.push(transitionEvent(state, idled))
+        var home = tribeAnchor(world, state.tribe, tuning.shamanCornerInset)
+        if (home) {
+            var toX = home.x - state.worldX
+            var toY = home.y - state.worldY
+            if (Math.sqrt(toX * toX + toY * toY)
+                    <= tuning.shamanHomeRadius * state.spriteScale) {
+                var settled = setBehaviour(state, behaviours.wander, actions.idle)
+                if (settled !== state.behaviour) {
+                    events.push(transitionEvent(state, settled))
+                }
+                advanceAnimation(state, stepMs)
+                return null
+            }
+            var walking = setBehaviour(state, behaviours.wander, actions.walk)
+            if (walking !== state.behaviour) {
+                events.push(transitionEvent(state, walking))
+            }
+            var homeward = directionForVector(toX, toY)
+            if (homeward.id !== state.directionId) {
+                setDirection(state, homeward.dx, homeward.dy)
+            }
+            state.wanderRemainingMs = Math.max(state.wanderRemainingMs, stepMs * 2)
+        }
     }
 
     return stepCharacter(
@@ -1325,6 +1501,110 @@ function footprintEvent(footprint, entityId) {
     footprint.type = "footprint"
     footprint.entityId = entityId
     return footprint
+}
+
+// --- War parties ---------------------------------------------------------
+//
+// A tribe gathers in its own corner, and every so often the whole group leaves
+// together for another tribe's corner. That single countdown is the invisible
+// signal behind the columns of characters marching diagonally across the
+// original: they are not wandering, they are on their way somewhere.
+
+function tribeStateFor(simulation, tribe) {
+    var state = simulation.tribeState[tribe]
+    if (!state) {
+        state = {
+            raidTargetTribe: null,
+            remainingMs: tuning.musterIntervalMinMs
+                + simulation.random.nextInt(
+                    tuning.musterIntervalMaxMs - tuning.musterIntervalMinMs + 1
+                )
+        }
+        simulation.tribeState[tribe] = state
+    }
+    return state
+}
+
+function musteredCount(simulation, tribe) {
+    var count = 0
+    for (var index = 0; index < simulation.characters.length; ++index) {
+        var character = simulation.characters[index]
+        if (character.tribe === tribe && character.initialized
+                && isCombatant(character)) {
+            count += 1
+        }
+    }
+    return count
+}
+
+// Advances every tribe's countdown. Tribes are visited in their fixed order so
+// the draws stay reproducible.
+function stepTribes(simulation, events) {
+    var stepMs = tuning.stepSeconds * 1000
+
+    for (var index = 0; index < tribes.length; ++index) {
+        var tribe = tribes[index]
+        var state = tribeStateFor(simulation, tribe)
+        state.remainingMs -= stepMs
+        if (state.remainingMs > 0) {
+            continue
+        }
+
+        if (state.raidTargetTribe) {
+            events.push({
+                type: "raid-ended",
+                tribe: tribe,
+                targetTribe: state.raidTargetTribe
+            })
+            state.raidTargetTribe = null
+            state.remainingMs = tuning.musterIntervalMinMs
+                + simulation.random.nextInt(
+                    tuning.musterIntervalMaxMs - tuning.musterIntervalMinMs + 1
+                )
+            continue
+        }
+
+        // A tribe too small to be a war party keeps gathering instead.
+        if (musteredCount(simulation, tribe) < tuning.raidPartyMinimum) {
+            state.remainingMs = tuning.musterIntervalMinMs
+            continue
+        }
+
+        var candidates = []
+        for (var other = 0; other < tribes.length; ++other) {
+            if (tribes[other] !== tribe) {
+                candidates.push(tribes[other])
+            }
+        }
+        state.raidTargetTribe = simulation.random.pick(candidates)
+        state.remainingMs = tuning.raidDurationMs
+        events.push({
+            type: "raid-started",
+            tribe: tribe,
+            targetTribe: state.raidTargetTribe
+        })
+    }
+}
+
+// Where an aligned character is heading when nothing is fighting it: its own
+// corner while gathering, another tribe's while raiding.
+function musterDestination(simulation, state, world) {
+    var tribe = simulation.tribeState[state.tribe]
+    var raiding = !!(tribe && tribe.raidTargetTribe)
+    var anchor = tribeAnchor(
+        world,
+        raiding ? tribe.raidTargetTribe : state.tribe,
+        tuning.rallyInset
+    )
+    if (!anchor) {
+        return null
+    }
+    var slot = musterSlot(state)
+    return {
+        x: anchor.x + slot.x * state.spriteScale,
+        y: anchor.y + slot.y * state.spriteScale,
+        raiding: raiding
+    }
 }
 
 // Routes a character to the rules of its class. Unaligned characters have no
@@ -1464,10 +1744,8 @@ function stepCombatCharacter(simulation, state, world, events) {
         target = nearestHostile(simulation, state)
         if (target) {
             beginPursuit(state, target, events)
-        } else if (state.behaviour !== behaviours.wander) {
-            var oldBehaviour = setBehaviour(state, behaviours.wander, actions.walk)
+        } else {
             state.targetId = 0
-            events.push(transitionEvent(state, oldBehaviour))
         }
     }
 
@@ -1502,6 +1780,35 @@ function stepCombatCharacter(simulation, state, world, events) {
         // Pursuit owns the heading. Prevent stepCharacter's wander timer from
         // consuming randomness or replacing it.
         state.wanderRemainingMs = Math.max(state.wanderRemainingMs, stepMs * 2)
+    } else {
+        // Nothing to fight, so head for the muster: its own tribe's corner, or
+        // another tribe's while the war party is out.
+        var destination = musterDestination(simulation, state, world)
+        if (destination) {
+            var toX = destination.x - state.worldX
+            var toY = destination.y - state.worldY
+            var wanted = destination.raiding ? behaviours.raid : behaviours.muster
+            if (Math.sqrt(toX * toX + toY * toY)
+                    <= tuning.musterRadius * state.spriteScale) {
+                // Arrived. Holding the slot is the whole point of a muster, so
+                // it stands rather than drifting off again.
+                var settled = setBehaviour(state, wanted, actions.stand)
+                if (settled !== state.behaviour) {
+                    events.push(transitionEvent(state, settled))
+                }
+                advanceAnimation(state, stepMs)
+                return null
+            }
+            var marching = setBehaviour(state, wanted, actions.walk)
+            if (marching !== state.behaviour) {
+                events.push(transitionEvent(state, marching))
+            }
+            var heading = directionForVector(toX, toY)
+            if (heading.id !== state.directionId) {
+                setDirection(state, heading.dx, heading.dy)
+            }
+            state.wanderRemainingMs = Math.max(state.wanderRemainingMs, stepMs * 2)
+        }
     }
 
     return stepCharacter(
@@ -1535,28 +1842,6 @@ function finishDeaths(simulation, events) {
         }
     }
 
-    // The original main loop replaces removed characters while its live count
-    // is below the configured population. Fresh states initialise on the next
-    // host call, consuming the normal seeded spawn draws.
-    //
-    // Shamans are outside that count: they never die, and including them would
-    // silently shrink the population the user asked for.
-    var ordinary = 0
-    for (index = 0; index < survivors.length; ++index) {
-        if (survivors[index].entity !== entityTypes.shaman) {
-            ordinary += 1
-        }
-    }
-    while (ordinary < simulation.desiredPopulation) {
-        var replacement = createCharacter(
-            simulation.animations,
-            simulation.populationSpriteScale
-        )
-        replacement.id = simulation.nextEntityId++
-        survivors.push(replacement)
-        ordinary += 1
-        events.push({ type: "character-spawned", entityId: replacement.id })
-    }
     simulation.characters = survivors
 }
 
@@ -1593,7 +1878,7 @@ function stepEffect(simulation, effect, events) {
     if (effect.targetId !== 0) {
         var target = findCharacter(simulation, effect.targetId)
         var reach = effect.kind === effectKinds.conversion
-            ? tuning.conversionRadius
+            ? tuning.conversionArrivalDistance
             : tuning.fireImpactRadius
         if (target
                 && distanceBetween(effect, target) <= reach * effect.spriteScale) {
@@ -1705,6 +1990,8 @@ function stepSimulation(simulation, world, elapsedSeconds) {
 
         if (simulation.combatEnabled) {
             finishDeaths(simulation, events)
+            topUpPopulation(simulation, events)
+            stepTribes(simulation, events)
             stepEntities(simulation, world, events)
             characters = simulation.characters
         }

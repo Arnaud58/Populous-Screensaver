@@ -558,8 +558,13 @@ test("irregular host timing costs at most one step of quantisation", () => {
     // The same amount of real time delivered in different slice patterns must
     // simulate the same distance, give or take the step not yet consumed.
     // Both patterns stay under maxAccumulatedSeconds, so neither is clamped.
+    // Combat off: this is about the driver's time slicing, and an aligned
+    // character would otherwise march to its tribe's corner rather than along
+    // the heading the fixture set.
     function run(sliceSizes) {
-        const simulation = Simulation.createSimulation(4242)
+        const simulation = Simulation.createSimulation(
+            4242, manifest.animations, { combatEnabled: false }
+        )
         simulation.characters = [makeCharacter({ speed: 60 })]
         for (const slice of sliceSizes) {
             Simulation.stepSimulation(simulation, WORLD, slice)
@@ -818,9 +823,11 @@ test("a shaman is never a combat target", () => {
     const enemy = makeCharacter({ id: 2, tribe: "red", worldX: 105, speed: 0 })
     const simulation = combatSimulation([shaman, enemy])
 
-    runSteps(simulation, 60)
+    const events = runSteps(simulation, 60)
 
-    assert.equal(enemy.behaviour, Simulation.behaviours.wander)
+    assert.equal(events.some(event => event.type === "attack-started"), false)
+    assert.notEqual(enemy.behaviour, Simulation.behaviours.pursue)
+    assert.notEqual(enemy.behaviour, Simulation.behaviours.attack)
     assert.equal(shaman.health, Simulation.tuning.characterHealth)
 })
 
@@ -926,49 +933,174 @@ test("a firewarrior throws fire instead of closing to melee", () => {
         && event.kind === Simulation.effectKinds.ring))
 })
 
-test("populate adds one shaman per tribe on top of the configured count", () => {
+test("a world starts with the four shamans and nobody else", () => {
     const simulation = Simulation.createSimulation(1998, manifest.animations)
     Simulation.populate(simulation, 10, 1)
 
-    const shamans = simulation.characters
-        .filter(state => state.entity === Simulation.entityTypes.shaman)
-    assert.equal(simulation.characters.length, 10 + Simulation.tribes.length)
-    assert.deepEqual(shamans.map(state => state.tribe), Simulation.tribes)
+    assert.equal(simulation.characters.length, Simulation.tribes.length)
+    assert.deepEqual(
+        simulation.characters.map(state => state.entity),
+        Simulation.tribes.map(() => Simulation.entityTypes.shaman)
+    )
+    assert.deepEqual(
+        simulation.characters.map(state => state.tribe),
+        Simulation.tribes
+    )
 
     // Their tribe survives initialisation; the drawn one is discarded.
     Simulation.stepSimulation(simulation, WORLD, 0)
-    assert.deepEqual(shamans.map(state => state.tribe), Simulation.tribes)
+    assert.deepEqual(
+        simulation.characters.map(state => state.tribe),
+        Simulation.tribes
+    )
 })
 
-test("replacing the dead ignores shamans when counting the population", () => {
+// The capture opens on four characters and reaches its configured population
+// about fifty seconds later. A world that filled instantly would look wrong
+// from the first frame, and nothing else in the suite would notice.
+test("the population fills in one character at a time", () => {
     const simulation = Simulation.createSimulation(1998, manifest.animations)
     Simulation.populate(simulation, 6, 1)
-    Simulation.stepSimulation(simulation, WORLD, 0)
 
-    const victim = simulation.characters
-        .find(state => state.entity !== Simulation.entityTypes.shaman)
-    victim.tribe = "red"
-    victim.health = 1
-    const killer = makeCharacter({
-        id: 999,
-        tribe: "blue",
-        worldX: victim.worldX + 5,
-        worldY: victim.worldY,
-        speed: 0
-    })
-    simulation.characters.push(killer)
+    const interval = Simulation.tuning.populationSpawnIntervalMs
+    const steps = Math.ceil(interval / (STEP * 1000))
 
-    runSteps(simulation, 120,
-        list => list.some(event => event.type === "character-removed"))
+    for (let expected = 1; expected <= 6; ++expected) {
+        runSteps(simulation, steps)
+        const ordinary = simulation.characters
+            .filter(state => state.entity !== Simulation.entityTypes.shaman)
+        assert.equal(ordinary.length, expected,
+            `after ${expected} intervals the world holds ${ordinary.length}`)
+    }
 
-    const ordinary = simulation.characters
-        .filter(state => state.entity !== Simulation.entityTypes.shaman).length
-    assert.ok(ordinary >= simulation.desiredPopulation)
+    // And it stops at the target rather than growing without bound.
+    runSteps(simulation, steps * 4)
+    assert.equal(
+        simulation.characters
+            .filter(state => state.entity !== Simulation.entityTypes.shaman).length,
+        6
+    )
     assert.equal(
         simulation.characters
             .filter(state => state.entity === Simulation.entityTypes.shaman).length,
         Simulation.tribes.length
     )
+})
+
+test("a conversion draws its ring at the radius the rule uses", () => {
+    const shaman = makeCharacter({ id: 1, tribe: "blue", worldX: 400, worldY: 400,
+        speed: 0 })
+    shaman.entity = Simulation.entityTypes.shaman
+    const target = makeCharacter({
+        id: 2,
+        tribe: Simulation.unalignedTribe,
+        worldX: 460,
+        worldY: 400,
+        speed: 0
+    })
+    const simulation = combatSimulation([shaman, target])
+
+    runSteps(simulation, 400,
+        list => list.some(event => event.type === "converted"))
+
+    const ring = simulation.entities
+        .filter(entity => entity.kind === Simulation.effectKinds.conversionRing)
+    assert.equal(ring.length, Simulation.tuning.conversionRingSparks)
+
+    const radii = ring.map(spark => Math.hypot(
+        spark.worldX - target.worldX,
+        (spark.worldY - target.worldY) / 0.6
+    ))
+    for (const radius of radii) {
+        assert.ok(
+            Math.abs(radius - Simulation.tuning.conversionRadius) < 40,
+            `a ring sparkle sits at ${radius.toFixed(1)} px, not on the ring`
+        )
+    }
+
+    // Staggered start frames are what makes the ring look like it travels.
+    assert.ok(new Set(ring.map(spark => spark.frameIndex)).size > 1)
+})
+
+// Nobody is born into a tribe. Every coloured character in the world got there
+// by being converted, which is what makes the shamans the engine of the whole
+// simulation rather than decoration.
+test("ordinary characters are always born unaligned", () => {
+    const random = Simulation.createRandom(2024)
+
+    for (let attempt = 0; attempt < 200; ++attempt) {
+        const character = makeCharacter({ initialized: false })
+        Simulation.initializeCharacter(character, WORLD, random)
+        assert.equal(character.tribe, Simulation.unalignedTribe)
+    }
+})
+
+test("each shaman stands in its tribe's corner", () => {
+    const world = Simulation.createWorld([rect(0, 0, 1920, 1152)])
+    const simulation = Simulation.createSimulation(1998, manifest.animations)
+    Simulation.populate(simulation, 20, 1)
+    Simulation.stepSimulation(simulation, world, 0)
+
+    const corners = {
+        blue: [0, 0],
+        red: [1920, 0],
+        yellow: [1920, 1152],
+        green: [0, 1152]
+    }
+    for (const shaman of simulation.characters) {
+        const [cornerX, cornerY] = corners[shaman.tribe]
+        const reach = Simulation.tuning.shamanCornerInset * 2
+        assert.ok(
+            Math.abs(shaman.worldX - cornerX) < reach
+                && Math.abs(shaman.worldY - cornerY) < reach,
+            `the ${shaman.tribe} shaman is at ${Math.round(shaman.worldX)},`
+                + `${Math.round(shaman.worldY)}, not in its corner`
+        )
+    }
+})
+
+// The columns of characters marching diagonally across the original are a war
+// party on its way from its own corner to another tribe's. A tribe that only
+// ever wandered would never produce them.
+test("a tribe musters at its corner then leaves together for another", () => {
+    const world = Simulation.createWorld([rect(0, 0, 1920, 1152)])
+    const party = []
+    for (let index = 0; index < Simulation.tuning.raidPartyMinimum + 2; ++index) {
+        party.push(makeCharacter({
+            id: index + 1,
+            tribe: "blue",
+            worldX: 900 + index * 6,
+            worldY: 600
+        }))
+    }
+    const simulation = combatSimulation(party)
+
+    // No enemy exists, so nothing can distract them from the muster.
+    const gathering = []
+    for (let step = 0; step < 60 * 20; ++step) {
+        gathering.push(...Simulation.stepSimulation(simulation, world, STEP))
+        if (gathering.some(event => event.type === "raid-started")) {
+            break
+        }
+    }
+
+    const mustered = gathering.filter(event => event.type === "behaviour-changed"
+        && event.to === Simulation.behaviours.muster)
+    assert.ok(mustered.length > 0, "nobody ever mustered")
+
+    const raid = gathering.find(event => event.type === "raid-started")
+    assert.notEqual(raid, undefined, "the war party never set out")
+    assert.equal(raid.tribe, "blue")
+    assert.notEqual(raid.targetTribe, "blue")
+
+    // They all leave, and they all leave for the same place.
+    for (let step = 0; step < 60 * 3; ++step) {
+        Simulation.stepSimulation(simulation, world, STEP)
+    }
+    const raiding = party.filter(state =>
+        state.behaviour === Simulation.behaviours.raid)
+    assert.ok(raiding.length >= party.length - 1,
+        `only ${raiding.length} of ${party.length} joined the raid`)
 })
 
 test("characters stay inside the world over a long run", () => {

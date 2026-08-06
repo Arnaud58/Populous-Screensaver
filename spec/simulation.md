@@ -170,10 +170,11 @@ soul — while the four coloured tribes carry all of them. An unaligned characte
 therefore never fights, is never struck and never dies. It wanders until a
 shaman converts it, which is the only role its sprites permit.
 
-Spawning draws uniformly from all five, including `neutral`. The first capture
-shows tribes and unaligned characters coexisting from the opening second, so
-the starting population is mixed rather than wholly unaligned. The exact
-starting proportion is **unknown**; a uniform draw is the current choice.
+**Ordinary characters are always born unaligned.** No member of a tribe ever
+appears spontaneously; conversion is the only way into one, which is what makes
+the shamans the engine of the simulation rather than decoration. The spawn draw
+is still made, from a one-entry list, so every class costs the same sequence of
+values.
 
 ## Directions
 
@@ -212,7 +213,7 @@ Written by the simulation:
 | `id` | stable numeric identity within one simulation |
 | `entity` | renderable class: `brave`, `shaman` or `firewarrior` |
 | `action` | animation action: `walk`, `idle`, `kick`, `punch`, `cast` or `hit` |
-| `behaviour` | state-machine state: `wander`, `pursue`, `attack`, `hit`, `seek`, `charge`, `cast` or `recover` |
+| `behaviour` | state-machine state: `wander`, `pursue`, `attack`, `hit`, `seek`, `charge`, `cast`, `recover`, `muster` or `raid` |
 | `tribe` | one of the tribe ids above |
 | `directionId`, `directionX`, `directionY` | current heading |
 | `worldX`, `worldY` | ground point |
@@ -257,12 +258,11 @@ makes the state portable: it holds no timer object and no timestamp, only
 remaining durations that a fixed step decrements.
 
 `createCharacter(animations, spriteScale, entity, tribe)` builds one.
-`populate(simulation, count, spriteScale)` replaces a whole population with
-`count` ordinary characters **plus one shaman per tribe**. The shamans are
-additional rather than taken out of the count: the configured number is how
-many ordinary characters the user asked for, and a world configured below four
-would otherwise have no conversion at all. Replacement after a death counts
-only the ordinary characters, since a shaman never dies.
+`populate(simulation, count, spriteScale)` starts a world with **one shaman
+per tribe and nobody else**. The shamans are additional rather than taken out
+of the count: the configured number is how many ordinary characters the user
+asked for, and a world configured below four would otherwise have no
+conversion at all. See [Population](#population) for how the rest arrive.
 
 `simulation.entities` is a second list for short-lived non-character entities,
 rendered by the same delegate as characters.
@@ -291,6 +291,25 @@ A shaman's tribe is fixed for the run and is not drawn. The draw is still
 **consumed**, so every character costs the same sequence of values whatever its
 class; a C port that skips it for shamans diverges from the first shaman
 onward.
+
+### Population
+
+The world does **not** spawn its population at once. It opens on the four
+shamans alone, and ordinary characters arrive one at a time, at most one every
+`populationSpawnIntervalMs`, until the configured count is reached.
+
+One rule covers both filling an empty world and replacing the dead, because
+the capture shows both happening at the same rate: 3 to 4 characters in the
+first six seconds, climbing past 60 by 40 s, and the same ramp again after
+Armageddon has emptied the world.
+
+Shamans are outside the count. They never die, and including them would
+silently shrink the population the user asked for.
+
+The configured count **is** reached and held, because the majority of the world
+is unaligned and unaligned characters neither fight nor die. Measured over
+three minutes at a target of 150, the port loses 0.72 characters per second,
+inside the 0.45 to 1.68 measured in the original.
 
 ### Walking
 
@@ -382,6 +401,8 @@ has a `type`; actor-related items carry stable numeric ids. Current types are:
 | `cast-started` | a shaman or firewarrior began a spell; carries `spell` |
 | `converted` | an unaligned character joined a tribe; carries its new `entity` |
 | `effect-spawned` | a projectile or decoration entered the world; carries `kind` |
+| `raid-started` | a tribe's war party set out; carries `tribe` and `targetTribe` |
+| `raid-ended` | the war party's time ran out and it heads home |
 | `entity-removed` | a short-lived entity expired |
 
 `attack-started`, `cast-started` and `converted` carry a `sound` naming the
@@ -447,10 +468,10 @@ rules by `stepBehaviourCharacter`.
 
 | Class | Ordinary role | Fights | Can die |
 | ----- | ------------- | ------ | ------- |
-| `brave` (unaligned) | wanders, waits to be converted | no | no |
-| `brave` (aligned) | melee combatant | yes, at 14 px | yes |
-| `firewarrior` | ranged combatant | yes, at 150 px | yes |
-| `shaman` | converts unaligned characters | no | no |
+| `brave` (unaligned) | wanders the whole world, waits to be converted | no | no |
+| `brave` (aligned) | musters, raids, melee combatant | yes, at 14 px | yes |
+| `firewarrior` | musters, raids, ranged combatant | yes, at 150 px | yes |
+| `shaman` | holds its corner and converts | no | no |
 
 A firewarrior has no hit stream of its own. The original selects the **brave**
 hit cells for it, and the atlas carries no alternative, so
@@ -459,6 +480,37 @@ hit cells for it, and the atlas carries no alternative, so
 Shamans are neither attacked nor damaged, which the atlas again settles: they
 have `idle`, `walk` and `cast` and no hit or soul stream at all. The original's
 fire impact also excludes them explicitly.
+
+### Corners and war parties
+
+Each tribe owns a **corner of the world**, as fractions of the bounding box:
+blue top-left, red top-right, yellow bottom-right, green bottom-left. Two
+things follow from it.
+
+**A shaman belongs to its corner.** It is placed there at spawn rather than at
+a random spot, and when it has nothing to convert it walks back and stands
+instead of wandering off. The corner anchor is pulled into the world with
+`clampIntoWorld`, because the bounding-box corner of a multi-screen world can
+land in a dead zone belonging to no monitor.
+
+**An aligned character with nothing to fight goes to the muster**, a point just
+inside its tribe's corner. Each takes a fixed slot from its own id, on a
+slanted lattice, so a gathering spreads into a formation rather than piling on
+one pixel. Arriving means standing still: holding the slot is the point.
+
+Every tribe then runs one countdown. When it fires and the tribe has at least
+`raidPartyMinimum` members, the tribe picks another tribe at random and **the
+whole group leaves together** for that tribe's corner, until the raid duration
+expires and they drift home. That single shared countdown is the invisible
+signal behind the columns of characters marching diagonally across the
+original: they are not wandering, they are on their way somewhere.
+
+Combat still takes priority. A raider that finds an enemy in range stops and
+fights, and returns to the march when nothing is left nearby.
+
+The slot lattice is a stand-in. The original's Armageddon formations are dense
+diamonds of thirty to forty characters, and reproducing those exactly belongs
+with [gathering and Armageddon](#gathering-and-armageddon).
 
 ### Conversion
 
@@ -473,9 +525,20 @@ Implemented, from original shaman states 3, 4 and 5 and effect type 0.
 | `cast` | cast ends | launch projectile, `seek`, start cooldown |
 
 The projectile flies along the heading it was launched with — it does not
-home — and ends on reaching its target or when its lifetime runs out. On
-ending it converts **every** unaligned brave within its radius, not only the
-one it was aimed at, which is what the original's scan does.
+home — and ends on reaching its target or when its lifetime runs out.
+
+**Conversion is a zone.** On ending, a ring of sparkles blooms and every
+unaligned brave inside it changes tribe, not only the one it was aimed at,
+which is what the original's scan does. The ring is drawn at exactly the radius
+the rule uses rather than at a decorative one, so what a viewer sees is what
+the simulation did.
+
+The radius is measured, not chosen: the ring in the capture is 180 to 230 px
+across and about 3:2 elliptical — a circle on the ground seen in shallow
+perspective, roughly three times a character's height. The sparkles are placed
+at once but started at staggered animation frames, which reproduces the
+original's travelling-around-the-circle look without carrying a delay per
+sparkle in the state.
 
 A converted character joins the casting shaman's tribe. A share of them arrive
 as **firewarriors** instead of braves; that is the only way the class enters
@@ -509,7 +572,8 @@ their three-frame stream, so the state cannot outlive its animation or — worse
 | shaman acquisition / cast range | 250 px / 120 px |
 | pre-cast pause | 240 ms |
 | shaman cooldown | 1800 ms |
-| conversion projectile speed / radius | 133 px/s / 20 px |
+| conversion projectile speed | 800 px/s |
+| conversion arrival distance | 14 px |
 | firewarrior share of conversions | 1 in 4 |
 | fire cast range | 150 px |
 | fire projectile speed / impact radius | 200 px/s / 28 px |
