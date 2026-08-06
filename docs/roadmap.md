@@ -97,13 +97,18 @@ code is a fallback for ambiguous rules, probabilities or timings.
 [spec/simulation.md](../spec/simulation.md) is written **as** each rule is
 implemented, while the reasoning is fresh.
 
-### 4b — Catalogue the atlas 🔄 nearly done
+### 4b — Catalogue the atlas ✅
 
-**1,101 of the 1,179 usable cells are grouped, into 414 animations**, against
-160 and 40 when the phase started. The increase from 382 to 414 is a structural
-correction rather than new cell coverage: four 25-cell soul sequences became
-32 directional death animations plus four departure poses. The simulation
-still looks animations up by id, and the golden traces guard the new split.
+**Every one of the 1,179 usable cells is grouped, into 427 animations**,
+against 160 and 40 when the phase started. The simulation still looks
+animations up by id, and the golden traces guard each change.
+
+The last run, the 78 particle cells at 819–896, was closed by the disassembly
+rather than by the eye: every cell there is a mote of two to eight pixels, so
+the effect selector table supplied the structure and cell size confirmed the
+boundaries. `shaman_punch` became `shaman_cast` at the same time — character
+state 5 selects those cells and launches the conversion projectile, which
+settles a name that had only ever been read off the pose.
 
 What was found is written up in
 [asset-pipeline.md](asset-pipeline.md#what-the-atlas-turned-out-to-be) — the
@@ -112,10 +117,9 @@ why sounds turned out to be a poor witness. `tools/build-sprites.py` now prints
 a coverage line and the unclaimed ranges, so progress is a number rather than
 an impression.
 
-**What is left: cells 819–896**, the 78 particle cells, five pixels tall. One
-connected component there is not one frame, so they need handling of their own
-— probably a stream kind that takes a whole band and leaves it unsegmented
-until something needs it.
+Two small groups are grouped without being explained: a cyan burst at 888–892
+and a single yellow pixel at 835, which no effect selector accounts for. They
+are claimed so the coverage is honest, not because their role is known.
 
 ### 4a — Observe and analyse the original 🔄 in progress
 
@@ -147,8 +151,8 @@ The remaining evidence work is narrower:
 - combat distances, countdowns, damage threshold and soul acceleration are
   converted and implemented; only the original pursuit-entry cadence still
   needs disentangling from cooldowns, reservations and global mode;
-- the 819–896 particle band is partly mapped to effect selectors, but its
-  tiny overlapping groups still need a build-pipeline representation;
+- the 819–896 particle band now has a build-pipeline representation, but only
+  one of its frame cadences is evidence-backed;
 - the first recording ends before Armageddon visibly returns to ordinary
   simulation, although the looping code path is statically confirmed.
 

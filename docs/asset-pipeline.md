@@ -121,9 +121,10 @@ Visual detection remains useful for naming and grouping sequences.
 
 ## 6. Build the animation manifest
 
-In progress. **1,101 of the 1,179 usable cells are grouped into 414
-animations.** Reviewed sequences are described in
-`research/animation-layout.json` and compiled with:
+Complete. **Every one of the 1,179 usable cells is grouped, into 427
+animations**, against 160 cells and 40 animations when the work started.
+Reviewed sequences are described in `research/animation-layout.json` and
+compiled with:
 
 ```bash
 python3 tools/build-sprites.py
@@ -220,9 +221,10 @@ native table with it found:
   **16 idle, 32 walk, 24 cast**. All twelve blocks score exactly. The colours
   run blue, red, yellow, green once more, though the headdresses differ and
   the two halves differ in cell height, so whether these are four variants of
-  one unit or two unit types is unresolved. Their arms-out pose reads as a
-  punch rather than a spell, and whether a shaman fights at all in the screen
-  saver is doubtful — enemy braves are remembered as walking straight past.
+  one unit or two unit types is unresolved. Their arms-out pose is the
+  **conversion cast**: character state 5 selects those cells and launches the
+  conversion projectile. It was called a punch while it was read from the pose
+  alone, and renamed once the disassembly settled it.
 
 ### The direction sense, mechanically
 
@@ -316,10 +318,36 @@ turns up only these four as extreme outliers. The milder ones sit in streams
 whose signature already scores 0.92 or better, so they are genuinely wide
 frames rather than merges.
 
-### Still to identify
+### The particle band, closed by the disassembly
 
-**819–896**: 78 particle cells, five pixels tall. One connected component there
-is not one frame, so they need handling of their own.
+**819–896**, 78 cells five pixels tall, was the last unclaimed run and the one
+place neither the width signature nor the eye could help: every cell is a mote
+of two to eight pixels. The effect selector table recovered from the executable
+supplied the structure instead — see
+[original-state-map.md](../research/original-state-map.md).
+
+Cell size then confirmed the boundaries independently. The cross-shaped motes
+run **4, 6, 6, 6, 6, 4** pixels wide, four times over; the square motes run
+nine cells of constant width.
+
+| Cells | Effect type | What it is |
+| ----- | ----------- | ---------- |
+| 819, 836, 842, 848 | 3 | tribe-coloured burst mote, six cells each, in the usual blue, red, yellow, green order |
+| 825, 861, 870, 879 | 2 | generic debris mote, nine cells each, four colour variants and **no** tribe parameter |
+| 854–860 | 7 | the trail behind a fire projectile |
+| 893–896 | 8 | impact ember |
+| 834 | 9 | fire impact, one cell held about 60 ticks while it emits embers |
+| 888–892 | — | a cyan burst no selector accounts for |
+| 835 | — | a single yellow pixel beside the fire impact, unclaimed |
+
+Cells 820–824 are also reachable as effect type 5, whose factory is never
+called in the analysed executable. Two selectors sharing cells is why the range
+is claimed once, by the group its widths place it in.
+
+**Only one frame cadence in this band is known**: the fire trail runs seven
+cells over seven ticks, so 30 ms each. The original ages every effect one tick
+at a time on the same 30 ms timer, which makes one cell per tick the natural
+reading elsewhere, but it is not confirmed and the notes say so.
 
 For each, the checks are: where it starts and ends, frame order, direction,
 tribe or character type, approximate duration, ground anchor, and any

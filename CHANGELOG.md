@@ -58,10 +58,19 @@ reads from: the Windows build has its number written into the payload by
 
 ### The atlas catalogue
 
-- **1,101 of the 1,179 usable cells are grouped, into 414 animations**, against
-  160 and 40 before. Only the 78 particle cells at 819–896 are left.
-  The manifest remains generated from the reviewed layout; the simulation now
-  consumes the corrected directional soul ids.
+- **Every one of the 1,179 usable cells is grouped, into 427 animations**,
+  against 160 and 40 before. The manifest remains generated from the reviewed
+  layout; the simulation now consumes the corrected directional soul ids.
+- Closed the last run, the 78 particle cells at 819–896, from the effect
+  selector table rather than by eye — every cell there is a mote of two to
+  eight pixels. Cell size confirmed the boundaries independently: the
+  cross-shaped burst motes run 4, 6, 6, 6, 6, 4 pixels wide in each of four
+  tribe groups, and the debris motes run nine cells of constant width in each
+  of four colour variants. Only the fire trail's cadence is evidence-backed,
+  at seven cells over seven 30 ms ticks.
+- Renamed `shaman_punch` to `shaman_cast`. Character state 5 selects those
+  cells and launches the conversion projectile, so a name that had only been
+  read off the pose is now settled by the disassembly.
 - `tools/build-sprites.py` prints a coverage line and the unclaimed cell
   ranges, and renders `research/sheets/cells-*.png` — every cell in index
   order, labelled, claimed ones dimmed. That sheet is what makes a sequence

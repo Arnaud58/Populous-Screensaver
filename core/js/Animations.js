@@ -14,8 +14,8 @@ var manifest = {
     "anchor": "relative-to-cropped-frame"
   },
   "statistics": {
-    "animations": 414,
-    "uniqueSourceFrames": 1105
+    "animations": 427,
+    "uniqueSourceFrames": 1183
   },
   "animations": {
     "brave.neutral.walk.south": {
@@ -6378,10 +6378,10 @@ var manifest = {
       ],
       "sourceStream": "shaman_walk"
     },
-    "shaman.blue.punch.south": {
+    "shaman.blue.cast.south": {
       "entity": "shaman",
       "tribe": "blue",
-      "action": "punch",
+      "action": "cast",
       "direction": {
         "id": "south",
         "dx": 0,
@@ -6418,12 +6418,12 @@ var manifest = {
           "anchorY": 36
         }
       ],
-      "sourceStream": "shaman_punch"
+      "sourceStream": "shaman_cast"
     },
-    "shaman.blue.punch.south_east": {
+    "shaman.blue.cast.south_east": {
       "entity": "shaman",
       "tribe": "blue",
-      "action": "punch",
+      "action": "cast",
       "direction": {
         "id": "south_east",
         "dx": 1,
@@ -6460,12 +6460,12 @@ var manifest = {
           "anchorY": 36
         }
       ],
-      "sourceStream": "shaman_punch"
+      "sourceStream": "shaman_cast"
     },
-    "shaman.blue.punch.east": {
+    "shaman.blue.cast.east": {
       "entity": "shaman",
       "tribe": "blue",
-      "action": "punch",
+      "action": "cast",
       "direction": {
         "id": "east",
         "dx": 1,
@@ -6502,12 +6502,12 @@ var manifest = {
           "anchorY": 36
         }
       ],
-      "sourceStream": "shaman_punch"
+      "sourceStream": "shaman_cast"
     },
-    "shaman.blue.punch.north_east": {
+    "shaman.blue.cast.north_east": {
       "entity": "shaman",
       "tribe": "blue",
-      "action": "punch",
+      "action": "cast",
       "direction": {
         "id": "north_east",
         "dx": 1,
@@ -6544,12 +6544,12 @@ var manifest = {
           "anchorY": 36
         }
       ],
-      "sourceStream": "shaman_punch"
+      "sourceStream": "shaman_cast"
     },
-    "shaman.blue.punch.north": {
+    "shaman.blue.cast.north": {
       "entity": "shaman",
       "tribe": "blue",
-      "action": "punch",
+      "action": "cast",
       "direction": {
         "id": "north",
         "dx": 0,
@@ -6586,12 +6586,12 @@ var manifest = {
           "anchorY": 36
         }
       ],
-      "sourceStream": "shaman_punch"
+      "sourceStream": "shaman_cast"
     },
-    "shaman.blue.punch.north_west": {
+    "shaman.blue.cast.north_west": {
       "entity": "shaman",
       "tribe": "blue",
-      "action": "punch",
+      "action": "cast",
       "direction": {
         "id": "north_west",
         "dx": -1,
@@ -6628,12 +6628,12 @@ var manifest = {
           "anchorY": 36
         }
       ],
-      "sourceStream": "shaman_punch"
+      "sourceStream": "shaman_cast"
     },
-    "shaman.blue.punch.west": {
+    "shaman.blue.cast.west": {
       "entity": "shaman",
       "tribe": "blue",
-      "action": "punch",
+      "action": "cast",
       "direction": {
         "id": "west",
         "dx": -1,
@@ -6670,12 +6670,12 @@ var manifest = {
           "anchorY": 36
         }
       ],
-      "sourceStream": "shaman_punch"
+      "sourceStream": "shaman_cast"
     },
-    "shaman.blue.punch.south_west": {
+    "shaman.blue.cast.south_west": {
       "entity": "shaman",
       "tribe": "blue",
-      "action": "punch",
+      "action": "cast",
       "direction": {
         "id": "south_west",
         "dx": -1,
@@ -6712,12 +6712,12 @@ var manifest = {
           "anchorY": 36
         }
       ],
-      "sourceStream": "shaman_punch"
+      "sourceStream": "shaman_cast"
     },
-    "shaman.red.punch.south": {
+    "shaman.red.cast.south": {
       "entity": "shaman",
       "tribe": "red",
-      "action": "punch",
+      "action": "cast",
       "direction": {
         "id": "south",
         "dx": 0,
@@ -6754,12 +6754,12 @@ var manifest = {
           "anchorY": 36
         }
       ],
-      "sourceStream": "shaman_punch"
+      "sourceStream": "shaman_cast"
     },
-    "shaman.red.punch.south_east": {
+    "shaman.red.cast.south_east": {
       "entity": "shaman",
       "tribe": "red",
-      "action": "punch",
+      "action": "cast",
       "direction": {
         "id": "south_east",
         "dx": 1,
@@ -6796,12 +6796,12 @@ var manifest = {
           "anchorY": 36
         }
       ],
-      "sourceStream": "shaman_punch"
+      "sourceStream": "shaman_cast"
     },
-    "shaman.red.punch.east": {
+    "shaman.red.cast.east": {
       "entity": "shaman",
       "tribe": "red",
-      "action": "punch",
+      "action": "cast",
       "direction": {
         "id": "east",
         "dx": 1,
@@ -6838,12 +6838,12 @@ var manifest = {
           "anchorY": 36
         }
       ],
-      "sourceStream": "shaman_punch"
+      "sourceStream": "shaman_cast"
     },
-    "shaman.red.punch.north_east": {
+    "shaman.red.cast.north_east": {
       "entity": "shaman",
       "tribe": "red",
-      "action": "punch",
+      "action": "cast",
       "direction": {
         "id": "north_east",
         "dx": 1,
@@ -6880,12 +6880,12 @@ var manifest = {
           "anchorY": 36
         }
       ],
-      "sourceStream": "shaman_punch"
+      "sourceStream": "shaman_cast"
     },
-    "shaman.red.punch.north": {
+    "shaman.red.cast.north": {
       "entity": "shaman",
       "tribe": "red",
-      "action": "punch",
+      "action": "cast",
       "direction": {
         "id": "north",
         "dx": 0,
@@ -6922,12 +6922,12 @@ var manifest = {
           "anchorY": 36
         }
       ],
-      "sourceStream": "shaman_punch"
+      "sourceStream": "shaman_cast"
     },
-    "shaman.red.punch.north_west": {
+    "shaman.red.cast.north_west": {
       "entity": "shaman",
       "tribe": "red",
-      "action": "punch",
+      "action": "cast",
       "direction": {
         "id": "north_west",
         "dx": -1,
@@ -6964,12 +6964,12 @@ var manifest = {
           "anchorY": 36
         }
       ],
-      "sourceStream": "shaman_punch"
+      "sourceStream": "shaman_cast"
     },
-    "shaman.red.punch.west": {
+    "shaman.red.cast.west": {
       "entity": "shaman",
       "tribe": "red",
-      "action": "punch",
+      "action": "cast",
       "direction": {
         "id": "west",
         "dx": -1,
@@ -7006,12 +7006,12 @@ var manifest = {
           "anchorY": 36
         }
       ],
-      "sourceStream": "shaman_punch"
+      "sourceStream": "shaman_cast"
     },
-    "shaman.red.punch.south_west": {
+    "shaman.red.cast.south_west": {
       "entity": "shaman",
       "tribe": "red",
-      "action": "punch",
+      "action": "cast",
       "direction": {
         "id": "south_west",
         "dx": -1,
@@ -7048,12 +7048,12 @@ var manifest = {
           "anchorY": 36
         }
       ],
-      "sourceStream": "shaman_punch"
+      "sourceStream": "shaman_cast"
     },
-    "shaman.yellow.punch.south": {
+    "shaman.yellow.cast.south": {
       "entity": "shaman",
       "tribe": "yellow",
-      "action": "punch",
+      "action": "cast",
       "direction": {
         "id": "south",
         "dx": 0,
@@ -7090,12 +7090,12 @@ var manifest = {
           "anchorY": 39
         }
       ],
-      "sourceStream": "shaman_punch"
+      "sourceStream": "shaman_cast"
     },
-    "shaman.yellow.punch.south_east": {
+    "shaman.yellow.cast.south_east": {
       "entity": "shaman",
       "tribe": "yellow",
-      "action": "punch",
+      "action": "cast",
       "direction": {
         "id": "south_east",
         "dx": 1,
@@ -7132,12 +7132,12 @@ var manifest = {
           "anchorY": 39
         }
       ],
-      "sourceStream": "shaman_punch"
+      "sourceStream": "shaman_cast"
     },
-    "shaman.yellow.punch.east": {
+    "shaman.yellow.cast.east": {
       "entity": "shaman",
       "tribe": "yellow",
-      "action": "punch",
+      "action": "cast",
       "direction": {
         "id": "east",
         "dx": 1,
@@ -7174,12 +7174,12 @@ var manifest = {
           "anchorY": 39
         }
       ],
-      "sourceStream": "shaman_punch"
+      "sourceStream": "shaman_cast"
     },
-    "shaman.yellow.punch.north_east": {
+    "shaman.yellow.cast.north_east": {
       "entity": "shaman",
       "tribe": "yellow",
-      "action": "punch",
+      "action": "cast",
       "direction": {
         "id": "north_east",
         "dx": 1,
@@ -7216,12 +7216,12 @@ var manifest = {
           "anchorY": 39
         }
       ],
-      "sourceStream": "shaman_punch"
+      "sourceStream": "shaman_cast"
     },
-    "shaman.yellow.punch.north": {
+    "shaman.yellow.cast.north": {
       "entity": "shaman",
       "tribe": "yellow",
-      "action": "punch",
+      "action": "cast",
       "direction": {
         "id": "north",
         "dx": 0,
@@ -7258,12 +7258,12 @@ var manifest = {
           "anchorY": 39
         }
       ],
-      "sourceStream": "shaman_punch"
+      "sourceStream": "shaman_cast"
     },
-    "shaman.yellow.punch.north_west": {
+    "shaman.yellow.cast.north_west": {
       "entity": "shaman",
       "tribe": "yellow",
-      "action": "punch",
+      "action": "cast",
       "direction": {
         "id": "north_west",
         "dx": -1,
@@ -7300,12 +7300,12 @@ var manifest = {
           "anchorY": 39
         }
       ],
-      "sourceStream": "shaman_punch"
+      "sourceStream": "shaman_cast"
     },
-    "shaman.yellow.punch.west": {
+    "shaman.yellow.cast.west": {
       "entity": "shaman",
       "tribe": "yellow",
-      "action": "punch",
+      "action": "cast",
       "direction": {
         "id": "west",
         "dx": -1,
@@ -7342,12 +7342,12 @@ var manifest = {
           "anchorY": 39
         }
       ],
-      "sourceStream": "shaman_punch"
+      "sourceStream": "shaman_cast"
     },
-    "shaman.yellow.punch.south_west": {
+    "shaman.yellow.cast.south_west": {
       "entity": "shaman",
       "tribe": "yellow",
-      "action": "punch",
+      "action": "cast",
       "direction": {
         "id": "south_west",
         "dx": -1,
@@ -7384,12 +7384,12 @@ var manifest = {
           "anchorY": 39
         }
       ],
-      "sourceStream": "shaman_punch"
+      "sourceStream": "shaman_cast"
     },
-    "shaman.green.punch.south": {
+    "shaman.green.cast.south": {
       "entity": "shaman",
       "tribe": "green",
-      "action": "punch",
+      "action": "cast",
       "direction": {
         "id": "south",
         "dx": 0,
@@ -7426,12 +7426,12 @@ var manifest = {
           "anchorY": 39
         }
       ],
-      "sourceStream": "shaman_punch"
+      "sourceStream": "shaman_cast"
     },
-    "shaman.green.punch.south_east": {
+    "shaman.green.cast.south_east": {
       "entity": "shaman",
       "tribe": "green",
-      "action": "punch",
+      "action": "cast",
       "direction": {
         "id": "south_east",
         "dx": 1,
@@ -7468,12 +7468,12 @@ var manifest = {
           "anchorY": 39
         }
       ],
-      "sourceStream": "shaman_punch"
+      "sourceStream": "shaman_cast"
     },
-    "shaman.green.punch.east": {
+    "shaman.green.cast.east": {
       "entity": "shaman",
       "tribe": "green",
-      "action": "punch",
+      "action": "cast",
       "direction": {
         "id": "east",
         "dx": 1,
@@ -7510,12 +7510,12 @@ var manifest = {
           "anchorY": 39
         }
       ],
-      "sourceStream": "shaman_punch"
+      "sourceStream": "shaman_cast"
     },
-    "shaman.green.punch.north_east": {
+    "shaman.green.cast.north_east": {
       "entity": "shaman",
       "tribe": "green",
-      "action": "punch",
+      "action": "cast",
       "direction": {
         "id": "north_east",
         "dx": 1,
@@ -7552,12 +7552,12 @@ var manifest = {
           "anchorY": 39
         }
       ],
-      "sourceStream": "shaman_punch"
+      "sourceStream": "shaman_cast"
     },
-    "shaman.green.punch.north": {
+    "shaman.green.cast.north": {
       "entity": "shaman",
       "tribe": "green",
-      "action": "punch",
+      "action": "cast",
       "direction": {
         "id": "north",
         "dx": 0,
@@ -7594,12 +7594,12 @@ var manifest = {
           "anchorY": 39
         }
       ],
-      "sourceStream": "shaman_punch"
+      "sourceStream": "shaman_cast"
     },
-    "shaman.green.punch.north_west": {
+    "shaman.green.cast.north_west": {
       "entity": "shaman",
       "tribe": "green",
-      "action": "punch",
+      "action": "cast",
       "direction": {
         "id": "north_west",
         "dx": -1,
@@ -7636,12 +7636,12 @@ var manifest = {
           "anchorY": 39
         }
       ],
-      "sourceStream": "shaman_punch"
+      "sourceStream": "shaman_cast"
     },
-    "shaman.green.punch.west": {
+    "shaman.green.cast.west": {
       "entity": "shaman",
       "tribe": "green",
-      "action": "punch",
+      "action": "cast",
       "direction": {
         "id": "west",
         "dx": -1,
@@ -7678,12 +7678,12 @@ var manifest = {
           "anchorY": 39
         }
       ],
-      "sourceStream": "shaman_punch"
+      "sourceStream": "shaman_cast"
     },
-    "shaman.green.punch.south_west": {
+    "shaman.green.cast.south_west": {
       "entity": "shaman",
       "tribe": "green",
-      "action": "punch",
+      "action": "cast",
       "direction": {
         "id": "south_west",
         "dx": -1,
@@ -7720,7 +7720,7 @@ var manifest = {
           "anchorY": 39
         }
       ],
-      "sourceStream": "shaman_punch"
+      "sourceStream": "shaman_cast"
     },
     "brave.neutral.stand.south": {
       "entity": "brave",
@@ -16116,6 +16116,851 @@ var manifest = {
         }
       ],
       "sourceStream": "firewarrior_wave"
+    },
+    "particle.blue.burst": {
+      "entity": "particle",
+      "tribe": "blue",
+      "action": "burst",
+      "direction": null,
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
+        {
+          "sourceId": "sprite_0819",
+          "x": 0,
+          "y": 945,
+          "width": 4,
+          "height": 5,
+          "anchorX": 2.0,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0820",
+          "x": 5,
+          "y": 945,
+          "width": 6,
+          "height": 5,
+          "anchorX": 3.0,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0821",
+          "x": 11,
+          "y": 945,
+          "width": 6,
+          "height": 5,
+          "anchorX": 3.0,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0822",
+          "x": 17,
+          "y": 945,
+          "width": 6,
+          "height": 5,
+          "anchorX": 3.0,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0823",
+          "x": 23,
+          "y": 945,
+          "width": 6,
+          "height": 5,
+          "anchorX": 3.0,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0824",
+          "x": 30,
+          "y": 945,
+          "width": 4,
+          "height": 5,
+          "anchorX": 2.0,
+          "anchorY": 5
+        }
+      ],
+      "sourceStream": "particle_burst"
+    },
+    "particle.red.burst": {
+      "entity": "particle",
+      "tribe": "red",
+      "action": "burst",
+      "direction": null,
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
+        {
+          "sourceId": "sprite_0836",
+          "x": 67,
+          "y": 945,
+          "width": 4,
+          "height": 5,
+          "anchorX": 2.0,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0837",
+          "x": 72,
+          "y": 945,
+          "width": 6,
+          "height": 5,
+          "anchorX": 3.0,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0838",
+          "x": 78,
+          "y": 945,
+          "width": 6,
+          "height": 5,
+          "anchorX": 3.0,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0839",
+          "x": 84,
+          "y": 945,
+          "width": 6,
+          "height": 5,
+          "anchorX": 3.0,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0840",
+          "x": 90,
+          "y": 945,
+          "width": 6,
+          "height": 5,
+          "anchorX": 3.0,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0841",
+          "x": 97,
+          "y": 945,
+          "width": 4,
+          "height": 5,
+          "anchorX": 2.0,
+          "anchorY": 5
+        }
+      ],
+      "sourceStream": "particle_burst"
+    },
+    "particle.yellow.burst": {
+      "entity": "particle",
+      "tribe": "yellow",
+      "action": "burst",
+      "direction": null,
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
+        {
+          "sourceId": "sprite_0842",
+          "x": 103,
+          "y": 945,
+          "width": 4,
+          "height": 5,
+          "anchorX": 2.0,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0843",
+          "x": 108,
+          "y": 945,
+          "width": 6,
+          "height": 5,
+          "anchorX": 3.0,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0844",
+          "x": 114,
+          "y": 945,
+          "width": 6,
+          "height": 5,
+          "anchorX": 3.0,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0845",
+          "x": 120,
+          "y": 945,
+          "width": 6,
+          "height": 5,
+          "anchorX": 3.0,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0846",
+          "x": 126,
+          "y": 945,
+          "width": 6,
+          "height": 5,
+          "anchorX": 3.0,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0847",
+          "x": 133,
+          "y": 945,
+          "width": 4,
+          "height": 5,
+          "anchorX": 2.0,
+          "anchorY": 5
+        }
+      ],
+      "sourceStream": "particle_burst"
+    },
+    "particle.green.burst": {
+      "entity": "particle",
+      "tribe": "green",
+      "action": "burst",
+      "direction": null,
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
+        {
+          "sourceId": "sprite_0848",
+          "x": 139,
+          "y": 945,
+          "width": 4,
+          "height": 5,
+          "anchorX": 2.0,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0849",
+          "x": 144,
+          "y": 945,
+          "width": 6,
+          "height": 5,
+          "anchorX": 3.0,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0850",
+          "x": 150,
+          "y": 945,
+          "width": 6,
+          "height": 5,
+          "anchorX": 3.0,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0851",
+          "x": 156,
+          "y": 945,
+          "width": 6,
+          "height": 5,
+          "anchorX": 3.0,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0852",
+          "x": 162,
+          "y": 945,
+          "width": 6,
+          "height": 5,
+          "anchorX": 3.0,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0853",
+          "x": 169,
+          "y": 945,
+          "width": 4,
+          "height": 5,
+          "anchorX": 2.0,
+          "anchorY": 5
+        }
+      ],
+      "sourceStream": "particle_burst"
+    },
+    "particle.warm.debris": {
+      "entity": "particle",
+      "tribe": "warm",
+      "action": "debris",
+      "direction": null,
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
+        {
+          "sourceId": "sprite_0825",
+          "x": 35,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0826",
+          "x": 38,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0827",
+          "x": 41,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0828",
+          "x": 44,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0829",
+          "x": 47,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0830",
+          "x": 50,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0831",
+          "x": 53,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0832",
+          "x": 56,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0833",
+          "x": 59,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        }
+      ],
+      "sourceStream": "particle_debris"
+    },
+    "particle.green.debris": {
+      "entity": "particle",
+      "tribe": "green",
+      "action": "debris",
+      "direction": null,
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
+        {
+          "sourceId": "sprite_0861",
+          "x": 201,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0862",
+          "x": 204,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0863",
+          "x": 207,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0864",
+          "x": 210,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0865",
+          "x": 213,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0866",
+          "x": 216,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0867",
+          "x": 219,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0868",
+          "x": 222,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0869",
+          "x": 225,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        }
+      ],
+      "sourceStream": "particle_debris"
+    },
+    "particle.magenta.debris": {
+      "entity": "particle",
+      "tribe": "magenta",
+      "action": "debris",
+      "direction": null,
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
+        {
+          "sourceId": "sprite_0870",
+          "x": 229,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0871",
+          "x": 232,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0872",
+          "x": 235,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0873",
+          "x": 238,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0874",
+          "x": 241,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0875",
+          "x": 244,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0876",
+          "x": 247,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0877",
+          "x": 250,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0878",
+          "x": 253,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        }
+      ],
+      "sourceStream": "particle_debris"
+    },
+    "particle.blue.debris": {
+      "entity": "particle",
+      "tribe": "blue",
+      "action": "debris",
+      "direction": null,
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
+        {
+          "sourceId": "sprite_0879",
+          "x": 257,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0880",
+          "x": 260,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0881",
+          "x": 263,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0882",
+          "x": 266,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0883",
+          "x": 269,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0884",
+          "x": 272,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0885",
+          "x": 275,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0886",
+          "x": 278,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0887",
+          "x": 281,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        }
+      ],
+      "sourceStream": "particle_debris"
+    },
+    "effect.fire_trail": {
+      "entity": "effect",
+      "tribe": null,
+      "action": "fire_trail",
+      "direction": null,
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
+        {
+          "sourceId": "sprite_0854",
+          "x": 173,
+          "y": 945,
+          "width": 7,
+          "height": 5,
+          "anchorX": 3.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0855",
+          "x": 180,
+          "y": 945,
+          "width": 5,
+          "height": 5,
+          "anchorX": 2.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0856",
+          "x": 186,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0857",
+          "x": 189,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0858",
+          "x": 192,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0859",
+          "x": 195,
+          "y": 945,
+          "width": 3,
+          "height": 5,
+          "anchorX": 1.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0860",
+          "x": 199,
+          "y": 945,
+          "width": 2,
+          "height": 5,
+          "anchorX": 1.0,
+          "anchorY": 5
+        }
+      ],
+      "sourceStream": "effect_fire_trail"
+    },
+    "effect.fire_ember": {
+      "entity": "effect",
+      "tribe": null,
+      "action": "fire_ember",
+      "direction": null,
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
+        {
+          "sourceId": "sprite_0893",
+          "x": 316,
+          "y": 945,
+          "width": 4,
+          "height": 5,
+          "anchorX": 2.0,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0894",
+          "x": 320,
+          "y": 945,
+          "width": 4,
+          "height": 5,
+          "anchorX": 2.0,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0895",
+          "x": 324,
+          "y": 945,
+          "width": 4,
+          "height": 5,
+          "anchorX": 2.0,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0896",
+          "x": 328,
+          "y": 945,
+          "width": 4,
+          "height": 5,
+          "anchorX": 2.0,
+          "anchorY": 5
+        }
+      ],
+      "sourceStream": "effect_fire_ember"
+    },
+    "effect.fire_impact": {
+      "entity": "effect",
+      "tribe": null,
+      "action": "fire_impact",
+      "direction": null,
+      "loop": false,
+      "frameDurationMs": 1800,
+      "frames": [
+        {
+          "sourceId": "sprite_0834",
+          "x": 62,
+          "y": 945,
+          "width": 2,
+          "height": 5,
+          "anchorX": 1.0,
+          "anchorY": 5
+        }
+      ],
+      "sourceStream": "effect_fire_impact"
+    },
+    "effect.flash": {
+      "entity": "effect",
+      "tribe": null,
+      "action": "flash",
+      "direction": null,
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
+        {
+          "sourceId": "sprite_0888",
+          "x": 284,
+          "y": 945,
+          "width": 5,
+          "height": 5,
+          "anchorX": 2.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0889",
+          "x": 289,
+          "y": 945,
+          "width": 7,
+          "height": 5,
+          "anchorX": 3.5,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0890",
+          "x": 296,
+          "y": 945,
+          "width": 8,
+          "height": 5,
+          "anchorX": 4.0,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0891",
+          "x": 305,
+          "y": 945,
+          "width": 6,
+          "height": 5,
+          "anchorX": 3.0,
+          "anchorY": 5
+        },
+        {
+          "sourceId": "sprite_0892",
+          "x": 311,
+          "y": 945,
+          "width": 4,
+          "height": 5,
+          "anchorX": 2.0,
+          "anchorY": 5
+        }
+      ],
+      "sourceStream": "effect_flash"
+    },
+    "effect.spark": {
+      "entity": "effect",
+      "tribe": null,
+      "action": "spark",
+      "direction": null,
+      "loop": false,
+      "frameDurationMs": 30,
+      "frames": [
+        {
+          "sourceId": "sprite_0835",
+          "x": 64,
+          "y": 945,
+          "width": 2,
+          "height": 5,
+          "anchorX": 1.0,
+          "anchorY": 5
+        }
+      ],
+      "sourceStream": "effect_spark"
     }
   }
 }

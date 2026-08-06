@@ -368,10 +368,10 @@
       ]
     },
     {
-      "id": "shaman_punch",
+      "id": "shaman_cast",
       "entity": "shaman",
-      "action": "punch",
-      "confidence": "medium",
+      "action": "cast",
+      "confidence": "high",
       "sourceRanges": [
         {
           "firstSprite": 248,
@@ -451,8 +451,9 @@
         "frameDurationMs": 120
       },
       "notes": [
-        "Arms thrown out to the side, three frames per direction. Read by the author as a punch rather than a spell.",
-        "Whether a shaman ever fights hand to hand in the screen saver is doubtful: enemy braves are remembered as walking straight past. These cells may simply go unused, or one animation may serve both throwing a blow and taking one.",
+        "The shaman's conversion cast: arms thrown out to the side, three frames per direction.",
+        "Named a punch while it was read from the pose alone. Static analysis of the original settles it: character state 5 selects these cells, and the state launches the conversion projectile, effect type 0. See research/original-state-map.md.",
+        "During Armageddon the same state and the same cells serve the fire and lightning attacks, so one animation covers every shaman cast.",
         "The frame duration is provisional."
       ]
     },
@@ -985,17 +986,53 @@
           "green"
         ],
         "directions": [
-          { "id": "south", "dx": 0, "dy": 1 },
-          { "id": "south_east", "dx": 1, "dy": 1 },
-          { "id": "east", "dx": 1, "dy": 0 },
-          { "id": "north_east", "dx": 1, "dy": -1 },
-          { "id": "north", "dx": 0, "dy": -1 },
-          { "id": "north_west", "dx": -1, "dy": -1 },
-          { "id": "west", "dx": -1, "dy": 0 },
-          { "id": "south_west", "dx": -1, "dy": 1 }
+          {
+            "id": "south",
+            "dx": 0,
+            "dy": 1
+          },
+          {
+            "id": "south_east",
+            "dx": 1,
+            "dy": 1
+          },
+          {
+            "id": "east",
+            "dx": 1,
+            "dy": 0
+          },
+          {
+            "id": "north_east",
+            "dx": 1,
+            "dy": -1
+          },
+          {
+            "id": "north",
+            "dx": 0,
+            "dy": -1
+          },
+          {
+            "id": "north_west",
+            "dx": -1,
+            "dy": -1
+          },
+          {
+            "id": "west",
+            "dx": -1,
+            "dy": 0
+          },
+          {
+            "id": "south_west",
+            "dx": -1,
+            "dy": 1
+          }
         ],
         "framesPerAnimation": 3,
-        "order": ["tribe", "direction", "frame"]
+        "order": [
+          "tribe",
+          "direction",
+          "frame"
+        ]
       },
       "playback": {
         "loop": false,
@@ -1014,13 +1051,30 @@
       "action": "depart",
       "confidence": "high",
       "sourceRanges": [
-        { "firstSprite": 743, "frameCount": 1 },
-        { "firstSprite": 768, "frameCount": 1 },
-        { "firstSprite": 793, "frameCount": 1 },
-        { "firstSprite": 818, "frameCount": 1 }
+        {
+          "firstSprite": 743,
+          "frameCount": 1
+        },
+        {
+          "firstSprite": 768,
+          "frameCount": 1
+        },
+        {
+          "firstSprite": 793,
+          "frameCount": 1
+        },
+        {
+          "firstSprite": 818,
+          "frameCount": 1
+        }
       ],
       "layout": {
-        "tribes": ["blue", "red", "yellow", "green"],
+        "tribes": [
+          "blue",
+          "red",
+          "yellow",
+          "green"
+        ],
         "framesPerAnimation": 1
       },
       "playback": {
@@ -1244,6 +1298,216 @@
       "notes": [
         "A firewarrior waving, three frames per tribe, sharing atlas band 37 with brave_wave.",
         "Same doubt: probably unused."
+      ]
+    },
+    {
+      "id": "particle_burst",
+      "kind": "sequence",
+      "entity": "particle",
+      "action": "burst",
+      "confidence": "high",
+      "sourceRanges": [
+        {
+          "firstSprite": 819,
+          "frameCount": 6
+        },
+        {
+          "firstSprite": 836,
+          "frameCount": 6
+        },
+        {
+          "firstSprite": 842,
+          "frameCount": 6
+        },
+        {
+          "firstSprite": 848,
+          "frameCount": 6
+        }
+      ],
+      "layout": {
+        "framesPerAnimation": 6,
+        "tribes": [
+          "blue",
+          "red",
+          "yellow",
+          "green"
+        ]
+      },
+      "playback": {
+        "loop": false,
+        "frameDurationMs": 30
+      },
+      "notes": [
+        "Effect type 3, the tribe-coloured burst mote, emitted by conversions, deaths and Armageddon relocation.",
+        "Four groups of six at 819, 836, 842 and 848, found from the cell widths, which run 4, 6, 6, 6, 6, 4 in every group. Their dominant colours are cyan-blue, orange-red, yellow and green, in the tribe order the rest of the atlas uses, which matches the confirmed tribe parameter of the effect.",
+        "The original ages effects one tick at a time on a 30 ms timer, so one cell per tick is the natural reading, but the cadence is not confirmed.",
+        "Cells 820-824 are also reachable as effect type 5, whose factory is never called in the analysed executable. Two selectors sharing cells is why this range is claimed once, by the group it belongs to."
+      ]
+    },
+    {
+      "id": "particle_debris",
+      "kind": "sequence",
+      "entity": "particle",
+      "action": "debris",
+      "confidence": "high",
+      "sourceRanges": [
+        {
+          "firstSprite": 825,
+          "frameCount": 9
+        },
+        {
+          "firstSprite": 861,
+          "frameCount": 9
+        },
+        {
+          "firstSprite": 870,
+          "frameCount": 9
+        },
+        {
+          "firstSprite": 879,
+          "frameCount": 9
+        }
+      ],
+      "layout": {
+        "framesPerAnimation": 9,
+        "tribes": [
+          "warm",
+          "green",
+          "magenta",
+          "blue"
+        ]
+      },
+      "playback": {
+        "loop": false,
+        "frameDurationMs": 30
+      },
+      "notes": [
+        "Effect type 2, the generic debris mote, a confirmed child of types 0, 9 and 11 and of several character bursts.",
+        "Four variants of nine cells at 825, 861, 870 and 879, all three pixels wide against the six of the burst motes.",
+        "The variant names are their dominant colours, not tribes: the first ramps from green through white and yellow to red, the others stay green, magenta and blue. Unlike type 3, this effect carries no tribe parameter.",
+        "The frame cadence is provisional."
+      ]
+    },
+    {
+      "id": "effect_fire_trail",
+      "kind": "sequence",
+      "entity": "effect",
+      "action": "fire_trail",
+      "confidence": "high",
+      "sourceRanges": [
+        {
+          "firstSprite": 854,
+          "frameCount": 7
+        }
+      ],
+      "layout": {
+        "framesPerAnimation": 7
+      },
+      "playback": {
+        "loop": false,
+        "frameDurationMs": 30
+      },
+      "notes": [
+        "Effect type 7, the trail behind a firewarrior's fire projectile.",
+        "Seven cells over seven ticks, which is the one cadence in this band the original states outright: 30 ms per cell.",
+        "The cells shrink from 7 pixels wide to 2 as the ember cools from orange to near black."
+      ]
+    },
+    {
+      "id": "effect_fire_ember",
+      "kind": "sequence",
+      "entity": "effect",
+      "action": "fire_ember",
+      "confidence": "high",
+      "sourceRanges": [
+        {
+          "firstSprite": 893,
+          "frameCount": 4
+        }
+      ],
+      "layout": {
+        "framesPerAnimation": 4
+      },
+      "playback": {
+        "loop": false,
+        "frameDurationMs": 30
+      },
+      "notes": [
+        "Effect type 8, the impact ember, emitted repeatedly by the type 9 fire impact.",
+        "Four cells, four pixels wide, fading yellow to dark.",
+        "The frame cadence is provisional."
+      ]
+    },
+    {
+      "id": "effect_fire_impact",
+      "kind": "sequence",
+      "entity": "effect",
+      "action": "fire_impact",
+      "confidence": "high",
+      "sourceRanges": [
+        {
+          "firstSprite": 834,
+          "frameCount": 1
+        }
+      ],
+      "layout": {
+        "framesPerAnimation": 1
+      },
+      "playback": {
+        "loop": false,
+        "frameDurationMs": 1800
+      },
+      "notes": [
+        "Effect type 9, the fire impact left where a fire projectile lands. One fixed cell held for about 60 ticks, which is the 1800 ms recorded here, while it emits type 8 embers.",
+        "A single dark red pixel. It is a marker for the emitter rather than something meant to be seen on its own."
+      ]
+    },
+    {
+      "id": "effect_flash",
+      "kind": "sequence",
+      "entity": "effect",
+      "action": "flash",
+      "confidence": "high",
+      "sourceRanges": [
+        {
+          "firstSprite": 888,
+          "frameCount": 5
+        }
+      ],
+      "layout": {
+        "framesPerAnimation": 5
+      },
+      "playback": {
+        "loop": false,
+        "frameDurationMs": 30
+      },
+      "notes": [
+        "A cyan burst that swells from 5 to 8 pixels wide and fades, the only group in this band the effect selector table does not account for.",
+        "Grouped from its own size and colour profile so the band is fully claimed. Which effect emits it is unknown."
+      ]
+    },
+    {
+      "id": "effect_spark",
+      "kind": "sequence",
+      "entity": "effect",
+      "action": "spark",
+      "confidence": "high",
+      "sourceRanges": [
+        {
+          "firstSprite": 835,
+          "frameCount": 1
+        }
+      ],
+      "layout": {
+        "framesPerAnimation": 1
+      },
+      "playback": {
+        "loop": false,
+        "frameDurationMs": 30
+      },
+      "notes": [
+        "A single yellow pixel sitting beside the fire impact cell, the same size and shape.",
+        "No effect selector claims it. Kept separate from effect_fire_impact rather than merged, because that one is confirmed and this one is not."
       ]
     }
   ]
