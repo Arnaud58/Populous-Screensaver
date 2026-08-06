@@ -196,6 +196,15 @@ export function serializeGolden(golden) {
     return JSON.stringify(golden, null, 2) + "\n"
 }
 
+// The traces are compared as text, so a checkout that rewrote their line
+// endings would report every scenario out of date while the simulation is
+// byte-identical. Git stores them with LF and hands them to a Windows working
+// tree as CRLF, so on Windows the check failed permanently — which is worse
+// than useless for a regression guard: it teaches you to ignore it.
+function normalizeNewlines(text) {
+    return text.replace(/\r\n/g, "\n")
+}
+
 async function run(mode) {
     if (mode !== "--write" && mode !== "--check") {
         throw new Error("Usage: node tools/generate-golden.mjs [--write|--check]")
@@ -224,7 +233,7 @@ async function run(mode) {
             failed = true
             continue
         }
-        if (expected !== serialized) {
+        if (normalizeNewlines(expected) !== normalizeNewlines(serialized)) {
             console.error(`out of date: ${output}`)
             failed = true
         } else {
