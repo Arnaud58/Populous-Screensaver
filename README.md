@@ -23,13 +23,19 @@ The **Windows screen saver** works and installs: one window per monitor over a
 single continuous world, a settings dialog, and a self-contained archive with
 its own installer.
 
-The simulation is functional, with sound and the original's ordinary
-leader/follower reservation logic still to port: tribespeople walk, turn, avoid
-each other and leave pixel footprints; shamans hold the four corners and
-convert the unaligned; braves fight, die and rise as souls; firewarriors throw
-fire; and every two minutes Armageddon places everyone into the original four
-rotated formations, lets the tribes fight until fewer than two remain, and
-resumes ordinary play. No target plays sound yet.
+**The simulation is complete apart from sound.** Tribespeople roam, turn on
+slow arcs, wait, scratch and leave pixel footprints; shamans hold the four
+corners and convert the unaligned; tribes form up in reserved slots and send
+war parties of a leader and up to fifteen followers across the map; braves
+fight, die and rise as souls; firewarriors throw fire. Every two minutes
+Armageddon places everyone into the original's four rotated formations and lets
+the tribes fight until fewer than two remain — and one cycle in eleven, if a
+single tribe survives, it celebrates by walking a hand-drawn path across the
+screen.
+
+It runs on the original's own 30 ms tick and its C runtime random source, so
+the recovered decision thresholds mean what they meant in 1998. No target plays
+sound yet.
 
 See the [changelog](CHANGELOG.md) for what changed when, and the
 [roadmap](docs/roadmap.md) for what comes next.
@@ -137,13 +143,13 @@ The Plasma target exposes:
   screen, so only the four shamans are visible at first;
 - **sprite size**: automatic, 1×, 2× or 3×;
 - **footprints** on or off;
-- an optional **random seed**, where 0 means a different run each time.
-
-Changing the population, sprite size or seed starts a fresh world. Turning
-footprints off clears the existing trail without interrupting movement.
-
+- an optional **random seed**, where 0 means a different run each time;
 - **Armageddon interval**, from 60 to 500 seconds, defaulting to the
   original's 120.
+
+Changing the population, sprite size, seed or Armageddon interval starts a
+fresh world. Turning footprints off clears the existing trail without
+interrupting movement.
 
 One more is decided and will appear with the feature it controls, rather than
 as a knob that moves nothing: **sound**, defaulting to **off**. A 1998 screen

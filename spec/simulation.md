@@ -43,6 +43,13 @@ one loop calling `stepSimulation`.
 Written after version 0.9.0. Sections marked **planned** are not implemented in
 any target yet.
 
+Two passes over the executable have since replaced most of what was originally
+inferred from video. Where this document gives a number, it is now usually a
+recovered one; where it is not, it says so. The rule of thumb: **anything
+expressed in original 30 ms ticks or as a comparison against a 15-bit threshold
+came out of the disassembly**, and anything in seconds or pixels-per-second
+was probably chosen.
+
 ## Coordinate system and world geometry
 
 - Origin is top-left, `x` grows right, `y` grows down.
@@ -104,31 +111,42 @@ move, reverses on the spot, and is stuck for good.
 
 Implemented. A given seed replays exactly.
 
-**The random source** is mulberry32, seeded with one 32-bit word. It was chosen
-for portability: every operation is an explicit unsigned 32-bit one, and
-JavaScript's `Math.imul` is the same truncating 32-bit multiply as C's
-`uint32_t` multiply, so the C port produces the same bit patterns.
+**The random source is the Microsoft C runtime's `rand`**, the one the 1998
+executable was linked against. It replaced mulberry32 once the behaviour rules
+started depending on exact comparison thresholds: those thresholds are only
+meaningful against the distribution that produced them.
 
 ```text
-state = (state + 0x6d2b79f5) mod 2^32
-t     = imul(state xor (state >> 15), 1 or state)
-t     = (t + imul(t xor (t >> 7), 61 or t)) xor t
-result = t xor (t >> 14)
+state  = (state * 214013 + 2531011) mod 2^32
+result = (state >> 16) and 0x7fff
 ```
 
-`nextFloat` is `result / 2^32`, uniform in [0, 1). `nextInt(bound)` is
-`floor(nextFloat * bound)`. `pick` indexes an array with `nextInt`.
+`nextOriginal` returns that 15-bit result and is what every recovered rule
+compares against. `nextFloat` is `result / 32768`, `nextInt(bound)` is
+`floor(nextFloat * bound)`, and `pick` indexes an array with `nextInt`.
+
+Seeded with 1, the first ten values are 41, 18467, 6334, 26500, 19169, 15724,
+11478, 29358, 26962 and 24464 — the sequence every C runtime of that era
+produces, and what `tests/simulation.test.mjs` pins.
+
+**Only 15 bits per call.** `nextUint32` returns the same 15-bit value rather
+than a full word, so a port must not assume 32 bits of entropy from it.
 
 There is no ambient randomness anywhere: no rule calls `Math.random()`. The
 source is passed in explicitly, which is also what fixes the **draw order** —
 adding a draw in one implementation and not the other shows up immediately as
 a divergence.
 
-**The timestep is fixed.** `stepSimulation` takes real elapsed seconds,
-accumulates them, and runs whole slices of `tuning.stepSeconds` (1/60 s). The
-leftover is carried to the next call, so the amount simulated does not depend
-on how often or how regularly the host calls in — only on how much real time
-passed, quantised to one step.
+**The timestep is the original's tick.** `stepSimulation` takes real elapsed
+seconds, accumulates them, and runs whole slices of `tuning.stepSeconds`, which
+is **30 ms** — the interval of the executable's Windows timer. The leftover is
+carried to the next call, so the amount simulated does not depend on how often
+or how regularly the host calls in — only on how much real time passed,
+quantised to one step.
+
+The 30 ms slice matters beyond pacing: every recovered rule counts ticks, not
+milliseconds, so a 60 Hz slice would consume the random sequence at twice the
+rate and diverge from the first countdown.
 
 Time longer than `tuning.maxAccumulatedSeconds` (0.25 s) is **dropped, not
 caught up**. A host that stalls for a second resumes where it left off rather
@@ -212,11 +230,20 @@ Written by the simulation:
 | ----- | ------- |
 | `id` | stable numeric identity within one simulation |
 | `entity` | renderable class: `brave`, `shaman` or `firewarrior` |
-| `action` | animation action: `walk`, `idle`, `kick`, `punch`, `cast` or `hit` |
+| `action` | animation action: `walk`, `stand`, `idle`, `kick`, `punch`, `cast`, `scratch`, `wave` or `hit` |
 | `behaviour` | state-machine state: `wander`, `pursue`, `attack`, `hit`, `seek`, `cast`, `recover` or Armageddon `muster` |
 | `castSpell` | which spell the current cast will launch: `conversion`, `fire` or `lightning` |
 | `tribe` | one of the tribe ids above |
-| `directionId`, `directionX`, `directionY` | current heading |
+| `directionId`, `directionX`, `directionY` | the eight-way sprite direction |
+| `headingX`, `headingY` | the continuous heading a slow turn rotates; the sprite direction is derived from it |
+| `legacyState` | the original's numeric roaming state: 0 roam, 1 wait, 2 pursue, 8 scratch, 9 formation, 13 celebration |
+| `legacySubstate` | the original's secondary selector within a state; 9 marks a war-party member, 4 a character holding its formation slot |
+| `legacyTimerTicks` | the original's per-character countdown, in 30 ms ticks |
+| `legacyMod11`, `legacyMod2` | free-running counters modulo 11 and 2; several rules only fire on the tick where one is zero, which is what staggers a crowd instead of having it act in unison |
+| `legacyTurnTicks`, `legacyTurnRadians` | remaining ticks of a slow turn and its per-tick rotation |
+| `formationSlot` | index reserved in the tribe's 200-slot table, or −1 |
+| `celebrationPathIndex`, `celebrationFinished` | position along the celebration waypoint path |
+| `enteringWorld`, `entryTargetX`, `entryTargetY`, `entryDirectionX`, `entryDirectionY` | a character walking in from beyond the screen edge, and where it is headed |
 | `worldX`, `worldY` | ground point |
 | `speed` | base motion, exactly 2 px per original 30 ms tick (66.667 px/s), times sprite scale |
 | `frameIndex`, `animationElapsedMs` | walk cycle position |
@@ -317,13 +344,22 @@ inside the 0.45 to 1.68 measured in the original.
 ### Walking
 
 Each step, the character advances along its normalised direction by
-`speed * stepSeconds`. The walk animation advances on its own accumulator at
-120 ms per frame, four frames per cycle, looping. Changing direction restarts
-the cycle at frame 0.
+`speed * stepSeconds`. Ordinary speed is not drawn: brave state 0 stores
+**exactly 2 px per 30 ms tick**, so every ordinary character moves at the same
+66.667 px/s. The walk animation advances on its own accumulator at 120 ms per
+frame, four frames per cycle, looping. Changing direction restarts the cycle at
+frame 0.
 
-The animation is **not** tied to distance travelled, so characters of different
-speeds move their legs at the same rate. Whether the original tied the two
-together is **unknown**.
+The animation is **not** tied to distance travelled. Whether the original tied
+the two together is **unknown**.
+
+### Heading and turning
+
+A character carries a continuous `headingX`/`headingY` vector alongside the
+eight-way `directionId`. Roaming applies a slow rotation to the heading —
+±0.1 radians per tick for 20 ticks — and the sprite direction is re-derived
+from it. That is what produces the drifting arcs in the original rather than
+the hard eight-way turns an eight-direction state alone would give.
 
 ### Edges
 
@@ -388,10 +424,28 @@ A moving character emits one 2 × 2 pixel mark every other original tick
 cleared, matching the original backing-surface behaviour without creating one
 QML object per mark.
 
-The original samples and blends pixels already present in its GDI surface. On
-the port's black background there is no equivalent sprite-contaminated backing
-pixel, so the Canvas uses the tribe colour. This colour choice is the remaining
-visual approximation; cadence, dimensions and persistence are recovered.
+**The colour is sampled, not chosen.** The original reads the pixel already
+under the character's own sprite and blends it into the surface with integer
+arithmetic. The port reproduces that: each footprint event carries `sourceX`
+and `sourceY`, the atlas coordinates of the pixel under the mark, and the view
+samples the atlas through an off-screen copy before applying
+`blendFootprintChannel`.
+
+That function is the recovered blend, and it has three branches:
+
+- a **state-13** character (the celebration) moves each channel one tenth of
+  the way toward white in red and toward black in green and blue;
+- with **no backing image**, the channel is divided by `1 + amount * 0.002`;
+- otherwise the channel moves toward the background by `(amount + 1) / 400`.
+
+All three truncate **toward zero**, not downward — the difference shows on
+negative deltas, and getting it wrong drifts the trail colour over thousands of
+marks.
+
+Cadence, dimensions, persistence and now colour are all recovered. What remains
+approximate is that the port samples the atlas rather than a live backing
+surface, so a mark laid over another mark does not compound the way it would in
+the original.
 
 ### Events
 
@@ -414,6 +468,8 @@ has a `type`; actor-related items carry stable numeric ids. Current types are:
 | `conscripted` | an unaligned character was drafted into a tribe |
 | `armageddon-phase` | the cycle moved on; carries the new `phase` |
 | `armageddon-ended` | ordinary play resumes and the interval is re-armed |
+| `war-party-launched` | a leader set out; carries `tribe`, `targetTribe` and how many `followers` joined |
+| `celebration-character-spawned` | a state-13 character entered for the winner's celebration |
 | `entity-removed` | a short-lived entity expired |
 
 `attack-started`, `cast-started` and `converted` carry a `sound` naming the
@@ -480,7 +536,7 @@ rules by `stepBehaviourCharacter`.
 | Class | Ordinary role | Fights | Can die |
 | ----- | ------------- | ------ | ------- |
 | `brave` (unaligned) | wanders the whole world, waits to be converted | no | no |
-| `brave` (aligned) | roams and fights; original group reservations not yet ported | yes, at 14 px | yes |
+| `brave` (aligned) | roams, forms up, joins war parties and fights | yes, at 14 px | yes |
 | `firewarrior` | roams and fights at range | yes, at 500 px | yes |
 | `shaman` | holds its corner and converts | no | no |
 
@@ -492,7 +548,70 @@ Shamans are neither attacked nor damaged, which the atlas again settles: they
 have `idle`, `walk` and `cast` and no hit or soul stream at all. The original's
 fire impact also excludes them explicitly.
 
-### Corners and ordinary group logic
+### The roaming state machine
+
+Ordinary behaviour is the original's own numeric state machine rather than a
+rewrite of it, because its transitions are gated on comparisons against exact
+PRNG thresholds. Reproducing the shape but not the thresholds would consume the
+random sequence differently and diverge immediately.
+
+| State | Name | What it does |
+| ----: | ---- | ------------ |
+| 0 | roam | walks, occasionally starting a slow ±0.1 rad turn for 20 ticks; drops into `wait` on a threshold |
+| 1 | wait | stands still; on a threshold picks its next state |
+| 2 | pursue | closes on a target and fights |
+| 8 | scratch | plays the idle scratch for 15 ticks |
+| 9 | formation | reserves a slot in its tribe's table, walks to it, then holds it |
+| 13 | celebration | walks the winner's waypoint path (see below) |
+
+**The thresholds are the rule, not an implementation detail.** A `wait`
+character leaves only when a 15-bit draw is at least 12000; the branch between
+fighting directly and joining a formation is a second draw against 16385; the
+choice to scratch instead needs a draw of at least 27001 **and** `legacyMod11`
+at zero. Those constants are recovered and belong in the table of numbers a C
+port must match exactly.
+
+The modulo counters are what keep a crowd from acting in unison: a rule gated
+on `legacyMod11 === 0` fires for any given character on one tick in eleven, and
+characters are offset from each other because they were created at different
+times.
+
+Unaligned characters take a shorter path — they leave `wait` straight into
+`roam` with a 20-to-49-tick lock — so they never fight and never form up.
+
+### Recovered thresholds
+
+Every value here is a comparison against a 15-bit `nextOriginal` draw, or a
+tick count, taken from the executable. They are listed together because they
+are the part of the specification a C port is most likely to get subtly wrong:
+an off-by-one on a threshold does not crash anything, it just makes the world
+behave differently after a few minutes.
+
+| Constant | Value | Where it decides |
+| -------- | ----: | ---------------- |
+| `idleDecisionThreshold` | 12000 | a waiting character stays put below it; a roaming one starts waiting at or above it |
+| `groupDecisionThreshold` | 27001 | at or above, and with `legacyMod11` zero, the character scratches instead of acting |
+| `directCombatThreshold` | 16385 | below it a character fights directly, otherwise it joins a formation |
+| `targetGateThreshold` | 16384 | each candidate target must pass a draw above this in ordinary play; Armageddon bypasses it |
+| `groupLaunchThreshold` | 32700 | above it, a character holding its slot becomes a war-party leader |
+| turn gate | 22000 | above it, with `legacyMod11` zero, a roaming character starts a slow turn |
+| turn direction | 0x4001 | below it the turn is −0.1 rad, otherwise +0.1 |
+| `firewarriorConversionChance` | 2767 / 32768 | a conversion produces a firewarrior rather than a brave |
+
+| Tick count | Value | Meaning |
+| ---------- | ----: | ------- |
+| turn duration | 20 | ticks of slow rotation |
+| `scratchTicks` | 15 | length of the idle scratch |
+| `roamWaitMinTicks` + span | 10 + 0..29 | how long a character waits |
+| `neutralRoamLockMinTicks` + span | 20 + 0..29 | an unaligned character's roam lock |
+| `formationWaitTicks` | 100 | held in a formation slot before deciding again |
+| `groupFollowerLimit` | 15 | maximum followers a war-party leader recruits |
+| `armageddonGatherTicks` | 201 | length of the gather, one table entry placed per tick |
+| `armageddonRestoreTicks` | 2 | ordinary restoration |
+| `celebrationPathStartDelayTicks` | 7 | the world's modulo-51 counter value that starts state 13 |
+| `groupTargetDistanceSquared` | 125000 | squared reach for a war-party target, about 354 px |
+
+### Corners and war parties
 
 Each tribe owns a **corner of the world**, as fractions of the bounding box:
 blue top-left, red top-right, yellow bottom-right, green bottom-left. Two
@@ -505,9 +624,29 @@ instead of wandering off. The corner anchor is pulled into the world with
 `clampIntoWorld`, because the bounding-box corner of a multi-screen world can
 land in a dead zone belonging to no monitor.
 
-The former port made every aligned character march permanently to a 6 × 6
-corner lattice and drove each tribe with a shared 10–20 s raid countdown. The
-executable contains neither rule, so both have been removed.
+**A war party is an individual decision, not a tribe-wide one.** There is no
+shared per-tribe countdown; an earlier port invented one, and the executable
+contains no such rule.
+
+Instead, a character in state 9 that has reached its slot and waited out its
+timer draws against 32700. On success — and only when its `legacyMod11` is
+zero — it becomes a **leader**: it picks a target tribe, releases its slot and
+sets off, and then recruits **at most fifteen** followers from the same tribe
+who are themselves holding a formation slot. Each follower gets its own nearest
+target, releases its own slot and leaves with the leader, marked by substate 9.
+
+The target tribe is the largest one that is not its own; if its own tribe is
+the largest, it picks the smallest other instead. Candidate targets must be
+within a squared distance of 125000, about 354 px.
+
+That is what produces the columns of characters marching diagonally across the
+original: a leader and up to fifteen followers crossing the map together, each
+walking to a slightly different opponent.
+
+**Slots are reserved, not computed.** Each tribe has a 200-entry reservation
+table; a character takes the lowest free index and releases it when it leaves.
+Two characters therefore never hold the same slot, and a tribe whose table is
+full sends the overflow back to roaming.
 
 The original instead lets individual state-9 leaders reserve a table position,
 select an opposing tribe through PRNG gates and reassign at most 15 eligible
@@ -591,11 +730,38 @@ countdown is re-armed after each cycle.
 | `normal` | the configured interval | ordinary play |
 | `gather` | 201 original ticks (6.03 s) | every neutral gets a random tribe; at most one character-table entry is moved to a formation slot per tick |
 | `battle` | conditional | continues until fewer than two tribes have a living non-shaman combatant |
+| `celebration` | conditional | the rare winner branch, below |
+| `celebration_restore` | 1 tick, then 10 | releases the celebration and hands back to `restore` |
 | `restore` | 2 original ticks on the ordinary path | survivors return to ordinary states and the interval is re-armed |
 
 There is no distinct convergence phase and no fixed 22-second battle in the
-executable. Global states 3 and 4 form a conditional winner/celebration branch;
-they are not universal phases and remain outside the current implementation.
+executable.
+
+### The celebration
+
+Global states 3 and 4 are a **conditional branch, not a phase every cycle goes
+through**. It runs only when the battle leaves exactly one tribe standing *and*
+the run's cycle counter — advanced once per Armageddon, modulo 11 — is 1. One
+cycle in eleven, at most.
+
+When it fires, everything but the four shamans is removed and half the
+configured population is respawned in the winner's colours, in state 13,
+entering from the left edge. They then walk an **84-point waypoint path**
+copied literally from `FUN_00402e90`: a 500 × 100 drawing translated around the
+screen centre, with one exit point 20 px from the right edge appended. Each
+character advances to the next waypoint when it comes within a few pixels,
+moving at 2 px per tick and slowing to 1 px near a waypoint.
+
+The path is kept as a literal table rather than regenerated, which makes it
+independently testable and avoids inventing a replacement for something that is
+plainly a hand-drawn shape.
+
+The phase holds until every celebrating character has finished its path, then
+40 more ticks, and only then unwinds.
+
+**A gate worth knowing about.** State 13 does not begin walking until the
+world's own modulo-51 counter reaches 7, so the whole group starts together
+rather than the moment each one spawns.
 
 **The draft is random, not balanced.** Every still-neutral brave draws one of
 the four tribes. The near-equal groups in the first capture do not override the

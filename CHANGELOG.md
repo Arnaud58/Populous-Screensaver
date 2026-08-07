@@ -6,6 +6,41 @@ reads from: the Windows build has its number written into the payload by
 
 ## Unreleased
 
+### The original's own state machine
+
+- **Replaced mulberry32 with the Microsoft C runtime PRNG** the 1998 executable
+  was linked against. Once the behaviour rules depend on comparisons against
+  exact thresholds, those thresholds are only meaningful against the
+  distribution that produced them. Note that it yields 15 bits per call, not
+  32.
+- **The timestep is now the original's 30 ms tick** rather than 1/60 s. Every
+  recovered rule counts ticks, so a 60 Hz slice would consume the random
+  sequence at twice the rate and diverge from the first countdown.
+- Ported the original's numeric roaming states — roam, wait, pursue, scratch,
+  formation — with their recovered PRNG thresholds rather than a rewrite of
+  their shape, and the free-running modulo-11 and modulo-2 counters that
+  stagger a crowd instead of letting it act in unison.
+- Characters now carry a continuous heading that a slow ±0.1 rad turn rotates
+  over 20 ticks, with the eight-way sprite direction derived from it. That is
+  what produces the original's drifting arcs.
+- **War parties are back, as an individual decision.** A character holding a
+  formation slot can become a leader on a draw above 32700 and recruit at most
+  fifteen followers, each releasing its own reserved slot. The earlier
+  tribe-wide countdown was an invention; this chain is in the executable.
+- Formation slots are reserved from a 200-entry table per tribe rather than
+  computed, so two characters can never hold the same one.
+- Implemented **the celebration**, global states 3 and 4: a conditional branch
+  that runs only when one tribe survives and the cycle counter is 1 — one cycle
+  in eleven at most. Half the population respawns in the winner's colours and
+  walks the 84-point waypoint path copied literally from `FUN_00402e90`.
+- Footprints now sample the pixel under the character's own sprite and blend it
+  with the recovered integer arithmetic of `FUN_00413f20`, including its
+  truncation toward zero, instead of using a flat tribe colour.
+- Fixed the golden harness's handling of **negative zero**: JSON writes `-0` as
+  `0`, so a freshly generated snapshot never equalled the same snapshot read
+  back and the trace failed on a clean tree. Same trap as the undefined fields
+  already dropped there.
+
 ### Armageddon
 
 - Replaced the capture-derived five-phase approximation with the executable's

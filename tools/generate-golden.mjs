@@ -79,7 +79,12 @@ function rounded(value) {
         if (!Number.isFinite(value)) {
             throw new Error(`Cannot serialize non-finite number: ${value}`)
         }
-        return Number(value.toFixed(6))
+        const fixed = Number(value.toFixed(6))
+        // JSON has no negative zero: it writes -0 as 0 and reads it back as 0.
+        // Left alone, a freshly generated snapshot would never equal the same
+        // snapshot read from disk, and the trace would fail on a clean tree.
+        // Same trap as the undefined fields dropped below.
+        return fixed === 0 ? 0 : fixed
     }
     if (Array.isArray(value)) {
         return value.map(rounded)

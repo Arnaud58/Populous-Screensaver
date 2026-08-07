@@ -249,6 +249,22 @@ Armageddon swirl effect type 11, and the `WARLOOP`/`ATTACK99` sound cues.
 
 Regenerate and review the golden JSON once per intentional rule change.
 
+### 4g — back to the executable ✅
+
+Two passes replaced most of what earlier phases had inferred from video: the
+PRNG, the timestep, the roaming state machine and its thresholds, the formation
+tables, the war-party chain and the celebration branch. Several rules the port
+had invented — a balanced draft, a tribe-wide raid countdown, a shaman
+acquisition radius — turned out not to exist, and were removed.
+
+The lesson is recorded here because it will recur: **a plausible rule fitted to
+a capture is not evidence.** The near-equal Armageddon formations in the first
+recording looked like a balancing rule and were not one.
+
+What is documented but not yet finished from that work: nothing in the
+simulation, but see the note on footprint compounding under
+[Footprints](../spec/simulation.md#footprints).
+
 ## Phase 5 — The xscreensaver hack
 
 Last, deliberately. It is a C and OpenGL renderer sharing no code with the QML
