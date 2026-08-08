@@ -89,7 +89,9 @@ QVariantMap loadSettings()
     // they disagree, a user who never opens the dialog gets one world and a
     // user who opens it and presses OK gets another.
     properties[QStringLiteral("characterCount")] =
-        settings.value(QStringLiteral("characterCount"), 200).toInt();
+        qBound(10,
+            settings.value(QStringLiteral("characterCount"), 150).toInt(),
+            200);
     properties[QStringLiteral("armageddonSeconds")] =
         settings.value(QStringLiteral("armageddonSeconds"), 120).toInt();
     properties[QStringLiteral("spriteScaleOverride")] =

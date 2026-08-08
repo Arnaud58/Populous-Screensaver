@@ -12,13 +12,13 @@ WallpaperItem {
         // The ceiling has to match the configuration page's spin box, or the
         // page offers a number the wallpaper silently refuses to honour.
         characterCount: Math.max(
-            1,
+            10,
             Math.min(
-                1000,
+                200,
                 wallpaper.configuration
                     && wallpaper.configuration.CharacterCount !== undefined
                     ? wallpaper.configuration.CharacterCount
-                    : 24
+                    : 150
             )
         )
         spriteScaleOverride: Math.max(

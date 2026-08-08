@@ -104,7 +104,12 @@ var armageddonModes = {
 
 var effectKinds = {
     conversion: "conversion",
-    conversionRing: "conversion_ring",
+    // Selectors 1, 2 and 3 from the original effect factory. The apparent
+    // conversion "ring" is made by these moving emitters and motes; it is not
+    // a set of evenly spaced decorations.
+    conversionCorona: "conversion_corona",
+    conversionDebris: "conversion_debris",
+    conversionParticle: "conversion_particle",
     flash: "flash",
     burst: "burst",
     fire: "fire",
@@ -185,9 +190,14 @@ var tuning = {
     shamanCastCooldownMs: 30 * 30,
     conversionSpeed: 10 * 1000 / 30,
     conversionRadius: 80,
-    conversionRingSparks: 16,
     conversionTravelMs: 12 * 30,
     conversionLifetimeMs: 19 * 30,
+    conversionScanEndMs: 18 * 30,
+    conversionProjectileMotesPerTick: 10,
+    conversionCoronaEmittersPerTick: 10,
+    conversionCoronaChildrenPerTick: 2,
+    conversionCharacterBurstMotes: 30,
+    conversionEffectCapacity: 400,
     firewarriorConversionChance: 2767 / 32768,
     fireCastDistance: 500,
     fireSpeed: 10 * 1000 / 30,
@@ -201,7 +211,6 @@ var tuning = {
     // FUN_00401020 creates the four shamans at (50, 50) and the three mirrored
     // positions width/height minus 50. This is an unscaled world-space inset.
     shamanCornerInset: 50,
-    shamanHomeRadius: 30,
     rallyInset: 190,
     formationSlotsPerTribe: 200,
     formationColumns: 8,
@@ -460,8 +469,14 @@ function originalFormationSlot(world, tribe, slot) {
 }
 
 // Picks a rectangle weighted by area, so characters spread evenly over the
-// world rather than clustering on the smallest screen.
+// world rather than clustering on the smallest screen. The Windows original
+// has one surface and therefore consumes no random value here. Preserve that
+// cadence for a one-rectangle world; the extra draw is strictly the Plasma
+// multi-screen adaptation.
 function pickRect(world, random) {
+    if (world.rects.length === 1) {
+        return world.rects[0]
+    }
     var total = 0
     var index
 
@@ -469,7 +484,7 @@ function pickRect(world, random) {
         total += world.rects[index].width * world.rects[index].height
     }
 
-    var target = random.nextFloat() * total
+    var target = random.nextOriginal() * total / 0x7fff
     var running = 0
     for (index = 0; index < world.rects.length; ++index) {
         running += world.rects[index].width * world.rects[index].height
@@ -672,6 +687,28 @@ function advanceLegacyCounters(state) {
     }
 }
 
+// vfunc_00415040 updates offset 0x60 while drawing the shaman. Keeping this
+// separate from the QML animation clock matters because state 5 emits its ten
+// particles on every update for which this original counter is exactly two.
+function advanceShamanLegacyFrame(state) {
+    if (state.speed <= 0 || state.legacyState === 4
+            || state.legacyState === 5) {
+        if (state.legacyState === 4) {
+            state.legacyFrameCounter = state.legacyMod11 < 5 ? 1 : 0
+        } else if (state.legacyState === 5
+                && (state.legacyMod11 === 4 || state.legacyMod11 === 9)
+                && state.legacyFrameCounter < 2) {
+            state.legacyFrameCounter += 1
+        }
+    } else if (state.legacyMod2 === 1) {
+        state.legacyFrameCounter += 1
+        if (state.legacyFrameCounter > 3) {
+            state.legacyFrameCounter = 0
+        }
+    }
+    state.frameIndex = state.legacyFrameCounter
+}
+
 // --- Character rules -----------------------------------------------------
 
 // Builds a character state. `animations` is the `animations` object of the
@@ -708,6 +745,7 @@ function createCharacter(animations, spriteScale, entity, tribe) {
         legacyTimerTicks: 0,
         legacyMod11: 0,
         legacyMod2: 0,
+        legacyFrameCounter: 0,
         legacyTurnTicks: 0,
         legacyTurnRadians: 0,
         formationSlot: -1,
@@ -738,35 +776,50 @@ function createCharacter(animations, spriteScale, entity, tribe) {
     return state
 }
 
-// Populates a character with a random tribe, direction, position and speed.
+// Populates a character with the exact constructor/factory draw order. Sprite
+// enlargement is visual only.
 // Returns false when no screen is large enough to place anything, which is how
 // a shell waits for its layout to settle.
 //
-// The draw order is part of the contract: rectangle, direction, tribe, x, y,
-// speed, wander interval. The C port must consume the same values in the same
-// order or the two implementations diverge from the first character.
+// The original common constructor consumes angle, mod-11, mod-2 and initial
+// animation frame. A shaman consumes exactly those four draws. An ordinary is
+// first given Y and X by FUN_004013e0, then consumes the same four constructor
+// draws. A multi-screen layout adds one documented rectangle-selection draw.
 function initializeCharacter(state, world, random) {
     if (!world || !worldHasUsableRect(world)) {
         return false
     }
 
-    var rect = pickRect(world, random)
-    var direction = randomDirection(random)
-    // The draw is consumed even for a pinned tribe, so that every character
-    // costs the same sequence of values whatever its class. That keeps the
-    // contract above true of the whole population rather than per entity type.
-    var drawnTribe = randomTribe(random)
-    if (!state.tribePinned) {
-        state.tribe = drawnTribe
+    var rect = null
+    if (state.entity !== entityTypes.shaman) {
+        rect = pickRect(world, random)
+        // FUN_004013e0 evaluates rand() for Y before rand() for X.
+        var spawnY = random.nextOriginal() * rect.height / 0x7fff
+        var spawnX = random.nextOriginal() * rect.width / 0x7fff
+        state.worldX = rect.x + spawnX
+        state.worldY = rect.y + spawnY
+        state.tribe = unalignedTribe
     }
-    state.worldX = rect.x + tuning.spawnMarginX
-        + random.nextFloat() * Math.max(1, rect.width - tuning.spawnInsetX)
-    state.worldY = rect.y + tuning.spawnMarginTop
-        + random.nextFloat() * Math.max(1, rect.height - tuning.spawnInsetY)
-    state.speed = (tuning.speedMin + random.nextFloat() * (tuning.speedMax - tuning.speedMin))
-        * state.spriteScale
-    // A shaman belongs to its corner, not to a random spot. The draws above are
-    // still consumed, so the sequence stays the same for every class.
+
+    // FUN_00413e10 starts from (0,-1) and rotates through a continuous angle;
+    // the eight directions are only a rendering choice made afterwards.
+    var angle = random.nextOriginal() * 0.00019175367197021842
+    state.headingX = Math.sin(angle)
+    state.headingY = -Math.cos(angle)
+    var visualDirection = directionForVector(state.headingX, state.headingY)
+    state.directionX = visualDirection.dx
+    state.directionY = visualDirection.dy
+    state.directionId = visualDirection.id
+    state.legacyMod11 = Math.floor(random.nextOriginal() * 10 / 0x7fff)
+    state.legacyMod2 = Math.floor(random.nextOriginal() * 2 / 0x7fff)
+    state.legacyFrameCounter = Math.floor(
+        random.nextOriginal() * 4 / 0x7fff
+    )
+    state.frameIndex = state.legacyFrameCounter
+    state.animationElapsedMs = 0
+    resolveAnimation(state)
+
+    state.speed = state.entity === entityTypes.shaman ? 0 : tuning.speedMin
     if (state.entity === entityTypes.shaman) {
         var corner = tribeAnchor(world, state.tribe, tuning.shamanCornerInset)
         if (corner) {
@@ -781,8 +834,6 @@ function initializeCharacter(state, world, random) {
     state.legacyState = 1
     state.legacySubstate = 0
     state.legacyTimerTicks = 0
-    state.legacyMod11 = Math.floor(random.nextOriginal() * 10 / 0x7fff)
-    state.legacyMod2 = Math.floor(random.nextOriginal() * 2 / 0x7fff)
     state.legacyTurnTicks = 0
     state.legacyTurnRadians = 0
     state.formationSlot = -1
@@ -796,12 +847,11 @@ function initializeCharacter(state, world, random) {
     state.castLaunched = false
     state.castSpell = "conversion"
     setBehaviour(state, behaviours.wander, actions.walk)
-    setDirection(state, direction.dx, direction.dy)
     if (state.enteringWorld && state.entity !== entityTypes.shaman) {
         state.entryTargetX = state.worldX
         state.entryTargetY = state.worldY
-        state.entryDirectionX = direction.dx
-        state.entryDirectionY = direction.dy
+        state.entryDirectionX = state.headingX
+        state.entryDirectionY = state.headingY
         var middleX = rect.x + rect.width / 2
         var middleY = rect.y + rect.height / 2
         state.worldX += state.worldX <= middleX ? -rect.width / 2 : rect.width / 2
@@ -811,6 +861,7 @@ function initializeCharacter(state, world, random) {
             state.entryTargetX - state.worldX,
             state.entryTargetY - state.worldY
         )
+        state.frameIndex = state.legacyFrameCounter
     }
     state.initialized = true
     return true
@@ -851,7 +902,9 @@ function createSoul(character, id) {
 // plays through and is removed when it ends.
 var effectStreams = {
     conversion: { key: "effect.sparkle", loop: true },
-    conversion_ring: { key: "effect.sparkle", loop: false },
+    conversion_corona: { key: "effect.sparkle", loop: false },
+    conversion_debris: { key: null, loop: false },
+    conversion_particle: { key: null, loop: false },
     flash: { key: "effect.flash", loop: false },
     burst: { key: null, loop: false },
     fire: { key: "effect.fire_trail", loop: true },
@@ -871,11 +924,23 @@ var effectStreams = {
 // one-shot decoration wants.
 function createEffect(simulation, options, events) {
     var stream = effectStreams[options.kind]
-    var animationKey = stream.key
+    var secondary = options.kind === effectKinds.conversionCorona
+        || options.kind === effectKinds.conversionDebris
+        || options.kind === effectKinds.conversionParticle
+    // The executable owns a shared array of 400 effect slots. Secondary
+    // emissions simply disappear when every slot is occupied; retaining that
+    // pressure is important because a conversion attempts far more particles
+    // than can coexist.
+    if (secondary
+            && simulation.effectCount >= tuning.conversionEffectCapacity) {
+        return null
+    }
+
+    var animationKey = options.animationKey || (stream.key
         ? stream.key
         : (options.kind === effectKinds.lightning
             ? null
-            : "particle." + options.tribe + ".burst")
+            : "particle." + options.tribe + ".burst"))
     var effect = {
         id: simulation.nextEntityId++,
         entity: entityTypes.effect,
@@ -903,6 +968,8 @@ function createEffect(simulation, options, events) {
         emitIntervalMs: options.emitIntervalMs || 0,
         ageElapsedMs: 0,
         nextConversionScanMs: tuning.conversionTravelMs,
+        turnRadians: options.turnRadians || 0,
+        emissionsRemaining: options.emissionsRemaining || 0,
         frameIndex: 0,
         animationElapsedMs: 0,
         initialized: true,
@@ -912,6 +979,40 @@ function createEffect(simulation, options, events) {
         animationLoop: stream.loop
     }
     resolveAnimation(effect)
+    // CProjectile::Draw centres every effect sprite on its world coordinate in
+    // both axes. The atlas compiler's default bottom anchor is appropriate for
+    // standing characters but displaced a 36 px sparkle from the 5 px motes
+    // it emits, making one logical corona look like two separate rings.
+    if (effect.frames) {
+        var centredFrames = []
+        for (var frame = 0; frame < effect.frames.length; ++frame) {
+            var sourceFrame = effect.frames[frame]
+            centredFrames.push({
+                sourceId: sourceFrame.sourceId,
+                x: sourceFrame.x,
+                y: sourceFrame.y,
+                width: sourceFrame.width,
+                height: sourceFrame.height,
+                anchorX: sourceFrame.width / 2,
+                anchorY: sourceFrame.height / 2
+            })
+        }
+        effect.frames = centredFrames
+    }
+    if (effect.kind === effectKinds.conversion
+            || effect.kind === effectKinds.conversionCorona) {
+        // The recovered draw routines use cells 345..350 and advance once per
+        // 30 ms world tick. The catalog also contains the adjacent seventh
+        // cell because it was extracted before the factory was decompiled.
+        effect.frames = effect.frames ? effect.frames.slice(0, 6) : null
+        effect.frameCount = effect.frames ? effect.frames.length : 0
+        effect.frameDurationMs = tuning.originalTickMs
+    } else if (effect.kind === effectKinds.conversionDebris
+            || effect.kind === effectKinds.conversionParticle) {
+        // Their frame counter advances only when the shared mod-3 counter is
+        // zero, although motion and lifetime still advance every tick.
+        effect.frameDurationMs = 3 * tuning.originalTickMs
+    }
     // resolveAnimation reads the manifest's own loop flag, which is false for
     // every effect stream. A travelling effect overrides it.
     effect.animationLoop = stream.loop
@@ -919,7 +1020,12 @@ function createEffect(simulation, options, events) {
         effect.lifetimeRemainingMs = effect.frameCount * effect.frameDurationMs
     }
     simulation.entities.push(effect)
-    if (events) {
+    simulation.effectCount += 1
+    // Child motes are internal members of their parent effect, just as they
+    // are in the executable's 400-slot factory. Publishing thousands of
+    // effect-spawned records made captures retain far more data than the
+    // visible simulation itself.
+    if (events && !secondary) {
         events.push({
             type: "effect-spawned",
             entityId: effect.id,
@@ -1125,7 +1231,7 @@ function avoidCollisions(state, others) {
         return false
     }
 
-    var collisionDistance = tuning.collisionDistance * state.spriteScale
+    var collisionDistance = tuning.collisionDistance
     var collisionDistanceSquared = collisionDistance * collisionDistance
 
     for (var index = 0; index < others.length; ++index) {
@@ -1243,6 +1349,7 @@ function createSimulation(seed, animations, options) {
         animations: animations || null,
         characters: [],
         entities: [],
+        effectCount: 0,
         desiredPopulation: 0,
         populationSpriteScale: 1,
         tribeState: {},
@@ -1269,16 +1376,13 @@ function createSimulation(seed, animations, options) {
     }
 }
 
-// Starts a world with one shaman per tribe and `count` ordinary characters.
+// Starts a world with one shaman per tribe and `count` total characters.
 // The original allocates them all immediately, but places ordinary characters
 // beyond both screen axes so only the shamans are initially visible.
 //
-// The shamans are additional rather than taken out of the count: the
-// configured number is how many ordinary characters the user asked for, and a
-// world with fewer than four of them would otherwise have no conversion at
-// all. The original likewise treats its four as separate — its Armageddon
-// controller recreates missing "corner entities" independently of the
-// population target.
+// FUN_004013e0 counts the four shamans already created before it fills the
+// remaining character-table slots, so the original default 150 means four
+// shamans plus 146 ordinary entries.
 function populate(simulation, count, spriteScale) {
     simulation.characters = []
     simulation.desiredPopulation = count
@@ -1294,7 +1398,8 @@ function populate(simulation, count, spriteScale) {
         shaman.id = simulation.nextEntityId++
         simulation.characters.push(shaman)
     }
-    for (var ordinary = 0; ordinary < count; ++ordinary) {
+    var ordinaryTarget = Math.max(0, count - tribes.length)
+    for (var ordinary = 0; ordinary < ordinaryTarget; ++ordinary) {
         var brave = createCharacter(
             simulation.animations,
             simulation.populationSpriteScale
@@ -1306,24 +1411,14 @@ function populate(simulation, count, spriteScale) {
     return simulation.characters
 }
 
-function ordinaryPopulation(characters) {
-    var count = 0
-    for (var index = 0; index < characters.length; ++index) {
-        if (characters[index].entity !== entityTypes.shaman) {
-            count += 1
-        }
-    }
-    return count
-}
-
-// Immediately allocates every missing ordinary character. It remains visually
-// absent until initialisation offsets it beyond the screen and it walks in.
+// Rebuilds every missing ordinary slot during the restoration after
+// Armageddon. Startup already allocates the full table in populate(); the
+// original does not call this after each ordinary death.
 function topUpPopulation(simulation, world, events) {
-    // Armageddon is not the moment to be handing out new characters.
     if (simulation.armageddon.mode !== armageddonModes.normal) {
         return
     }
-    while (ordinaryPopulation(simulation.characters) < simulation.desiredPopulation) {
+    while (simulation.characters.length < simulation.desiredPopulation) {
         var replacement = createCharacter(
             simulation.animations,
             simulation.populationSpriteScale
@@ -1346,7 +1441,7 @@ function findCharacter(simulation, id) {
 }
 
 function nearestHostile(simulation, state) {
-    var maximum = tuning.combatAcquireDistance * state.spriteScale
+    var maximum = tuning.combatAcquireDistance
     var bestDistance = maximum * maximum
     var best = null
 
@@ -1465,8 +1560,14 @@ var castSounds = {
 
 function beginCast(state, target, events, spell) {
     var previous = setBehaviour(state, behaviours.cast, actions.cast)
+    state.legacyState = 5
     state.targetId = target.id
     state.actionRemainingMs = castDuration(state)
+    state.legacyTimerTicks = 20
+    state.legacyMod11 = 0
+    state.legacyFrameCounter = 0
+    state.frameIndex = 0
+    state.speed = 0
     state.castLaunched = false
     state.castSpell = spell || "conversion"
     if (previous !== state.behaviour) {
@@ -1519,12 +1620,104 @@ function beginFireCast(state, target, events) {
     })
 }
 
+function originalSpread(random, extent) {
+    return Math.floor(random.nextOriginal() * extent / 0x7fff) - extent / 2
+}
+
+function conversionEffectSlotAvailable(simulation) {
+    return simulation.effectCount < tuning.conversionEffectCapacity
+}
+
+function createConversionDebris(simulation, worldX, worldY, velocityX,
+        velocityY, spriteScale, events) {
+    if (!conversionEffectSlotAvailable(simulation)) {
+        return null
+    }
+    var initialAge = Math.floor(simulation.random.nextOriginal() / 0xccc)
+    var positive = simulation.random.nextOriginal() < 0x4001
+    var magnitude = Math.floor(simulation.random.nextOriginal() / 0x4000)
+    var turnRadians = positive ? magnitude + 0.2 : -0.2 - magnitude
+    var variant = Math.floor(simulation.random.nextOriginal() * 4 / 0x7fff)
+    var variants = ["warm", "green", "magenta", "blue", "blue"]
+    return createEffect(simulation, {
+        kind: effectKinds.conversionDebris,
+        animationKey: "particle." + variants[variant] + ".debris",
+        worldX: worldX,
+        worldY: worldY,
+        velocityX: velocityX,
+        velocityY: velocityY,
+        spriteScale: spriteScale,
+        turnRadians: turnRadians,
+        lifetimeMs: (16 - initialAge) * tuning.originalTickMs
+    }, events)
+}
+
+function createConversionParticle(simulation, worldX, worldY, velocityX,
+        velocityY, spriteScale, tribe, events) {
+    if (!conversionEffectSlotAvailable(simulation)) {
+        return null
+    }
+    var initialAge = Math.floor(simulation.random.nextOriginal() * 7 / 0x7fff)
+    var initialFrame = simulation.random.nextOriginal() > 0x4000 ? 1 : 0
+    var particle = createEffect(simulation, {
+        kind: effectKinds.conversionParticle,
+        animationKey: "particle." + tribe + ".burst",
+        worldX: worldX,
+        worldY: worldY,
+        velocityX: velocityX,
+        velocityY: velocityY,
+        spriteScale: spriteScale,
+        tribe: tribe,
+        lifetimeMs: (15 - initialAge) * tuning.originalTickMs
+    }, events)
+    if (particle) {
+        particle.frameIndex = initialFrame
+    }
+    return particle
+}
+
+function emitCoronaChildren(simulation, corona, events) {
+    for (var child = 0; child < tuning.conversionCoronaChildrenPerTick; ++child) {
+        var velocityX = originalSpread(simulation.random, 30) * 0.2
+            / tuning.stepSeconds
+        var velocityY = originalSpread(simulation.random, 30) * 0.2
+            / tuning.stepSeconds
+        createConversionParticle(
+            simulation, corona.worldX, corona.worldY, velocityX, velocityY,
+            corona.spriteScale, corona.tribe, events
+        )
+    }
+}
+
+function createConversionCorona(simulation, worldX, worldY, velocityX,
+        velocityY, spriteScale, tribe, events) {
+    if (!conversionEffectSlotAvailable(simulation)) {
+        return null
+    }
+    var corona = createEffect(simulation, {
+        kind: effectKinds.conversionCorona,
+        worldX: worldX,
+        worldY: worldY,
+        velocityX: velocityX,
+        velocityY: velocityY,
+        spriteScale: spriteScale,
+        tribe: tribe,
+        // It is drawn once immediately, then five more times.
+        lifetimeMs: 5 * tuning.originalTickMs,
+        turnRadians: 0.05,
+        emissionsRemaining: 5
+    }, events)
+    if (corona) {
+        emitCoronaChildren(simulation, corona, events)
+    }
+    return corona
+}
+
 // Turns an unaligned brave into a member of the casting shaman's tribe. A
 // share of them arrive as firewarriors instead, which is the only way that
 // class enters the world.
 function convertCharacter(simulation, character, tribe, events) {
-    var becomesFirewarrior =
-        simulation.random.nextFloat() < tuning.firewarriorConversionChance
+    var becomesFirewarrior = simulation.random.nextOriginal() >= 0x7531
 
     character.tribe = tribe
     character.entity = becomesFirewarrior
@@ -1540,20 +1733,25 @@ function convertCharacter(simulation, character, tribe, events) {
     // animation when the action changes — which it did not.
     resolveAnimation(character)
 
-    createEffect(simulation, {
-        kind: effectKinds.flash,
-        worldX: character.worldX,
-        worldY: character.worldY,
-        spriteScale: character.spriteScale,
-        tribe: tribe
-    }, events)
-    createEffect(simulation, {
-        kind: effectKinds.burst,
-        worldX: character.worldX,
-        worldY: character.worldY,
-        spriteScale: character.spriteScale,
-        tribe: tribe
-    }, events)
+    // Selector 1 is created at the converted character with no velocity. Its
+    // own draw pass adds twelve coloured selector-3 motes.
+    createConversionCorona(simulation,
+        character.worldX, character.worldY,
+        0, 0, character.spriteScale, tribe, events)
+
+    // The converted character consumes one draw for its new ordinary-state
+    // timer, then throws thirty coloured motes over a 30 x 30 square.
+    character.wanderRemainingMs =
+        (Math.floor(simulation.random.nextOriginal() * 30 / 0x7fff) + 10)
+            * tuning.originalTickMs
+    for (var mote = 0; mote < tuning.conversionCharacterBurstMotes; ++mote) {
+        var offsetX = originalSpread(simulation.random, 30)
+        var offsetY = originalSpread(simulation.random, 30)
+        createConversionParticle(simulation,
+            character.worldX + offsetX, character.worldY + offsetY,
+            0, offsetY / 30 / tuning.stepSeconds,
+            character.spriteScale, tribe, events)
+    }
 
     events.push({
         type: "converted",
@@ -1564,35 +1762,12 @@ function convertCharacter(simulation, character, tribe, events) {
     })
 }
 
-// The conversion projectile reaching its destination.
-//
-// A ring of sparkles blooms at the radius the spell reaches, and every
-// unaligned brave inside it changes tribe — not only the one it was aimed at.
-// The ring is the visible boundary of the zone, so it is drawn at exactly the
-// radius the rule uses rather than at a decorative one.
-//
-// The sparkles are placed at once but started at staggered frames. That is
-// what produces the travelling-around-the-circle look in the original without
-// any per-sparkle delay to carry in the state.
-function applyConversion(simulation, effect, events, decorate) {
-    var radius = tuning.conversionRadius * effect.spriteScale
-    var sparks = tuning.conversionRingSparks
-
-    for (var spark = 0; decorate && spark < sparks; ++spark) {
-        var angle = 2 * Math.PI * spark / sparks
-        var ringSpark = createEffect(simulation, {
-            kind: effectKinds.conversionRing,
-            worldX: effect.worldX + Math.cos(angle) * radius,
-            // The world is drawn in a shallow perspective, so the ring reads as
-            // an ellipse on the ground rather than a circle facing the viewer.
-            worldY: effect.worldY + Math.sin(angle) * radius * 0.6,
-            spriteScale: effect.spriteScale,
-            tribe: effect.tribe
-        }, events)
-        if (ringSpark.frameCount > 0) {
-            ringSpark.frameIndex = spark % ringSpark.frameCount
-        }
-    }
+// One of the six recovered conversion scans (projectile ages 12 through 17).
+// Every eligible character consumes a gate draw even on the final guaranteed
+// scan. This is both the stagger visible in the capture and part of the exact
+// PRNG cadence.
+function applyConversion(simulation, effect, events, ageTicks) {
+    var radius = tuning.conversionRadius
 
     for (var index = 0; index < simulation.characters.length; ++index) {
         var character = simulation.characters[index]
@@ -1602,8 +1777,56 @@ function applyConversion(simulation, effect, events, decorate) {
             continue
         }
         if (distanceBetween(effect, character) <= radius) {
-            convertCharacter(simulation, character, effect.tribe, events)
+            var gate = simulation.random.nextOriginal()
+            if (gate > 20000 || ageTicks > 16) {
+                convertCharacter(simulation, character, effect.tribe, events)
+            }
         }
+    }
+}
+
+function rotateVector(vector, radians) {
+    var x = vector.x
+    var cosine = Math.cos(radians)
+    var sine = Math.sin(radians)
+    vector.x = x * cosine - vector.y * sine
+    vector.y = x * sine + vector.y * cosine
+}
+
+// The projectile's draw routine is the actual conversion effect emitter. It
+// runs once per original tick: ten selector-2 debris motes throughout, then
+// ten selector-1 corona generators on ages 12 through 19.
+function emitConversionProjectile(simulation, effect, events, ageTicks) {
+    var nextX = effect.worldX + effect.velocityX * tuning.stepSeconds
+    var nextY = effect.worldY + effect.velocityY * tuning.stepSeconds
+    for (var mote = 0; mote < tuning.conversionProjectileMotesPerTick; ++mote) {
+        var velocityX = originalSpread(simulation.random, 30) * 0.1
+            / tuning.stepSeconds
+        var velocityY = originalSpread(simulation.random, 30) * 0.1
+            / tuning.stepSeconds
+        createConversionDebris(simulation, nextX, nextY,
+            velocityX, velocityY, effect.spriteScale, events)
+    }
+
+    if (ageTicks <= 11) {
+        return
+    }
+
+    var offset = { x: 0, y: ageTicks + 68 }
+    var velocity = { x: 3 / tuning.stepSeconds, y: 0 }
+    for (var emitter = 0;
+            emitter < tuning.conversionCoronaEmittersPerTick; ++emitter) {
+        var draw = simulation.random.nextOriginal()
+        var denominator = draw * 30 / 32768
+        // A zero denominator is possible once in 32768 calls. The x87 helper
+        // cannot produce a useful screen point for it, so leave this one at
+        // its preceding angle instead of poisoning the simulation with NaN.
+        var angle = denominator === 0 ? 0 : 2 * Math.PI / denominator
+        rotateVector(offset, angle)
+        rotateVector(velocity, angle)
+        createConversionCorona(simulation,
+            effect.worldX + offset.x, effect.worldY + offset.y,
+            velocity.x, velocity.y, effect.spriteScale, effect.tribe, events)
     }
 }
 
@@ -1625,7 +1848,7 @@ function applyFireImpact(simulation, effect, events) {
     }, events)
 
     var caster = findCharacter(simulation, effect.sourceId)
-    var radius = tuning.fireImpactRadius * effect.spriteScale
+    var radius = tuning.fireImpactRadius
     for (var index = 0; index < simulation.characters.length; ++index) {
         var character = simulation.characters[index]
         if (!character || !character.initialized || !isCombatant(character)
@@ -1666,7 +1889,7 @@ function launchShamanSpell(simulation, state, target, events) {
     var velocity = aimedVelocity(
         state,
         target,
-        (ranged ? tuning.fireSpeed : tuning.conversionSpeed) * state.spriteScale
+        ranged ? tuning.fireSpeed : tuning.conversionSpeed
     )
     createEffect(simulation, {
         kind: ranged ? effectKinds.fire : effectKinds.conversion,
@@ -1683,6 +1906,59 @@ function launchShamanSpell(simulation, state, target, events) {
     }, events)
 }
 
+function emitConversionCastDebris(simulation, state, events) {
+    for (var mote = 0; mote < tuning.conversionProjectileMotesPerTick; ++mote) {
+        var velocityX = originalSpread(simulation.random, 30) * 0.1
+            / tuning.stepSeconds
+        var velocityY = originalSpread(simulation.random, 30) * 0.1
+            / tuning.stepSeconds
+        createConversionDebris(simulation,
+            state.worldX, state.worldY - 15,
+            velocityX, velocityY, state.spriteScale, events)
+    }
+}
+
+function holdShaman(state, events) {
+    var previous = setBehaviour(state, behaviours.recover, actions.idle)
+    state.speed = 0
+    if (previous !== state.behaviour && events) {
+        events.push(transitionEvent(state, previous))
+    }
+    advanceAnimation(state, tuning.originalTickMs)
+}
+
+// State 0 reserves the nearest neutral. If another shaman already owns that
+// table entry, only the closer one keeps it; a farther owner is released back
+// to state 0. This is the arbitration loop at 0x00414650.
+function claimNearestUnaligned(simulation, state, events) {
+    var target = nearestUnaligned(simulation, state)
+    if (!target) {
+        return null
+    }
+    var ourDistance = Math.pow(target.worldX - state.worldX, 2)
+        + Math.pow(target.worldY - state.worldY, 2)
+    for (var index = 0; index < simulation.characters.length; ++index) {
+        var other = simulation.characters[index]
+        if (!other || other === state || other.entity !== entityTypes.shaman
+                || other.targetId !== target.id
+                || (other.legacyState !== 3 && other.legacyState !== 5)) {
+            continue
+        }
+        var otherDistance = Math.pow(target.worldX - other.worldX, 2)
+            + Math.pow(target.worldY - other.worldY, 2)
+        if (otherDistance <= ourDistance) {
+            return null
+        }
+        other.targetId = 0
+        other.legacyState = 0
+        var released = setBehaviour(other, behaviours.recover, actions.idle)
+        if (released !== other.behaviour && events) {
+            events.push(transitionEvent(other, released))
+        }
+    }
+    return target
+}
+
 function stepShaman(simulation, state, world, events) {
     var stepMs = tuning.stepSeconds * 1000
 
@@ -1692,22 +1968,39 @@ function stepShaman(simulation, state, world, events) {
 
     if (state.behaviour === behaviours.cast) {
         advanceAnimation(state, stepMs)
-        state.actionRemainingMs = Math.max(0, state.actionRemainingMs - stepMs)
-        if (state.actionRemainingMs <= 0) {
+        if (state.castSpell === "conversion"
+                && state.legacyFrameCounter === 2) {
+            emitConversionCastDebris(simulation, state, events)
+        }
+        state.actionRemainingMs = state.legacyTimerTicks * tuning.originalTickMs
+        if (state.legacyTimerTicks <= 0) {
             var castTarget = findCharacter(simulation, state.targetId)
             if (!state.castLaunched && castTarget) {
                 state.castLaunched = true
                 launchShamanSpell(simulation, state, castTarget, events)
             }
-            state.castCooldownMs = state.castSpell === "conversion"
-                ? tuning.shamanCastCooldownMs
-                : tuning.shamanBattleCooldownMinMs + simulation.random.nextInt(
-                    tuning.shamanBattleCooldownMaxMs
-                        - tuning.shamanBattleCooldownMinMs + 1
-                )
+            // The conversion effect factory runs before this otherwise unused
+            // sound-choice draw in vfunc_00414650. Consume it even without an
+            // audio backend so subsequent movement decisions stay aligned.
+            if (state.castSpell === "conversion") {
+                simulation.random.nextOriginal()
+                state.castCooldownMs = 0
+            } else {
+                state.castCooldownMs = tuning.shamanBattleCooldownMinMs
+                    + simulation.random.nextInt(
+                        tuning.shamanBattleCooldownMaxMs
+                            - tuning.shamanBattleCooldownMinMs + 1
+                    )
+            }
             state.targetId = 0
-            var done = setBehaviour(state, behaviours.seek, actions.walk)
-            events.push(transitionEvent(state, done))
+            state.legacyState = 1
+            state.legacyTimerTicks = 30
+            state.legacyFrameCounter = 0
+            state.frameIndex = 0
+            var done = setBehaviour(state, behaviours.recover, actions.idle)
+            if (done !== state.behaviour) {
+                events.push(transitionEvent(state, done))
+            }
         }
         return null
     }
@@ -1734,65 +2027,88 @@ function stepShaman(simulation, state, world, events) {
         return null
     }
 
-    var target = state.castCooldownMs > 0
-        ? null
-        : nearestUnaligned(simulation, state)
-
-    if (target) {
-        if (state.behaviour !== behaviours.seek) {
-            var began = setBehaviour(state, behaviours.seek, actions.walk)
-            events.push(transitionEvent(state, began))
+    // State 4 is the short idle-animation branch entered from state 1.
+    if (state.legacyState === 4) {
+        state.actionRemainingMs = state.legacyTimerTicks
+            * tuning.originalTickMs
+        holdShaman(state, events)
+        if (state.legacyTimerTicks <= 0) {
+            state.legacyState = 0
         }
-        state.targetId = target.id
-        var dx = target.worldX - state.worldX
-        var dy = target.worldY - state.worldY
-        if (Math.sqrt(dx * dx + dy * dy)
-                <= tuning.shamanCastDistance * state.spriteScale) {
-            setDirection(state, dx, dy)
-            beginCast(state, target, events)
-            return null
-        }
-        var heading = directionForVector(dx, dy)
-        if (heading.id !== state.directionId) {
-            setDirection(state, heading.dx, heading.dy)
-        }
-        state.wanderRemainingMs = Math.max(state.wanderRemainingMs, stepMs * 2)
-    } else {
-        // Nothing to convert, so it goes home. A shaman belongs to its corner
-        // and drifts back to it rather than wandering off across the world.
-        state.targetId = 0
-        var home = tribeAnchor(world, state.tribe, tuning.shamanCornerInset)
-        if (home) {
-            var toX = home.x - state.worldX
-            var toY = home.y - state.worldY
-            if (Math.sqrt(toX * toX + toY * toY)
-                    <= tuning.shamanHomeRadius * state.spriteScale) {
-                var settled = setBehaviour(state, behaviours.wander, actions.idle)
-                if (settled !== state.behaviour) {
-                    events.push(transitionEvent(state, settled))
-                }
-                advanceAnimation(state, stepMs)
-                return null
-            }
-            var walking = setBehaviour(state, behaviours.wander, actions.walk)
-            if (walking !== state.behaviour) {
-                events.push(transitionEvent(state, walking))
-            }
-            var homeward = directionForVector(toX, toY)
-            if (homeward.id !== state.directionId) {
-                setDirection(state, homeward.dx, homeward.dy)
-            }
-            state.wanderRemainingMs = Math.max(state.wanderRemainingMs, stepMs * 2)
-        }
+        return null
     }
 
-    return stepCharacter(
-        state,
-        world,
-        tuning.stepSeconds,
-        simulation.random,
-        target ? tuning.combatPursuitSpeed * state.spriteScale : 0
+    // State 1 consumes its random animation gate even while the recovered
+    // 30-tick post-cast timer is active. Once that timer is zero, a second gate
+    // decides when state 0 may search again.
+    if (state.legacyState === 1) {
+        var idleGate = simulation.random.nextOriginal()
+        if (idleGate > 28000) {
+            state.legacyState = 4
+            state.legacyTimerTicks = Math.floor(
+                simulation.random.nextOriginal() * 10 / 0x7fff
+            ) + 10
+            state.actionRemainingMs = state.legacyTimerTicks
+                * tuning.originalTickMs
+            holdShaman(state, events)
+            return null
+        }
+        if (state.legacyTimerTicks <= 0
+                && simulation.random.nextOriginal() >= 0x6d61) {
+            state.legacyState = 0
+        }
+        holdShaman(state, events)
+        return null
+    }
+
+    if (state.legacyState !== 3) {
+        var claimed = claimNearestUnaligned(simulation, state, events)
+        if (!claimed) {
+            state.legacyState = 1
+            state.targetId = 0
+            holdShaman(state, events)
+            return null
+        }
+        state.legacyState = 3
+        state.targetId = claimed.id
+        var began = setBehaviour(state, behaviours.seek, actions.walk)
+        if (began !== state.behaviour) {
+            events.push(transitionEvent(state, began))
+        }
+        return null
+    }
+
+    var target = findCharacter(simulation, state.targetId)
+    if (!target || target.tribe !== unalignedTribe || target.enteringWorld) {
+        state.legacyState = 1
+        state.targetId = 0
+        holdShaman(state, events)
+        return null
+    }
+
+    var dx = target.worldX - state.worldX
+    var dy = target.worldY - state.worldY
+    var distanceSquared = dx * dx + dy * dy
+    var length = Math.sqrt(distanceSquared)
+    var desiredX = length > 0 ? dx / length : state.headingX
+    var desiredY = length > 0 ? dy / length : state.headingY
+    var turn = Math.atan2(
+        state.headingX * desiredY - state.headingY * desiredX,
+        state.headingX * desiredX + state.headingY * desiredY
     )
+    var maximumTurn = Math.PI / 10
+    rotateHeading(state, Math.max(-maximumTurn, Math.min(maximumTurn, turn)))
+
+    if (distanceSquared < tuning.shamanCastDistance * tuning.shamanCastDistance
+            && state.legacyTimerTicks === 0
+            && Math.abs(turn) <= maximumTurn) {
+        beginCast(state, target, events)
+        return null
+    }
+    state.wanderRemainingMs = Math.max(state.wanderRemainingMs, stepMs * 2)
+    return stepCharacter(state, world, tuning.stepSeconds, simulation.random,
+        distanceSquared > tuning.shamanCastDistance * tuning.shamanCastDistance
+            ? tuning.combatPursuitSpeed : 0)
 }
 
 function receiveHit(state, attacker, events) {
@@ -1977,7 +2293,6 @@ function beginArmageddonCelebration(simulation, world, winner, events) {
         wave.worldX = world.bounds.x + index * -6
         wave.worldY = world.bounds.y + world.bounds.height / 2
         wave.speed = 2 * 1000 / tuning.originalTickMs
-            * wave.spriteScale
         setDirection(wave, 0.75, 0.75)
         setBehaviour(wave, behaviours.muster, actions.wave)
         simulation.characters.push(wave)
@@ -2378,7 +2693,7 @@ function stepCelebrationCharacter(simulation, state, world) {
     var pixelsPerTick = squared <= tuning.celebrationPathNearSquared ? 1 : 2
     return stepCharacter(
         state, world, tuning.stepSeconds, simulation.random,
-        pixelsPerTick * 1000 / tuning.originalTickMs * state.spriteScale
+        pixelsPerTick * 1000 / tuning.originalTickMs
     )
 }
 
@@ -2461,7 +2776,7 @@ function stepLegacyRoam(simulation, state, world, events) {
         setDirection(state, slotX, slotY)
         return stepCharacter(
             state, world, tuning.stepSeconds, random,
-            tuning.combatPursuitSpeed * state.spriteScale
+            tuning.combatPursuitSpeed
         )
     }
 
@@ -2606,7 +2921,7 @@ function stepCombatCharacter(simulation, state, world, events) {
             if (!state.castLaunched && fireTarget && fireTarget.health > 0) {
                 state.castLaunched = true
                 var fireVelocity = aimedVelocity(
-                    state, fireTarget, tuning.fireSpeed * state.spriteScale
+                    state, fireTarget, tuning.fireSpeed
                 )
                 createEffect(simulation, {
                     kind: effectKinds.fire,
@@ -2648,11 +2963,11 @@ function stepCombatCharacter(simulation, state, world, events) {
         if (recoilLength > 0) {
             var recoilX = state.worldX
                 - state.directionX / recoilLength
-                    * tuning.combatHitRecoilSpeed * state.spriteScale
+                    * tuning.combatHitRecoilSpeed
                     * tuning.stepSeconds
             var recoilY = state.worldY
                 - state.directionY / recoilLength
-                    * tuning.combatHitRecoilSpeed * state.spriteScale
+                    * tuning.combatHitRecoilSpeed
                     * tuning.stepSeconds
             var recoilMargins = {
                 x: marginX(state),
@@ -2739,7 +3054,7 @@ function stepCombatCharacter(simulation, state, world, events) {
         var reach = isFirewarrior
             ? tuning.fireCastDistance
             : tuning.combatAttackDistance
-        if (distance <= reach * state.spriteScale
+        if (distance <= reach
                 && (!isFirewarrior || state.castCooldownMs <= 0)
                 && (isFirewarrior || simulation.random.nextOriginal()
                     > tuning.targetGateThreshold)) {
@@ -2774,7 +3089,7 @@ function stepCombatCharacter(simulation, state, world, events) {
         world,
         tuning.stepSeconds,
         simulation.random,
-        target ? tuning.combatPursuitSpeed * state.spriteScale : 0
+        target ? tuning.combatPursuitSpeed : 0
     )
 }
 
@@ -2814,6 +3129,58 @@ function stepEffect(simulation, effect, events) {
 
     advanceAnimation(effect, stepMs)
     effect.ageElapsedMs += stepMs
+
+    if (effect.kind === effectKinds.conversionCorona) {
+        effect.worldX += effect.velocityX * tuning.stepSeconds
+        effect.worldY += effect.velocityY * tuning.stepSeconds
+        var coronaVelocity = { x: effect.velocityX, y: effect.velocityY }
+        rotateVector(coronaVelocity, effect.turnRadians)
+        effect.velocityX = coronaVelocity.x
+        effect.velocityY = coronaVelocity.y
+        if (effect.emissionsRemaining > 0) {
+            emitCoronaChildren(simulation, effect, events)
+            effect.emissionsRemaining -= 1
+        }
+        effect.lifetimeRemainingMs -= stepMs
+        if (effect.lifetimeRemainingMs > 0) {
+            return true
+        }
+        events.push({ type: "entity-removed", entityId: effect.id })
+        return false
+    }
+
+    if (effect.kind === effectKinds.conversionDebris) {
+        effect.worldX += effect.velocityX * tuning.stepSeconds
+        effect.worldY += effect.velocityY * tuning.stepSeconds
+        var debrisVelocity = { x: effect.velocityX, y: effect.velocityY }
+        rotateVector(debrisVelocity, effect.turnRadians)
+        effect.velocityX = debrisVelocity.x
+        effect.velocityY = debrisVelocity.y
+        effect.lifetimeRemainingMs -= stepMs
+        if (effect.lifetimeRemainingMs > 0) {
+            return true
+        }
+        events.push({ type: "entity-removed", entityId: effect.id })
+        return false
+    }
+
+    if (effect.kind === effectKinds.conversionParticle) {
+        effect.worldX += effect.velocityX * tuning.stepSeconds
+        effect.worldY += effect.velocityY * tuning.stepSeconds
+        effect.velocityX = (Math.floor(
+            simulation.random.nextOriginal() * 2 / 0x7fff
+        ) - 1) / tuning.stepSeconds
+        effect.velocityY = (Math.floor(
+            simulation.random.nextOriginal() * 2 / 0x7fff
+        ) - 1) / tuning.stepSeconds
+        effect.lifetimeRemainingMs -= stepMs
+        if (effect.lifetimeRemainingMs > 0) {
+            return true
+        }
+        events.push({ type: "entity-removed", entityId: effect.id })
+        return false
+    }
+
     if (effect.kind !== effectKinds.conversion
             || effect.ageElapsedMs <= tuning.conversionTravelMs) {
         effect.worldX += effect.velocityX * tuning.stepSeconds
@@ -2822,14 +3189,14 @@ function stepEffect(simulation, effect, events) {
     effect.lifetimeRemainingMs -= stepMs
 
     if (effect.kind === effectKinds.conversion) {
-        var decorated = false
         while (effect.ageElapsedMs >= effect.nextConversionScanMs
-                && effect.nextConversionScanMs < tuning.conversionLifetimeMs) {
-            applyConversion(simulation, effect, events, !decorated
-                && effect.nextConversionScanMs === tuning.conversionTravelMs)
-            decorated = true
+                && effect.nextConversionScanMs < tuning.conversionScanEndMs) {
+            applyConversion(simulation, effect, events,
+                Math.round(effect.nextConversionScanMs / tuning.originalTickMs))
             effect.nextConversionScanMs += tuning.originalTickMs
         }
+        emitConversionProjectile(simulation, effect, events,
+            Math.round(effect.ageElapsedMs / tuning.originalTickMs))
         if (effect.lifetimeRemainingMs > 0) {
             return true
         }
@@ -2856,7 +3223,7 @@ function stepEffect(simulation, effect, events) {
         var target = findCharacter(simulation, effect.targetId)
         var reach = tuning.fireImpactRadius
         if (target
-                && distanceBetween(effect, target) <= reach * effect.spriteScale) {
+                && distanceBetween(effect, target) <= reach) {
             arrived = true
         }
     }
@@ -2892,7 +3259,7 @@ function stepEntities(simulation, world, events) {
             entity.phaseRemainingMs -= stepMs
             if (entity.phaseRemainingMs <= 0) {
                 var previous = setBehaviour(entity, behaviours.depart, actions.depart)
-                entity.speed = tuning.soulInitialRiseSpeed * entity.spriteScale
+                entity.speed = tuning.soulInitialRiseSpeed
                 entity.lifetimeRemainingMs = tuning.soulLifetimeMs
                 entity.accelerationRemainingMs = tuning.soulAccelerationIntervalMs
                 events.push(transitionEvent(entity, previous))
@@ -2905,10 +3272,10 @@ function stepEntities(simulation, world, events) {
         entity.lifetimeRemainingMs -= stepMs
         entity.accelerationRemainingMs -= stepMs
         while (entity.accelerationRemainingMs <= 0
-                && entity.speed < tuning.soulMaximumRiseSpeed * entity.spriteScale) {
+                && entity.speed < tuning.soulMaximumRiseSpeed) {
             entity.speed = Math.min(
-                tuning.soulMaximumRiseSpeed * entity.spriteScale,
-                entity.speed + tuning.soulAccelerationSpeedStep * entity.spriteScale
+                tuning.soulMaximumRiseSpeed,
+                entity.speed + tuning.soulAccelerationSpeedStep
             )
             entity.accelerationRemainingMs += tuning.soulAccelerationIntervalMs
         }
@@ -2924,6 +3291,12 @@ function stepEntities(simulation, world, events) {
         survivors.push(simulation.entities[index])
     }
     simulation.entities = survivors
+    simulation.effectCount = 0
+    for (index = 0; index < survivors.length; ++index) {
+        if (survivors[index].entity === entityTypes.effect) {
+            simulation.effectCount += 1
+        }
+    }
 }
 
 // Runs as many fixed steps as the elapsed time allows. Returns typed events in
@@ -2962,6 +3335,12 @@ function stepSimulation(simulation, world, elapsedSeconds) {
             var result = simulation.combatEnabled
                 ? stepBehaviourCharacter(simulation, state, world, events)
                 : stepCharacter(state, world, tuning.stepSeconds, simulation.random)
+            if (simulation.combatEnabled
+                    && state.entity === entityTypes.shaman) {
+                // The native program calls the renderer after the state update;
+                // that renderer owns the shaman's legacy frame counter.
+                advanceShamanLegacyFrame(state)
+            }
             if (result && result.footprint) {
                 events.push(footprintEvent(result.footprint, state.id))
             }
@@ -2969,8 +3348,12 @@ function stepSimulation(simulation, world, elapsedSeconds) {
 
         if (simulation.combatEnabled) {
             finishDeaths(simulation, events)
-            topUpPopulation(simulation, world, events)
+            var armageddonModeBeforeStep = simulation.armageddon.mode
             stepArmageddon(simulation, world, events)
+            if (armageddonModeBeforeStep === armageddonModes.restore
+                    && simulation.armageddon.mode === armageddonModes.normal) {
+                topUpPopulation(simulation, world, events)
+            }
             stepEntities(simulation, world, events)
             characters = simulation.characters
         }

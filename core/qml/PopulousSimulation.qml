@@ -14,7 +14,7 @@ Item {
     visible: false
 
     property var animationManifest: Animations.manifest
-    property int characterCount: 24
+    property int characterCount: 150
     property real spriteScale: 2
 
     // 0 draws a seed from the clock, so each run differs. Any other value
@@ -114,8 +114,13 @@ Item {
         }
         if (populationChanged) {
             // New array identities notify QML Repeaters; the JS driver may
-            // replace its arrays when characters die or effects expire.
+            // replace its character array when combatants die or spawn.
             internal.characters = internal.simulation.characters.slice()
+        }
+        if (populationChanged || internal.simulation.entities.length > 0
+                || internal.entities.length > 0) {
+            // High-volume conversion children intentionally emit no public
+            // events, so an active effect pool is mirrored once per host tick.
             internal.entities = internal.simulation.entities.slice()
         }
 

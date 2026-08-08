@@ -21,7 +21,7 @@ Kirigami.FormLayout {
         id: characterCount
 
         from: 10
-        to: 1000
+        to: 200
         editable: true
         Kirigami.FormData.label: qsTr("Characters:")
     }

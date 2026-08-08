@@ -190,9 +190,8 @@ shaman converts it, which is the only role its sprites permit.
 
 **Ordinary characters are always born unaligned.** No member of a tribe ever
 appears spontaneously; conversion is the only way into one, which is what makes
-the shamans the engine of the simulation rather than decoration. The spawn draw
-is still made, from a one-entry list, so every class costs the same sequence of
-values.
+the shamans the engine of the simulation rather than decoration. There is no
+tribe draw at creation: tribe 0 is passed directly to the brave constructor.
 
 ## Directions
 
@@ -245,7 +244,7 @@ Written by the simulation:
 | `celebrationPathIndex`, `celebrationFinished` | position along the celebration waypoint path |
 | `enteringWorld`, `entryTargetX`, `entryTargetY`, `entryDirectionX`, `entryDirectionY` | a character walking in from beyond the screen edge, and where it is headed |
 | `worldX`, `worldY` | ground point |
-| `speed` | base motion, exactly 2 px per original 30 ms tick (66.667 px/s), times sprite scale |
+| `speed` | base motion, exactly 2 px per original 30 ms tick (66.667 px/s), independent of sprite scale |
 | `frameIndex`, `animationElapsedMs` | walk cycle position |
 | `footprintElapsedMs`, `footprintSide` | 60 ms cadence and alternating side of the persistent pixel mark |
 | `collisionCooldownMs` | counts down after an avoidance turn |
@@ -290,9 +289,9 @@ remaining durations that a fixed step decrements.
 
 `createCharacter(animations, spriteScale, entity, tribe)` builds one.
 `populate(simulation, count, spriteScale)` allocates **one shaman per tribe and
-the complete ordinary population**. The shamans are additional rather than
-taken out of the count: the configured number is how many ordinary characters
-the user asked for. Ordinary characters begin outside the visible world; see
+fills the remaining configured total with ordinary characters**. The original
+default 150 therefore means four shamans and 146 ordinary entries. Ordinary
+characters begin outside the visible world; see
 [Population](#population) for how they enter.
 
 `simulation.entities` is a second list for short-lived non-character entities,
@@ -303,25 +302,36 @@ animation and `lifetimeRemainingMs`. It is deliberately not left in the
 character population after death.
 
 An **effect** has `entity = effect` and a `kind` from the original's effect
-factory — `conversion`, `flash`, `burst`, `fire`, `fire_trail`, `fire_impact`
-or `ring`. It carries a velocity, a lifetime, an optional `targetId` and an
+factory — including `conversion`, `conversion_corona`, `conversion_debris`,
+`conversion_particle`, `fire`, `fire_trail`, `fire_impact` and `ring`. It
+carries a velocity, a lifetime, an optional `targetId` and an
 `animationKey` naming its stream directly, because several effect streams are
 directionless and only some are tribe-coloured. A lifetime of zero at creation
 becomes the length of its own animation, which is what a one-shot decoration
-wants. Effects created during a step are stepped from the next one, never
-mid-iteration.
+wants. The three high-volume conversion children occupy the original shared
+400-slot pool and are batched into one Canvas by the QML view; they remain
+ordinary deterministic entities in the simulation.
 
 ## Rules
 
 ### Spawn
 
-Position is uniform over the world region, inset by a small margin. Tribe and
-direction are uniform. Speed is uniform in its range.
+The four shamans are constructed first at their fixed corners. Each consumes
+exactly four `rand()` values in `FUN_00413e10`: continuous heading angle,
+modulo-11 counter, modulo-2 counter, then initial animation counter.
 
-A shaman's tribe is fixed for the run and is not drawn. The draw is still
-**consumed**, so every character costs the same sequence of values whatever its
-class; a C port that skips it for shamans diverges from the first shaman
-onward.
+For every ordinary character, `FUN_004013e0` first draws **Y, then X** over the
+complete screen surface and passes neutral tribe 0 to the constructor. The
+same four common-constructor draws follow, for six values total. Its heading is
+the vector `(0,-1)` rotated by `rand * 0.00019175367197021842`; it is not one of
+eight discrete random headings. The eight-way direction is only the selected
+sprite stream. Speed is the recovered 2 px per 30 ms tick and is not multiplied
+by display scale.
+
+The original has one surface, so a one-rectangle world consumes no screen
+selection draw. The Plasma multi-screen extension consumes one additional
+area-weighted rectangle draw before Y and X. This is the only intentional
+difference in the creation cadence.
 
 ### Population
 
@@ -333,13 +343,13 @@ gradually: the other characters already exist, but are walking in from beyond
 the screen. The same mechanism explains the apparent refill delay after
 Armageddon.
 
-Shamans are outside the count. They never die, and including them would
-silently shrink the population the user asked for.
+Shamans are included in the configured count. The original creates them first,
+then its 200-slot filler counts those four active pointers before allocating
+the remaining neutral entries.
 
-The configured count **is** reached and held, because the majority of the world
-is unaligned and unaligned characters neither fight nor die. Measured over
-three minutes at a target of 150, the port loses 0.72 characters per second,
-inside the 0.45 to 1.68 measured in the original.
+The configured count is allocated at startup. It can decline as aligned
+characters die: the original does not refill an ordinary slot after every
+death. Missing entries are rebuilt together after Armageddon restoration.
 
 ### Walking
 
@@ -398,7 +408,7 @@ change and restarts the walk cycle, matching the pre-0.5.0 behaviour.
 ### Avoidance
 
 The driver runs an avoidance pass every 100 ms of simulated time, over every
-character in order. A character within 14 scaled pixels of another turns
+character in order. A character within the original fixed 14 pixels of another turns
 directly away from the **first** such neighbour it finds, but only if it is
 currently moving towards it (negative dot product between direction and
 separation). After turning, `collisionCooldownMs` blocks further avoidance for
@@ -410,7 +420,7 @@ own phase. The turning rate is unchanged, being governed by the cooldown.
 
 When combat is disabled, this remains a separation rule. The driver has used a
 uniform spatial grid since 0.7.0. Ground points are assigned
-to 42-pixel cells and a character queries only the cells touched by its scaled
+to 42-pixel cells and a character queries only the cells touched by its
 collision radius. Candidates are restored to their order in the master
 character array before applying the rule. This preserves the historical
 "first neighbour wins" decision and seeded replay while avoiding an O(n²)
@@ -460,7 +470,7 @@ has a `type`; actor-related items carry stable numeric ids. Current types are:
 | `hit` | damage landed; includes remaining health |
 | `soul-spawned` | dead character was replaced by a soul entity |
 | `character-removed` | actor left the character population |
-| `character-spawned` | replacement actor was created to maintain population |
+| `character-spawned` | a missing ordinary slot was rebuilt after Armageddon |
 | `cast-started` | a shaman or firewarrior began a spell; carries `spell` |
 | `converted` | an unaligned character joined a tribe; carries its new `entity` |
 | `effect-spawned` | a projectile or decoration entered the world; carries `kind` |
@@ -514,11 +524,10 @@ every two ticks up to 20 px/tick, and is removed at the top edge or after 200
 ticks (6 s). The 60 Hz clean-room engine expresses those tick values as
 milliseconds and speeds; transitions are quantised to its fixed step.
 
-The original main loop immediately allocates a replacement after removal when
-the live count is below the configured population. `populate` records that
-target and the clean-room engine does the same. The replacement receives a new
-stable id, is initialised immediately through the ordinary seeded spawn path,
-and enters from beyond both axes. Each selected screen uses its own
+The original population filler is called at startup and after Armageddon
+restoration, not after each removal. `populate` records the target; restoration
+allocates every missing neutral through the same seeded spawn path. Each new
+entry begins beyond both axes and walks in. Each selected screen uses its own
 half width and height, so the rule remains valid with non-rectangular
 multi-monitor geometry.
 
@@ -538,7 +547,7 @@ rules by `stepBehaviourCharacter`.
 | `brave` (unaligned) | wanders the whole world, waits to be converted | no | no |
 | `brave` (aligned) | roams, forms up, joins war parties and fights | yes, at 14 px | yes |
 | `firewarrior` | roams and fights at range | yes, at 500 px | yes |
-| `shaman` | holds its corner and converts | no | no |
+| `shaman` | reserves and pursues the nearest unaligned character, then waits where it cast | no | no |
 
 A firewarrior has no hit stream of its own. The original selects the **brave**
 hit cells for it, and the atlas carries no alternative, so
@@ -617,12 +626,12 @@ Each tribe owns a **corner of the world**, as fractions of the bounding box:
 blue top-left, red top-right, yellow bottom-right, green bottom-left. Two
 things follow from it.
 
-**A shaman belongs to its corner.** The original creates the four shamans at
-`(50, 50)` and the three positions mirrored through the world width and height.
-When it has nothing to convert it walks back and stands
-instead of wandering off. The corner anchor is pulled into the world with
-`clampIntoWorld`, because the bounding-box corner of a multi-screen world can
-land in a dead zone belonging to no monitor.
+**A shaman starts in a corner but does not return there after each cast.** The
+original creates the four shamans at `(50, 50)` and the three mirrored
+positions. In normal play it reserves the nearest neutral, yields that target
+to a closer shaman when necessary, pursues at 2 px per tick and waits at its
+casting position for the recovered state-1 PRNG gates. Separate global
+Armageddon states move shamans toward their battle coordinates.
 
 **A war party is an individual decision, not a tribe-wide one.** There is no
 shared per-tribe countdown; an earlier port invented one, and the executable
@@ -664,27 +673,43 @@ Implemented, from original shaman states 3, 4 and 5 and effect type 0.
 | ----------------- | --------- | -------------- |
 | `wander` | an unaligned brave within acquisition range | `seek` |
 | `seek` | target within the 100 px cast range | `cast` |
-| `cast` | cast ends | launch projectile, `seek`, start cooldown |
+| `cast` | 20-tick timer ends | launch projectile, state-1 30-tick delay |
+
+State 1 consumes one random gate on every tick, including during its 30-tick
+post-cast delay. If that value exceeds 28000, and only then, a second draw sets
+a 10–20 tick state-4 idle. Otherwise a second search draw is consumed only when
+the delay has reached zero; values at least 28001 return to state 0. State 0's
+full-table target scan and closer-shaman reservation arbitration, state 3's
+turning and state 4's countdown consume no random values. At the end of a
+conversion cast the effect factory runs first, followed by the original
+otherwise-visual sound-choice draw, which is retained to preserve cadence.
 
 The projectile flies along the heading it was launched with — it does not
 home — and ends on reaching its target or when its lifetime runs out.
 
-**Conversion is a zone.** On ending, a ring of sparkles blooms and every
-unaligned brave inside it changes tribe, not only the one it was aimed at,
-which is what the original's scan does. The ring is drawn at exactly the radius
-the rule uses rather than at a decorative one, so what a viewer sees is what
-the simulation did.
+**Conversion is a progressively scanned zone.** The projectile moves for 12
+original ticks, then scans every unaligned brave inside its recovered 80 px
+radius at ages 12 through 17. Ages 12 through 16 use the recovered `rand() >
+20000` gate; age 17 guarantees every remaining candidate. The following class
+draw makes values 30001 through 32767 become firewarriors.
 
-The radius is measured, not chosen: the ring in the capture is 180 to 230 px
-across and about 3:2 elliptical — a circle on the ground seen in shallow
-perspective, roughly three times a character's height. The sparkles are placed
-at once but started at staggered animation frames, which reproduces the
-original's travelling-around-the-circle look without carrying a delay per
-sparkle in the state.
+The visible circle is not a geometric ring. On every tick the projectile emits
+ten randomly turning debris motes. At ages 12 through 19 it also emits ten
+selector-1 generators at radii 80 through 87, using the executable's reciprocal
+random-angle formula. Each generator travels along a velocity rotated by 0.05
+radian per tick and emits two tribe-coloured particles on each of six draws.
+Every converted character adds another stationary generator and a direct burst
+of thirty coloured particles. The shaman emits ten debris motes during its cast
+as well. Overlap, irregular gaps and pressure from the shared 400-slot pool are
+therefore properties of the original algorithm, not decorative approximations.
+
+All projectile sprites are centred on their `(x, y)` position in both axes,
+matching `CProjectile::Draw`; using the character atlas's bottom anchor visibly
+separates a sparkle from the child particles born at the same coordinate.
 
 A converted character joins the casting shaman's tribe. A share of them arrive
 as **firewarriors** instead of braves; that is the only way the class enters
-the world. Each conversion spawns a flash and a tribe-coloured burst.
+the world.
 
 ### The fire attack
 
@@ -820,7 +845,7 @@ to 100. `tests/plasma-config.test.mjs` now asserts the two bounds agree, and
 
 | Setting | Type | Default | Range | Status |
 | ------- | ---- | ------- | ----- | ------ |
-| number of characters | integer | 200 | 10 to 1000 | implemented |
+| number of characters | integer | 150 | 10 to 200 | implemented |
 | sprite size | choice | automatic | automatic, 1x, 2x, 3x | implemented |
 | footprints | boolean | on | — | implemented |
 | random seed | integer | 0 (a different run each time) | 0 to 2147483647 | implemented |

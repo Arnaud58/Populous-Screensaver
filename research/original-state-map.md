@@ -73,9 +73,9 @@ The 25 soul cells per tribe consequently split into eight directions × three
 state-10 poses plus one state-11 departure pose. The former sequence
 interpretation as 25 directionless frames was wrong.
 
-The main loop replaces a removed character whenever the live population is
-below the configured target, so ordinary deaths do not drain the screen over
-time. Replacement happens only in the normal global mode.
+The population filler runs at startup and when Armageddon restoration returns
+to normal play. It is not called after each ordinary removal, so the population
+can decline between Armageddons and is rebuilt in one restoration batch.
 
 ## Movement, formations and footprints
 
@@ -84,6 +84,13 @@ State 0 moves a brave by exactly 2 pixels per 30 ms update. It protects a
 and can enter a stationary state-1 wait lasting 10–39 ticks. The complete
 random cadence remains interleaved with reservation logic and is not yet
 ported literally.
+
+The shaman cadence is closed separately. State 1 always draws its first gate;
+it draws a state-4 duration only when that gate exceeds 28000, or draws the
+state-0 search gate only after its timer reaches zero. States 0, 3 and 4,
+including the nearest-neutral scan, target reservation arbitration and
+progressive ±0.314159-radian turn, draw nothing. State 5 retains the final
+sound-selection draw after launching its conversion effect.
 
 `FUN_004010c0` precomputes **200 formation positions per tribe**. Each table
 starts with eight columns spaced by 20 pixels, from `width/2 - 75`, at

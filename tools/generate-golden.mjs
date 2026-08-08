@@ -131,6 +131,7 @@ function characterSnapshot(character) {
         legacyTimerTicks: character.legacyTimerTicks,
         legacyMod11: character.legacyMod11,
         legacyMod2: character.legacyMod2,
+        legacyFrameCounter: character.legacyFrameCounter,
         legacyTurnTicks: character.legacyTurnTicks,
         legacyTurnRadians: character.legacyTurnRadians,
         formationSlot: character.formationSlot,

@@ -17,7 +17,7 @@ const hostUi = readFileSync(
 )
 
 const expected = {
-    CharacterCount: "200",
+    CharacterCount: "150",
     ArmageddonSeconds: "120",
     SpriteScale: "0",
     FootprintsEnabled: "true",
@@ -32,7 +32,7 @@ const expected = {
 // page, the ceiling that page offers, and the floor and ceiling the wallpaper
 // clamps to. Every new bounded setting belongs here.
 const boundedSettings = [
-    { id: "characterCount", property: "characterCount", floor: "1", ceiling: "1000" },
+    { id: "characterCount", property: "characterCount", floor: "10", ceiling: "200" },
     { id: "armageddonSeconds", property: "armageddonSeconds", floor: "60", ceiling: "500" }
 ]
 

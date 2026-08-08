@@ -15,7 +15,7 @@ QtObject {
     // Preview mode draws into the little monitor of the Windows settings
     // dialog: one small window, reparented from C++, no screen takeover.
     property bool previewMode: false
-    property int characterCount: 24
+    property int characterCount: 150
     property int spriteScaleOverride: 0
     property bool footprintsEnabled: true
     property int randomSeed: 0
@@ -59,9 +59,7 @@ QtObject {
         )))
 
     property PopulousSimulation simulation: PopulousSimulation {
-        characterCount: host.previewMode
-            ? Math.max(4, Math.round(host.characterCount / 4))
-            : host.characterCount
+        characterCount: host.previewMode ? 10 : host.characterCount
         spriteScale: host.previewMode ? 1 : host.spriteScale
         randomSeed: host.randomSeed
         armageddonSeconds: host.armageddonSeconds

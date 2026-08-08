@@ -13,7 +13,8 @@ Item {
 
     property var animationManifest: Animations.manifest
     property string loadError: ""
-    property int characterCount: 24
+    // Original registry default: 150 ordinary people, plus four shamans.
+    property int characterCount: 150
     property int spriteScaleOverride: 0
     property bool footprintsEnabled: true
     readonly property real automaticSpriteScale:

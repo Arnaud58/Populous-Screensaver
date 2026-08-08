@@ -138,7 +138,7 @@ including the Windows command name.
 
 The Plasma target exposes:
 
-- **number of characters**, from 10 to 1000, defaulting to 200. The population
+- **number of characters**, from 10 to the original 200-slot capacity, defaulting to 150. The population
   is allocated immediately, but ordinary characters enter from beyond the
   screen, so only the four shamans are visible at first;
 - **sprite size**: automatic, 1×, 2× or 3×;

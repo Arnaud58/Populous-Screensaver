@@ -111,6 +111,14 @@ All three call the common constructor at `0x00413df0` and common initializer at
 | `0x60` | frame/counter used by the animation methods |
 | `0x64` | selected native sprite-cell index |
 
+The common initializer's four calls to `rand()` are ordered: rotate `(0,-1)`
+by `rand * 0.00019175367197021842`, initialise offset `0x48` with
+`rand*10/32767`, offset `0x4c` with `rand*2/32767`, then animation counter
+`0x60` with `rand*4/32767`. `FUN_004013e0` adds Y then X before those calls for
+an ordinary neutral. A fixed-position shaman adds nothing, so startup consumes
+four draws per shaman and six per ordinary character on the original single
+surface.
+
 Each character vtable has five entries. The main loop calls offset `+4` once
 per update, uses the rectangle-returning methods at `+8` and `+0xc` around its
 dirty-region/render sequence, and uses `+0x10` for a tribe-changing operation.
@@ -222,7 +230,7 @@ Missing values are created with these defaults:
 
 | Registry value | Default | Interpretation |
 | --- | ---: | --- |
-| `Number of People` | **150** | active population, from a 200-slot capacity |
+| `Number of People` | **150** | total active population, including four shamans, from a 200-slot capacity |
 | `Armageddon time` | **120** | seconds before each Armageddon |
 | `Darken amount` | **20** | background darkening parameter |
 | `Footprint amount` | **100** | footprint parameter |
@@ -234,9 +242,8 @@ Missing values are created with these defaults:
 pixels, the window procedure forces a reduced preview configuration including
 10 people and disables several visual options.
 
-The current port's default of 24 characters is therefore a modern performance
-choice, not the original default. A future explicit “faithful” preset should
-use 150, subject to performance validation.
+The port now uses the recovered default of 150 ordinary characters. The native
+Windows configuration preview remains the original special case at 10.
 
 ## Armageddon state machine
 

@@ -16,6 +16,7 @@ Item {
     property real viewportX: 0
     property real viewportY: 0
     property bool footprintsEnabled: true
+    property var majorEntities: []
 
     // How far outside the viewport a character is still drawn, so a sprite
     // straddling two monitors appears on both.
@@ -61,7 +62,23 @@ Item {
         var states = simulation ? simulation.characters : []
 
         syncStates(states, characters)
-        syncStates(simulation ? simulation.entities : [], entities)
+        var major = []
+        var particles = []
+        var all = simulation ? simulation.entities : []
+        for (var index = 0; index < all.length; ++index) {
+            var kind = all[index].kind
+            if (kind === "conversion_corona"
+                    || kind === "conversion_debris"
+                    || kind === "conversion_particle") {
+                particles.push(all[index])
+            } else {
+                major.push(all[index])
+            }
+        }
+        majorEntities = major
+        syncStates(majorEntities, entities)
+        particleLayer.particles = particles
+        particleLayer.requestPaint()
         syncBolts()
     }
 
@@ -232,10 +249,60 @@ Item {
         delegate: Character { }
     }
 
+    // The original draws its 400-slot projectile pool straight into one GDI
+    // surface. Hundreds of individual QML Image delegates caused continuous
+    // scene-graph allocation while conversions were active, so the three
+    // high-volume selector types use the equivalent single Canvas batch.
+    Canvas {
+        id: particleLayer
+
+        anchors.fill: parent
+        z: 9000
+        renderTarget: Canvas.Image
+        renderStrategy: Canvas.Threaded
+        property var particles: []
+        property url atlasSource: Qt.resolvedUrl("../images/sprites.png")
+        property bool ready: false
+
+        Component.onCompleted: loadImage(atlasSource)
+        onImageLoaded: {
+            ready = true
+            requestPaint()
+        }
+        onPaint: {
+            var context = getContext("2d")
+            context.clearRect(0, 0, width, height)
+            if (!ready) {
+                return
+            }
+            for (var index = 0; index < particles.length; ++index) {
+                var particle = particles[index]
+                if (!particle.frames || particle.frames.length === 0) {
+                    continue
+                }
+                var frame = particle.frames[
+                    particle.frameIndex % particle.frames.length
+                ]
+                var x = particle.worldX - view.viewportX
+                var y = particle.worldY - view.viewportY
+                if (x < -cullMargin || x > width + cullMargin
+                        || y < -cullMargin || y > height + cullMargin) {
+                    continue
+                }
+                context.drawImage(atlasSource,
+                    frame.x, frame.y, frame.width, frame.height,
+                    x - frame.anchorX * particle.spriteScale,
+                    y - frame.anchorY * particle.spriteScale,
+                    frame.width * particle.spriteScale,
+                    frame.height * particle.spriteScale)
+            }
+        }
+    }
+
     Repeater {
         id: entities
 
-        model: view.simulation ? view.simulation.entities.length : 0
+        model: view.majorEntities.length
 
         delegate: Character { }
     }

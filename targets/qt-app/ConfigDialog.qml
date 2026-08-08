@@ -23,7 +23,7 @@ Window {
 
         category: "General"
 
-        property int characterCount: 200
+        property int characterCount: 150
         property int spriteScale: 0
         property int armageddonSeconds: 120
         property bool footprintsEnabled: true
@@ -48,7 +48,7 @@ Window {
 
                 Layout.fillWidth: true
                 from: 10
-                to: 1000
+                to: 200
                 value: settings.characterCount
             }
 
