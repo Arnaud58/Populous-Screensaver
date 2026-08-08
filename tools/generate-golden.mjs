@@ -118,6 +118,9 @@ function characterSnapshot(character) {
         headingY: character.headingY,
         worldX: character.worldX,
         worldY: character.worldY,
+        slotIndex: character.slotIndex,
+        targetSlot: character.targetSlot,
+        spawnRectIndex: character.spawnRectIndex,
         speed: character.speed,
         spriteScale: character.spriteScale,
         frameIndex: character.frameIndex,
@@ -141,10 +144,6 @@ function characterSnapshot(character) {
         castCooldownMs: character.castCooldownMs,
         castLaunched: character.castLaunched,
         enteringWorld: character.enteringWorld,
-        entryTargetX: character.entryTargetX,
-        entryTargetY: character.entryTargetY,
-        entryDirectionX: character.entryDirectionX,
-        entryDirectionY: character.entryDirectionY,
         initialized: character.initialized
     }
 }
@@ -193,6 +192,8 @@ export async function generateScenario(scenario) {
             accumulatedSeconds: simulation.accumulatedSeconds,
             avoidanceElapsedMs: simulation.avoidanceElapsedMs,
             characters: simulation.characters.map(characterSnapshot),
+            characterSlots: simulation.characterSlots.map(character =>
+                character ? character.id : null),
             entities: simulation.entities.map(entitySnapshot),
             events
         }))
@@ -212,7 +213,7 @@ export async function generateScenario(scenario) {
     }
 
     return {
-        formatVersion: 2,
+        formatVersion: 3,
         scenario: {
             id: scenario.id,
             seed: scenario.seed,

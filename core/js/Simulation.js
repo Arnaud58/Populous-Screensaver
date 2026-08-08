@@ -116,7 +116,8 @@ var effectKinds = {
     fireTrail: "fire_trail",
     fireImpact: "fire_impact",
     ring: "ring",
-    lightning: "lightning"
+    lightning: "lightning",
+    armageddonSwirl: "armageddon_swirl"
 }
 
 var tribeColors = {
@@ -251,6 +252,8 @@ var tuning = {
     maxAccumulatedSeconds: 0.25,
     minWorldSize: 64
 }
+
+var characterSlotCapacity = 200
 
 // --- Random source -------------------------------------------------------
 //
@@ -732,6 +735,9 @@ function createCharacter(animations, spriteScale, entity, tribe) {
         headingY: 1,
         worldX: 0,
         worldY: 0,
+        slotIndex: -1,
+        targetSlot: -1,
+        spawnRectIndex: -1,
         speed: 0,
         spriteScale: spriteScale > 0 ? spriteScale : 1,
         frameIndex: 0,
@@ -762,10 +768,6 @@ function createCharacter(animations, spriteScale, entity, tribe) {
         // the original. The entry target and saved direction let them walk in
         // without the normal boundary rescue teleporting them into view.
         enteringWorld: false,
-        entryTargetX: 0,
-        entryTargetY: 0,
-        entryDirectionX: 0,
-        entryDirectionY: 1,
         initialized: false,
         frames: null,
         frameCount: 0,
@@ -785,24 +787,7 @@ function createCharacter(animations, spriteScale, entity, tribe) {
 // animation frame. A shaman consumes exactly those four draws. An ordinary is
 // first given Y and X by FUN_004013e0, then consumes the same four constructor
 // draws. A multi-screen layout adds one documented rectangle-selection draw.
-function initializeCharacter(state, world, random) {
-    if (!world || !worldHasUsableRect(world)) {
-        return false
-    }
-
-    var rect = null
-    if (state.entity !== entityTypes.shaman) {
-        rect = pickRect(world, random)
-        // FUN_004013e0 evaluates rand() for Y before rand() for X.
-        var spawnY = random.nextOriginal() * rect.height / 0x7fff
-        var spawnX = random.nextOriginal() * rect.width / 0x7fff
-        state.worldX = rect.x + spawnX
-        state.worldY = rect.y + spawnY
-        state.tribe = unalignedTribe
-    }
-
-    // FUN_00413e10 starts from (0,-1) and rotates through a continuous angle;
-    // the eight directions are only a rendering choice made afterwards.
+function initializeCommonRandomState(state, random) {
     var angle = random.nextOriginal() * 0.00019175367197021842
     state.headingX = Math.sin(angle)
     state.headingY = -Math.cos(angle)
@@ -818,8 +803,31 @@ function initializeCharacter(state, world, random) {
     state.frameIndex = state.legacyFrameCounter
     state.animationElapsedMs = 0
     resolveAnimation(state)
+}
 
-    state.speed = state.entity === entityTypes.shaman ? 0 : tuning.speedMin
+function initializeCharacter(state, world, random) {
+    if (!world || !worldHasUsableRect(world)) {
+        return false
+    }
+
+    var rect = null
+    if (state.entity !== entityTypes.shaman) {
+        rect = pickRect(world, random)
+        state.spawnRectIndex = world.rects.indexOf(rect)
+        // FUN_004013e0 evaluates rand() for Y before rand() for X.
+        var spawnY = random.nextOriginal() * rect.height / 0x7fff
+        var spawnX = random.nextOriginal() * rect.width / 0x7fff
+        state.worldX = rect.x + spawnX
+        state.worldY = rect.y + spawnY
+        state.tribe = unalignedTribe
+    }
+
+    // FUN_00413e10 starts from (0,-1) and rotates through a continuous angle;
+    // the eight directions are only a rendering choice made afterwards.
+    initializeCommonRandomState(state, random)
+
+    state.speed = state.entity === entityTypes.shaman || state.enteringWorld
+        ? 0 : tuning.speedMin
     if (state.entity === entityTypes.shaman) {
         var corner = tribeAnchor(world, state.tribe, tuning.shamanCornerInset)
         if (corner) {
@@ -841,6 +849,7 @@ function initializeCharacter(state, world, random) {
     state.celebrationFinished = false
     state.health = tuning.characterHealth
     state.targetId = 0
+    state.targetSlot = -1
     state.actionRemainingMs = 0
     state.attackImpactDone = false
     state.castCooldownMs = 0
@@ -848,20 +857,11 @@ function initializeCharacter(state, world, random) {
     state.castSpell = "conversion"
     setBehaviour(state, behaviours.wander, actions.walk)
     if (state.enteringWorld && state.entity !== entityTypes.shaman) {
-        state.entryTargetX = state.worldX
-        state.entryTargetY = state.worldY
-        state.entryDirectionX = state.headingX
-        state.entryDirectionY = state.headingY
         var middleX = rect.x + rect.width / 2
         var middleY = rect.y + rect.height / 2
         state.worldX += state.worldX <= middleX ? -rect.width / 2 : rect.width / 2
         state.worldY += state.worldY <= middleY ? -rect.height / 2 : rect.height / 2
-        setDirection(
-            state,
-            state.entryTargetX - state.worldX,
-            state.entryTargetY - state.worldY
-        )
-        state.frameIndex = state.legacyFrameCounter
+        setAction(state, actions.stand)
     }
     state.initialized = true
     return true
@@ -913,7 +913,8 @@ var effectStreams = {
     ring: { key: "effect.ring", loop: false },
     // The one effect with no sprite at all: the original draws it with line
     // primitives, so it carries a path instead of an animation.
-    lightning: { key: null, loop: false }
+    lightning: { key: null, loop: false },
+    armageddon_swirl: { key: "effect.sparkle", loop: false }
 }
 
 // Effects are entities without behaviour of their own beyond a velocity, a
@@ -1078,34 +1079,6 @@ function advanceAnimation(state, stepMs) {
 function stepCharacter(state, world, stepSeconds, random, speedOverride) {
     var stepMs = stepSeconds * 1000
     var directionChanged = false
-
-    // Entry state recovered from the original offset-spawn path. It bypasses
-    // edge rescue until the complete sprite has crossed into the world.
-    if (state.enteringWorld) {
-        var entryX = state.entryTargetX - state.worldX
-        var entryY = state.entryTargetY - state.worldY
-        var entryDistance = Math.sqrt(entryX * entryX + entryY * entryY)
-        var entrySpeed = speedOverride > 0 ? speedOverride : state.speed
-        var entryStep = entrySpeed * stepSeconds
-        if (entryDistance > 0) {
-            var entryRatio = Math.min(1, entryStep / entryDistance)
-            state.worldX += entryX * entryRatio
-            state.worldY += entryY * entryRatio
-        }
-        advanceAnimation(state, stepMs)
-
-        var entryMargins = {
-            x: marginX(state),
-            top: marginTop(state),
-            bottom: tuning.bottomMargin
-        }
-        if (worldAllows(world, state.worldX, state.worldY, entryMargins)) {
-            state.enteringWorld = false
-            setDirection(state, state.entryDirectionX, state.entryDirectionY)
-            directionChanged = true
-        }
-        return { directionChanged: directionChanged, footprint: null }
-    }
 
     var headingX = Number.isFinite(state.headingX)
         ? state.headingX : state.directionX
@@ -1348,6 +1321,8 @@ function createSimulation(seed, animations, options) {
         random: createRandom(seed),
         animations: animations || null,
         characters: [],
+        characterSlots: new Array(characterSlotCapacity).fill(null),
+        slotProjection: null,
         entities: [],
         effectCount: 0,
         desiredPopulation: 0,
@@ -1376,6 +1351,91 @@ function createSimulation(seed, animations, options) {
     }
 }
 
+// The executable owns a sparse table of 200 pointers. QML still receives the
+// dense `characters` projection, but every native scan and reservation uses
+// this table so removing slot 12 never renumbers slot 13.
+function syncCharactersFromSlots(simulation) {
+    var active = []
+    for (var slot = 0; slot < characterSlotCapacity; ++slot) {
+        var character = simulation.characterSlots[slot]
+        if (character) {
+            character.slotIndex = slot
+            active.push(character)
+        }
+    }
+    simulation.characters = active
+    simulation.slotProjection = active
+    return active
+}
+
+function ensureCharacterSlots(simulation) {
+    if (!simulation.characterSlots
+            || simulation.characterSlots.length !== characterSlotCapacity) {
+        simulation.characterSlots = new Array(characterSlotCapacity).fill(null)
+    }
+    if (simulation.slotProjection !== null
+            && simulation.characters !== simulation.slotProjection) {
+        simulation.characterSlots = new Array(characterSlotCapacity).fill(null)
+        for (var supplied = 0; supplied < simulation.characters.length
+                && supplied < characterSlotCapacity; ++supplied) {
+            simulation.characterSlots[supplied] = simulation.characters[supplied]
+            simulation.characters[supplied].slotIndex = supplied
+        }
+        simulation.slotProjection = simulation.characters
+        return simulation.characterSlots
+    }
+    var occupied = 0
+    for (var slot = 0; slot < characterSlotCapacity; ++slot) {
+        if (simulation.characterSlots[slot]) {
+            occupied += 1
+        }
+    }
+    // Focused tests and external callers historically supplied a dense array.
+    // Adopt it once, in order, when the sparse table is still empty.
+    if (occupied === 0 && simulation.characters.length > 0) {
+        for (var index = 0; index < simulation.characters.length
+                && index < characterSlotCapacity; ++index) {
+            simulation.characterSlots[index] = simulation.characters[index]
+            simulation.characters[index].slotIndex = index
+        }
+        simulation.slotProjection = simulation.characters
+    }
+    return simulation.characterSlots
+}
+
+function firstFreeCharacterSlot(simulation) {
+    var slots = ensureCharacterSlots(simulation)
+    for (var slot = 0; slot < characterSlotCapacity; ++slot) {
+        if (!slots[slot]) {
+            return slot
+        }
+    }
+    return -1
+}
+
+function putCharacterInSlot(simulation, character, preferredSlot) {
+    var slot = preferredSlot === undefined || preferredSlot < 0
+        ? firstFreeCharacterSlot(simulation) : preferredSlot
+    if (slot < 0 || slot >= characterSlotCapacity) {
+        return -1
+    }
+    ensureCharacterSlots(simulation)[slot] = character
+    character.slotIndex = slot
+    syncCharactersFromSlots(simulation)
+    return slot
+}
+
+function clearCharacterSlot(simulation, slot) {
+    var slots = ensureCharacterSlots(simulation)
+    if (slot < 0 || slot >= characterSlotCapacity) {
+        return null
+    }
+    var removed = slots[slot]
+    slots[slot] = null
+    syncCharactersFromSlots(simulation)
+    return removed
+}
+
 // Starts a world with one shaman per tribe and `count` total characters.
 // The original allocates them all immediately, but places ordinary characters
 // beyond both screen axes so only the shamans are initially visible.
@@ -1385,7 +1445,8 @@ function createSimulation(seed, animations, options) {
 // shamans plus 146 ordinary entries.
 function populate(simulation, count, spriteScale) {
     simulation.characters = []
-    simulation.desiredPopulation = count
+    simulation.characterSlots = new Array(characterSlotCapacity).fill(null)
+    simulation.desiredPopulation = Math.min(characterSlotCapacity, count)
     simulation.populationSpriteScale = spriteScale > 0 ? spriteScale : 1
 
     for (var index = 0; index < tribes.length; ++index) {
@@ -1396,7 +1457,7 @@ function populate(simulation, count, spriteScale) {
             tribes[index]
         )
         shaman.id = simulation.nextEntityId++
-        simulation.characters.push(shaman)
+        putCharacterInSlot(simulation, shaman, index)
     }
     var ordinaryTarget = Math.max(0, count - tribes.length)
     for (var ordinary = 0; ordinary < ordinaryTarget; ++ordinary) {
@@ -1406,7 +1467,7 @@ function populate(simulation, count, spriteScale) {
         )
         brave.id = simulation.nextEntityId++
         brave.enteringWorld = true
-        simulation.characters.push(brave)
+        putCharacterInSlot(simulation, brave, tribes.length + ordinary)
     }
     return simulation.characters
 }
@@ -1418,7 +1479,12 @@ function topUpPopulation(simulation, world, events) {
     if (simulation.armageddon.mode !== armageddonModes.normal) {
         return
     }
+    ensureCharacterSlots(simulation)
     while (simulation.characters.length < simulation.desiredPopulation) {
+        var slot = firstFreeCharacterSlot(simulation)
+        if (slot < 0) {
+            break
+        }
         var replacement = createCharacter(
             simulation.animations,
             simulation.populationSpriteScale
@@ -1426,9 +1492,71 @@ function topUpPopulation(simulation, world, events) {
         replacement.id = simulation.nextEntityId++
         replacement.enteringWorld = true
         initializeCharacter(replacement, world, simulation.random)
-        simulation.characters.push(replacement)
+        putCharacterInSlot(simulation, replacement, slot)
         events.push({ type: "character-spawned", entityId: replacement.id })
     }
+}
+
+function restoreMissingShamans(simulation, world, events) {
+    var present = {}
+    for (var index = 0; index < simulation.characters.length; ++index) {
+        var character = simulation.characters[index]
+        if (character.entity === entityTypes.shaman) {
+            present[character.tribe] = true
+        }
+    }
+    for (var tribeIndex = 0; tribeIndex < tribes.length; ++tribeIndex) {
+        var tribe = tribes[tribeIndex]
+        if (present[tribe]) {
+            continue
+        }
+        var slot = firstFreeCharacterSlot(simulation)
+        if (slot < 0) {
+            return
+        }
+        var shaman = createCharacter(
+            simulation.animations, simulation.populationSpriteScale,
+            entityTypes.shaman, tribe
+        )
+        shaman.id = simulation.nextEntityId++
+        initializeCharacter(shaman, world, simulation.random)
+        putCharacterInSlot(simulation, shaman, slot)
+        events.push({ type: "character-spawned", entityId: shaman.id })
+        for (var mote = 0; mote < 10; ++mote) {
+            var offsetX = originalSpread(simulation.random, 30)
+            var offsetY = originalSpread(simulation.random, 30)
+            createEffect(simulation, {
+                kind: effectKinds.burst,
+                worldX: shaman.worldX,
+                worldY: shaman.worldY,
+                velocityX: offsetX * 0.2 / tuning.stepSeconds,
+                velocityY: offsetY * 0.2 / tuning.stepSeconds,
+                spriteScale: shaman.spriteScale,
+                tribe: shaman.tribe
+            }, events)
+        }
+    }
+}
+
+function restoreArmageddonPopulation(simulation, world, events) {
+    simulation.formationReservations = {}
+    for (var index = 0; index < simulation.characters.length; ++index) {
+        var survivor = simulation.characters[index]
+        survivor.targetId = 0
+        survivor.targetSlot = -1
+        survivor.legacyState = 1
+        survivor.legacySubstate = 0
+        survivor.formationSlot = -1
+        survivor.speed = 0
+        if (survivor.entity !== entityTypes.shaman) {
+            survivor.health = tuning.characterHealth
+            setBehaviour(survivor, behaviours.wander, actions.stand)
+        } else {
+            setBehaviour(survivor, behaviours.recover, actions.idle)
+        }
+    }
+    restoreMissingShamans(simulation, world, events)
+    topUpPopulation(simulation, world, events)
 }
 
 function findCharacter(simulation, id) {
@@ -1438,6 +1566,19 @@ function findCharacter(simulation, id) {
         }
     }
     return null
+}
+
+function findTargetCharacter(simulation, state) {
+    return state.targetSlot >= 0
+        ? characterAtSlot(simulation, state.targetSlot)
+        : findCharacter(simulation, state.targetId)
+}
+
+function characterAtSlot(simulation, slot) {
+    if (slot < 0 || slot >= characterSlotCapacity) {
+        return null
+    }
+    return ensureCharacterSlots(simulation)[slot]
 }
 
 function nearestHostile(simulation, state) {
@@ -1473,8 +1614,9 @@ function nearestUnaligned(simulation, state) {
     var bestDistance = Infinity
     var best = null
 
-    for (var index = 0; index < simulation.characters.length; ++index) {
-        var candidate = simulation.characters[index]
+    var slots = ensureCharacterSlots(simulation)
+    for (var index = 0; index < characterSlotCapacity; ++index) {
+        var candidate = slots[index]
         if (!candidate || !candidate.initialized || candidate.enteringWorld
                 || candidate.entity !== entityTypes.brave
                 || candidate.tribe !== unalignedTribe) {
@@ -1504,6 +1646,7 @@ function beginPursuit(state, target, events) {
     state.legacyState = 2
     var previous = setBehaviour(state, behaviours.pursue, actions.walk)
     state.targetId = target.id
+    state.targetSlot = target.slotIndex
     if (previous !== state.behaviour) {
         events.push(transitionEvent(state, previous))
     }
@@ -1513,6 +1656,7 @@ function beginAttack(state, target, events) {
     state.legacyState = 6
     var previous = setBehaviour(state, behaviours.attack, actions.kick)
     state.targetId = target.id
+    state.targetSlot = target.slotIndex
     state.actionRemainingMs = tuning.combatAttackDurationMs
     state.attackImpactDone = false
     if (previous !== state.behaviour) {
@@ -1562,6 +1706,7 @@ function beginCast(state, target, events, spell) {
     var previous = setBehaviour(state, behaviours.cast, actions.cast)
     state.legacyState = 5
     state.targetId = target.id
+    state.targetSlot = target.slotIndex
     state.actionRemainingMs = castDuration(state)
     state.legacyTimerTicks = 20
     state.legacyMod11 = 0
@@ -1588,8 +1733,9 @@ function beginCast(state, target, events, spell) {
 function nearestEnemyShaman(simulation, state) {
     var best = null
     var bestDistance = Infinity
-    for (var index = 0; index < simulation.characters.length; ++index) {
-        var candidate = simulation.characters[index]
+    var slots = ensureCharacterSlots(simulation)
+    for (var index = 0; index < characterSlotCapacity; ++index) {
+        var candidate = slots[index]
         if (candidate === state || candidate.entity !== entityTypes.shaman
                 || candidate.tribe === state.tribe || !candidate.initialized) {
             continue
@@ -1603,9 +1749,198 @@ function nearestEnemyShaman(simulation, state) {
     return best
 }
 
+function armageddonShamanDestination(world, tribe) {
+    var bounds = world.bounds
+    var points = {
+        blue: { x: bounds.x + 250, y: bounds.y + 250 },
+        red: { x: bounds.x + bounds.width - 250, y: bounds.y + 220 },
+        yellow: {
+            x: bounds.x + bounds.width - 230,
+            y: bounds.y + bounds.height - 250
+        },
+        green: { x: bounds.x + 280, y: bounds.y + bounds.height - 230 }
+    }
+    var point = points[tribe] || points.blue
+    return clampIntoWorld(world, point.x, point.y, {
+        x: 0, top: 0, bottom: 0
+    })
+}
+
+function armageddonShamanFacing(tribe) {
+    if (tribe === "blue") { return { x: 1, y: 1 } }
+    if (tribe === "red") { return { x: -1, y: 1 } }
+    if (tribe === "yellow") { return { x: -1, y: -1 } }
+    return { x: 1, y: -1 }
+}
+
+function signedHeadingTurn(state, dx, dy) {
+    var length = Math.sqrt(dx * dx + dy * dy)
+    if (length <= 0) {
+        return 0
+    }
+    var desiredX = dx / length
+    var desiredY = dy / length
+    return Math.atan2(
+        state.headingX * desiredY - state.headingY * desiredX,
+        state.headingX * desiredX + state.headingY * desiredY
+    )
+}
+
+function moveShamanByStoredSpeed(state, world) {
+    if (state.speed <= 0) {
+        return
+    }
+    var next = clampIntoWorld(
+        world,
+        state.worldX + state.headingX * state.speed * tuning.stepSeconds,
+        state.worldY + state.headingY * state.speed * tuning.stepSeconds,
+        { x: 0, top: 0, bottom: 0 }
+    )
+    state.worldX = next.x
+    state.worldY = next.y
+}
+
+function chooseArmageddonShamanTarget(simulation, state) {
+    var slots = ensureCharacterSlots(simulation)
+    var selected = null
+    for (var slot = 0; slot < characterSlotCapacity; ++slot) {
+        var candidate = slots[slot]
+        if (!candidate || candidate === state
+                || candidate.entity !== entityTypes.shaman) {
+            continue
+        }
+        if (!selected || simulation.random.nextOriginal() > 0x4000) {
+            selected = candidate
+        }
+    }
+    return selected
+}
+
+function fixedLightningPaths(fromX, fromY, toX, toY, first, second) {
+    var dx = toX - fromX
+    var dy = toY - fromY
+    var length = Math.sqrt(dx * dx + dy * dy)
+    var acrossX = length > 0 ? -dy / length : 1
+    var acrossY = length > 0 ? dx / length : 0
+    var seeds = [first - 3, second - 3, first + second - 6]
+    var paths = []
+    for (var path = 0; path < 3; ++path) {
+        var points = []
+        for (var point = 0; point < tuning.lightningPoints; ++point) {
+            var along = point / (tuning.lightningPoints - 1)
+            var edge = point === 0 || point === tuning.lightningPoints - 1
+                ? 0 : 1
+            var offset = Math.sin((point + 1) * (seeds[path] + 7))
+                * tuning.lightningSpread * 0.5 * edge
+            points.push({
+                x: fromX + dx * along + acrossX * offset,
+                y: fromY + dy * along + acrossY * offset
+            })
+        }
+        paths.push(points)
+    }
+    return paths
+}
+
+function launchArmageddonShamanSpell(simulation, state, target, events) {
+    var selector = Math.floor(simulation.random.nextOriginal() * 10 / 0x7fff)
+    var spell = selector <= 2 ? "lightning" : "fire"
+    if (spell === "lightning") {
+        var first = Math.floor(simulation.random.nextOriginal() * 6 / 0x7fff)
+        var second = Math.floor(simulation.random.nextOriginal() * 6 / 0x7fff)
+        var bolt = createEffect(simulation, {
+            kind: effectKinds.lightning,
+            worldX: state.worldX,
+            worldY: state.worldY,
+            spriteScale: state.spriteScale,
+            tribe: state.tribe,
+            sourceId: state.id,
+            targetId: target.id,
+            lifetimeMs: tuning.lightningDurationMs
+        }, events)
+        bolt.paths = fixedLightningPaths(
+            state.worldX, state.worldY, target.worldX, target.worldY,
+            first, second
+        )
+    } else {
+        createEffect(simulation, {
+            kind: effectKinds.fire,
+            worldX: state.worldX,
+            worldY: state.worldY,
+            velocityX: (target.worldX - state.worldX)
+                / 30 / tuning.stepSeconds,
+            velocityY: (target.worldY - state.worldY)
+                / 30 / tuning.stepSeconds,
+            spriteScale: state.spriteScale,
+            tribe: state.tribe,
+            sourceId: state.id,
+            targetId: target.id,
+            lifetimeMs: tuning.fireLifetimeMs,
+            emitIntervalMs: tuning.fireTrailIntervalMs
+        }, events)
+    }
+    events.push({
+        type: "cast-started", entityId: state.id, targetId: target.id,
+        spell: spell, sound: spell === "lightning" ? "lightning" : "firecast"
+    })
+}
+
+function stepArmageddonShaman(simulation, state, world, events) {
+    moveShamanByStoredSpeed(state, world)
+    var destination = armageddonShamanDestination(world, state.tribe)
+    var dx = destination.x - state.worldX
+    var dy = destination.y - state.worldY
+    var squared = dx * dx + dy * dy
+    if (squared > 20) {
+        var approachTurn = signedHeadingTurn(state, dx, dy)
+        rotateHeading(state, Math.max(-0.15, Math.min(0.15, approachTurn)))
+        state.speed = tuning.combatPursuitSpeed
+        setBehaviour(state, behaviours.muster, actions.walk)
+        return null
+    }
+
+    state.speed = 0
+    var facing = armageddonShamanFacing(state.tribe)
+    var facingTurn = signedHeadingTurn(state, facing.x, facing.y)
+    if (Math.abs(facingTurn) > Math.PI / 18) {
+        rotateHeading(state, Math.max(-0.05, Math.min(0.05, facingTurn)))
+    }
+
+    if (simulation.armageddon.mode === armageddonModes.gather) {
+        state.legacyState = 1
+        state.legacyTimerTicks = Math.floor(
+            simulation.random.nextOriginal() * 30 / 0x7fff
+        ) + 40
+        holdShaman(state, events)
+        return null
+    }
+
+    state.legacyState = state.legacyTimerTicks > 19 ? 1 : 5
+    if (state.legacyState === 5 && state.legacyFrameCounter > 1) {
+        emitConversionCastDebris(simulation, state, events)
+    }
+    if (state.legacyTimerTicks === 0) {
+        state.legacyTimerTicks = Math.floor(
+            simulation.random.nextOriginal() * 30 / 0x7fff
+        ) + 40
+        state.legacyFrameCounter = 0
+        var target = chooseArmageddonShamanTarget(simulation, state)
+        if (target) {
+            state.targetId = target.id
+            state.targetSlot = target.slotIndex
+            launchArmageddonShamanSpell(simulation, state, target, events)
+        }
+    }
+    setBehaviour(state, behaviours.cast,
+        state.legacyState === 5 ? actions.cast : actions.idle)
+    advanceAnimation(state, tuning.originalTickMs)
+    return null
+}
+
 function beginFireCast(state, target, events) {
     var previous = setBehaviour(state, behaviours.cast, actions.punch)
     state.targetId = target.id
+    state.targetSlot = target.slotIndex
     state.actionRemainingMs = castDuration(state)
     state.castLaunched = false
     if (previous !== state.behaviour) {
@@ -1716,15 +2051,12 @@ function createConversionCorona(simulation, worldX, worldY, velocityX,
 // Turns an unaligned brave into a member of the casting shaman's tribe. A
 // share of them arrive as firewarriors instead, which is the only way that
 // class enters the world.
-function convertCharacter(simulation, character, tribe, events) {
-    var becomesFirewarrior = simulation.random.nextOriginal() >= 0x7531
-
+function convertBraveInPlace(simulation, character, tribe, events) {
     character.tribe = tribe
-    character.entity = becomesFirewarrior
-        ? entityTypes.firewarrior
-        : entityTypes.brave
+    character.entity = entityTypes.brave
     character.health = tuning.characterHealth
     character.targetId = 0
+    character.targetSlot = -1
     character.castCooldownMs = 0
     character.legacyState = 0
     character.legacySubstate = 0
@@ -1762,24 +2094,61 @@ function convertCharacter(simulation, character, tribe, events) {
     })
 }
 
+function replaceWithFirewarrior(simulation, character, tribe, events) {
+    var replacement = createCharacter(
+        simulation.animations, character.spriteScale,
+        entityTypes.firewarrior, tribe
+    )
+    replacement.id = character.id
+    replacement.worldX = character.worldX
+    replacement.worldY = character.worldY
+    replacement.initialized = true
+    replacement.enteringWorld = false
+    replacement.legacyState = 1
+    replacement.legacySubstate = 0
+    replacement.legacyTimerTicks = 0
+    replacement.speed = 0
+    initializeCommonRandomState(replacement, simulation.random)
+    putCharacterInSlot(simulation, replacement, character.slotIndex)
+    events.push({
+        type: "converted",
+        entityId: replacement.id,
+        tribe: tribe,
+        entity: replacement.entity
+    })
+    return replacement
+}
+
 // One of the six recovered conversion scans (projectile ages 12 through 17).
 // Every eligible character consumes a gate draw even on the final guaranteed
 // scan. This is both the stagger visible in the capture and part of the exact
 // PRNG cadence.
 function applyConversion(simulation, effect, events, ageTicks) {
     var radius = tuning.conversionRadius
+    var radiusSquared = radius * radius
+    var slots = ensureCharacterSlots(simulation)
 
-    for (var index = 0; index < simulation.characters.length; ++index) {
-        var character = simulation.characters[index]
+    for (var index = 0; index < characterSlotCapacity; ++index) {
+        var character = slots[index]
         if (!character || !character.initialized
                 || character.entity !== entityTypes.brave
                 || character.tribe !== unalignedTribe) {
             continue
         }
-        if (distanceBetween(effect, character) <= radius) {
+        var dx = character.worldX - effect.worldX
+        var dy = character.worldY - effect.worldY
+        if (dx * dx + dy * dy < radiusSquared) {
             var gate = simulation.random.nextOriginal()
             if (gate > 20000 || ageTicks > 16) {
-                convertCharacter(simulation, character, effect.tribe, events)
+                if (simulation.random.nextOriginal() < 0x7531) {
+                    convertBraveInPlace(
+                        simulation, character, effect.tribe, events
+                    )
+                } else {
+                    replaceWithFirewarrior(
+                        simulation, character, effect.tribe, events
+                    )
+                }
             }
         }
     }
@@ -1937,10 +2306,11 @@ function claimNearestUnaligned(simulation, state, events) {
     }
     var ourDistance = Math.pow(target.worldX - state.worldX, 2)
         + Math.pow(target.worldY - state.worldY, 2)
-    for (var index = 0; index < simulation.characters.length; ++index) {
-        var other = simulation.characters[index]
+    var slots = ensureCharacterSlots(simulation)
+    for (var index = 0; index < characterSlotCapacity; ++index) {
+        var other = slots[index]
         if (!other || other === state || other.entity !== entityTypes.shaman
-                || other.targetId !== target.id
+                || other.targetSlot !== target.slotIndex
                 || (other.legacyState !== 3 && other.legacyState !== 5)) {
             continue
         }
@@ -1950,6 +2320,7 @@ function claimNearestUnaligned(simulation, state, events) {
             return null
         }
         other.targetId = 0
+        other.targetSlot = -1
         other.legacyState = 0
         var released = setBehaviour(other, behaviours.recover, actions.idle)
         if (released !== other.behaviour && events) {
@@ -1961,6 +2332,12 @@ function claimNearestUnaligned(simulation, state, events) {
 
 function stepShaman(simulation, state, world, events) {
     var stepMs = tuning.stepSeconds * 1000
+    var mode = simulation.armageddon.mode
+
+    if (mode === armageddonModes.gather
+            || mode === armageddonModes.battle) {
+        return stepArmageddonShaman(simulation, state, world, events)
+    }
 
     if (state.castCooldownMs > 0) {
         state.castCooldownMs = Math.max(0, state.castCooldownMs - stepMs)
@@ -1974,7 +2351,9 @@ function stepShaman(simulation, state, world, events) {
         }
         state.actionRemainingMs = state.legacyTimerTicks * tuning.originalTickMs
         if (state.legacyTimerTicks <= 0) {
-            var castTarget = findCharacter(simulation, state.targetId)
+            var castTarget = state.targetSlot >= 0
+                ? characterAtSlot(simulation, state.targetSlot)
+                : findCharacter(simulation, state.targetId)
             if (!state.castLaunched && castTarget) {
                 state.castLaunched = true
                 launchShamanSpell(simulation, state, castTarget, events)
@@ -1993,6 +2372,7 @@ function stepShaman(simulation, state, world, events) {
                     )
             }
             state.targetId = 0
+            state.targetSlot = -1
             state.legacyState = 1
             state.legacyTimerTicks = 30
             state.legacyFrameCounter = 0
@@ -2002,28 +2382,6 @@ function stepShaman(simulation, state, world, events) {
                 events.push(transitionEvent(state, done))
             }
         }
-        return null
-    }
-
-    var mode = simulation.armageddon.mode
-    if (mode === armageddonModes.battle) {
-        // The shamans do not join the melee. They hold their corners and throw
-        // at each other over the top of it.
-        if (state.castCooldownMs <= 0) {
-            var enemy = nearestEnemyShaman(simulation, state)
-            if (enemy) {
-                setDirection(state, enemy.worldX - state.worldX,
-                    enemy.worldY - state.worldY)
-                beginCast(state, enemy, events,
-                    simulation.random.nextFloat() < 0.7 ? "fire" : "lightning")
-                return null
-            }
-        }
-        var waiting = setBehaviour(state, behaviours.wander, actions.idle)
-        if (waiting !== state.behaviour) {
-            events.push(transitionEvent(state, waiting))
-        }
-        advanceAnimation(state, stepMs)
         return null
     }
 
@@ -2066,11 +2424,13 @@ function stepShaman(simulation, state, world, events) {
         if (!claimed) {
             state.legacyState = 1
             state.targetId = 0
+            state.targetSlot = -1
             holdShaman(state, events)
             return null
         }
         state.legacyState = 3
         state.targetId = claimed.id
+        state.targetSlot = claimed.slotIndex
         var began = setBehaviour(state, behaviours.seek, actions.walk)
         if (began !== state.behaviour) {
             events.push(transitionEvent(state, began))
@@ -2078,10 +2438,11 @@ function stepShaman(simulation, state, world, events) {
         return null
     }
 
-    var target = findCharacter(simulation, state.targetId)
+    var target = characterAtSlot(simulation, state.targetSlot)
     if (!target || target.tribe !== unalignedTribe || target.enteringWorld) {
         state.legacyState = 1
         state.targetId = 0
+        state.targetSlot = -1
         holdShaman(state, events)
         return null
     }
@@ -2116,6 +2477,7 @@ function receiveHit(state, attacker, events) {
     state.health = Math.max(0, state.health - 1)
     var previous = setBehaviour(state, behaviours.hit, actions.hit)
     state.targetId = attacker.id
+    state.targetSlot = attacker.slotIndex
     state.actionRemainingMs = tuning.combatHitDurationMs
     if (previous !== state.behaviour) {
         events.push(transitionEvent(state, previous))
@@ -2206,10 +2568,10 @@ function beginArmageddon(simulation, events) {
 
 function placeNextArmageddonCharacter(simulation, world) {
     var armageddon = simulation.armageddon
-    if (armageddon.gatherIndex >= simulation.characters.length) {
+    if (armageddon.gatherIndex >= characterSlotCapacity) {
         return
     }
-    var character = simulation.characters[armageddon.gatherIndex++]
+    var character = ensureCharacterSlots(simulation)[armageddon.gatherIndex++]
     if (!character || character.entity === entityTypes.shaman
             || tribes.indexOf(character.tribe) < 0) {
         return
@@ -2225,6 +2587,7 @@ function placeNextArmageddonCharacter(simulation, world) {
     }
     character.health = tuning.characterHealth
     character.targetId = 0
+    character.targetSlot = -1
     character.legacyState = 9
     character.legacySubstate = 4
     character.formationSlot = slot
@@ -2244,6 +2607,63 @@ function fightingTribeCount(simulation) {
     return Object.keys(alive).length
 }
 
+function emitEliminatedShaman(simulation, shaman, events) {
+    for (var fragment = 0; fragment < 10; ++fragment) {
+        var swirlX = originalSpread(simulation.random, 30) * 0.2
+            / tuning.stepSeconds
+        var swirlY = originalSpread(simulation.random, 30) * 0.2
+            / tuning.stepSeconds
+        createEffect(simulation, {
+            kind: effectKinds.armageddonSwirl,
+            worldX: shaman.worldX,
+            worldY: shaman.worldY,
+            velocityX: swirlX,
+            velocityY: swirlY,
+            spriteScale: shaman.spriteScale,
+            tribe: shaman.tribe,
+            lifetimeMs: 100 * tuning.originalTickMs
+        }, events)
+        var burstX = originalSpread(simulation.random, 10)
+        var burstY = originalSpread(simulation.random, 10)
+        createEffect(simulation, {
+            kind: effectKinds.burst,
+            worldX: shaman.worldX + burstX,
+            worldY: shaman.worldY + burstY,
+            velocityX: burstX * 0.2 / tuning.stepSeconds,
+            velocityY: burstY * 0.2 / tuning.stepSeconds,
+            spriteScale: shaman.spriteScale,
+            tribe: shaman.tribe
+        }, events)
+    }
+}
+
+function removeEliminatedTribeShamans(simulation, events) {
+    var alive = {}
+    for (var index = 0; index < simulation.characters.length; ++index) {
+        var character = simulation.characters[index]
+        if (character && character.entity !== entityTypes.shaman
+                && isCombatant(character) && character.health > 0) {
+            alive[character.tribe] = true
+        }
+    }
+    var slots = ensureCharacterSlots(simulation)
+    var changed = false
+    for (var slot = 0; slot < characterSlotCapacity; ++slot) {
+        var shaman = slots[slot]
+        if (!shaman || shaman.entity !== entityTypes.shaman
+                || alive[shaman.tribe]) {
+            continue
+        }
+        emitEliminatedShaman(simulation, shaman, events)
+        events.push({ type: "character-removed", entityId: shaman.id })
+        slots[slot] = null
+        changed = true
+    }
+    if (changed) {
+        syncCharactersFromSlots(simulation)
+    }
+}
+
 function soleFightingTribe(simulation) {
     var winner = null
     for (var index = 0; index < simulation.characters.length; ++index) {
@@ -2261,16 +2681,15 @@ function soleFightingTribe(simulation) {
 }
 
 function beginArmageddonCelebration(simulation, world, winner, events) {
-    var shamans = []
-    for (var index = 0; index < simulation.characters.length; ++index) {
-        var character = simulation.characters[index]
-        if (character.entity === entityTypes.shaman) {
-            shamans.push(character)
-        } else {
+    var slots = ensureCharacterSlots(simulation)
+    for (var index = 0; index < characterSlotCapacity; ++index) {
+        var character = slots[index]
+        if (character && character.entity !== entityTypes.shaman) {
             events.push({ type: "character-removed", entityId: character.id })
+            slots[index] = null
         }
     }
-    simulation.characters = shamans
+    syncCharactersFromSlots(simulation)
     simulation.entities = []
     simulation.armageddon.mode = armageddonModes.celebration
     simulation.armageddon.phaseRemainingMs =
@@ -2295,7 +2714,7 @@ function beginArmageddonCelebration(simulation, world, winner, events) {
         wave.speed = 2 * 1000 / tuning.originalTickMs
         setDirection(wave, 0.75, 0.75)
         setBehaviour(wave, behaviours.muster, actions.wave)
-        simulation.characters.push(wave)
+        putCharacterInSlot(simulation, wave, firstFreeCharacterSlot(simulation))
         events.push({
             type: "celebration-character-spawned",
             entityId: wave.id,
@@ -2423,6 +2842,7 @@ function beginLegacyPursuit(state, target, events, substate) {
     } else {
         var previous = setBehaviour(state, behaviours.pursue, actions.walk)
         state.targetId = 0
+        state.targetSlot = -1
         if (previous !== state.behaviour) {
             events.push(transitionEvent(state, previous))
         }
@@ -2500,6 +2920,7 @@ function stepArmageddon(simulation, world, events) {
     }
 
     if (armageddon.mode === armageddonModes.battle) {
+        removeEliminatedTribeShamans(simulation, events)
         var remainingTribes = fightingTribeCount(simulation)
         if (remainingTribes < 2) {
             var winner = remainingTribes === 1
@@ -2558,27 +2979,20 @@ function stepArmageddon(simulation, world, events) {
         armageddon.phaseRemainingMs = armageddon.intervalMs
         simulation.formationReservations = {}
         if (armageddon.celebrationWinner) {
-            var ordinarySurvivors = []
-            for (var remove = 0; remove < simulation.characters.length; ++remove) {
-                var ending = simulation.characters[remove]
-                if (ending.legacyState === 13) {
+            var endingSlots = ensureCharacterSlots(simulation)
+            for (var remove = 0; remove < characterSlotCapacity; ++remove) {
+                var ending = endingSlots[remove]
+                if (ending && ending.legacyState === 13) {
                     events.push({
                         type: "character-removed", entityId: ending.id
                     })
-                } else {
-                    ordinarySurvivors.push(ending)
+                    endingSlots[remove] = null
                 }
             }
-            simulation.characters = ordinarySurvivors
+            syncCharactersFromSlots(simulation)
             armageddon.celebrationWinner = null
         }
-        for (var reset = 0; reset < simulation.characters.length; ++reset) {
-            var survivor = simulation.characters[reset]
-            survivor.targetId = 0
-            if (survivor.entity !== entityTypes.shaman && survivor.health > 0) {
-                setBehaviour(survivor, behaviours.wander, actions.walk)
-            }
-        }
+        restoreArmageddonPopulation(simulation, world, events)
         events.push({ type: "armageddon-ended" })
     }
 }
@@ -2625,10 +3039,54 @@ function lightningPaths(simulation, fromX, fromY, toX, toY) {
 function enterLegacyRoam(state, events) {
     state.legacyState = 0
     state.legacySubstate = 0
+    state.speed = tuning.speedMin
     var previous = setBehaviour(state, behaviours.wander, actions.walk)
     if (previous !== state.behaviour) {
         events.push(transitionEvent(state, previous))
     }
+}
+
+function strictRectContains(rect, x, y) {
+    return !!rect && x > rect.x && y > rect.y
+        && x <= rect.x + rect.width && y <= rect.y + rect.height
+}
+
+// Newly allocated braves are not assigned a synthetic destination. State 0
+// advances their constructor heading and repeatedly turns it at the native
+// 30-pixel border until their ground point enters the selected surface.
+function stepEnteringCharacter(state, world) {
+    var rect = world.rects[state.spawnRectIndex]
+    if (!rect) {
+        rect = world.rects[0]
+    }
+    var pixels = 2
+    state.worldX += state.headingX * pixels
+    state.worldY += state.headingY * pixels
+    state.speed = tuning.speedMin
+
+    var left = rect.x + 30
+    var right = rect.x + rect.width - 30
+    var top = rect.y + 30
+    var bottom = rect.y + rect.height - 30
+    var turn = 0
+    if (state.worldX < left && state.headingX < 0) {
+        turn = state.headingY < 0 ? 0.2 : -0.2
+    } else if (state.worldX > right && state.headingX > 0) {
+        turn = state.headingY >= 0 ? 0.2 : -0.2
+    }
+    if (state.worldY < top && state.headingY < 0) {
+        turn = state.headingX < 0 ? -0.2 : 0.2
+    } else if (state.worldY > bottom && state.headingY > 0) {
+        turn = state.headingX >= 0 ? -0.2 : 0.2
+    }
+    if (turn !== 0) {
+        rotateHeading(state, turn)
+    }
+    advanceAnimation(state, tuning.originalTickMs)
+    if (strictRectContains(rect, state.worldX, state.worldY)) {
+        state.enteringWorld = false
+    }
+    return { directionChanged: turn !== 0, footprint: null }
 }
 
 function enterLegacyWait(state, ticks, events) {
@@ -2646,6 +3104,7 @@ function enterLegacyFormation(state, events) {
     state.legacySubstate = 0
     state.formationSlot = -1
     state.targetId = 0
+    state.targetSlot = -1
     var previous = setBehaviour(state, behaviours.muster, actions.walk)
     if (previous !== state.behaviour) {
         events.push(transitionEvent(state, previous))
@@ -2812,7 +3271,9 @@ function stepLegacyRoam(simulation, state, world, events) {
         return null
     }
 
-    var moved = stepCharacter(state, world, tuning.stepSeconds, random)
+    var moved = state.enteringWorld
+        ? stepEnteringCharacter(state, world)
+        : stepCharacter(state, world, tuning.stepSeconds, random)
     var wasTurning = state.legacyTurnTicks > 0
     if (wasTurning) {
         rotateHeading(state, state.legacyTurnRadians)
@@ -2864,9 +3325,6 @@ function acquireLegacyTarget(simulation, state) {
 // Routes a character to the rules of its class. Unaligned characters have no
 // class behaviour at all: they wander until a shaman converts them.
 function stepBehaviourCharacter(simulation, state, world, events) {
-    if (state.enteringWorld) {
-        return stepCharacter(state, world, tuning.stepSeconds, simulation.random)
-    }
     if (state.entity === entityTypes.shaman) {
         return stepShaman(simulation, state, world, events)
     }
@@ -2875,13 +3333,14 @@ function stepBehaviourCharacter(simulation, state, world, events) {
             return stepCelebrationCharacter(simulation, state, world)
         }
         if (state.legacyState === 2) {
-            var legacyTarget = findCharacter(simulation, state.targetId)
+            var legacyTarget = findTargetCharacter(simulation, state)
             if (!legacyTarget || legacyTarget.health <= 0
                     || legacyTarget.tribe === state.tribe) {
                 legacyTarget = acquireLegacyTarget(simulation, state)
                 if (!legacyTarget) {
                     enterLegacyWait(state, 10, events)
                     state.targetId = 0
+                    state.targetSlot = -1
                     return null
                 }
                 beginPursuit(state, legacyTarget, events)
@@ -2917,7 +3376,7 @@ function stepCombatCharacter(simulation, state, world, events) {
         }
 
         if (state.behaviour === behaviours.cast) {
-            var fireTarget = findCharacter(simulation, state.targetId)
+            var fireTarget = findTargetCharacter(simulation, state)
             if (!state.castLaunched && fireTarget && fireTarget.health > 0) {
                 state.castLaunched = true
                 var fireVelocity = aimedVelocity(
@@ -2952,6 +3411,7 @@ function stepCombatCharacter(simulation, state, world, events) {
 
         var resumed = setBehaviour(state, behaviours.wander, actions.walk)
         state.targetId = 0
+        state.targetSlot = -1
         events.push(transitionEvent(state, resumed))
         return null
     }
@@ -2982,13 +3442,14 @@ function stepCombatCharacter(simulation, state, world, events) {
         advanceAnimation(state, stepMs)
         state.actionRemainingMs = Math.max(0, state.actionRemainingMs - stepMs)
         if (state.actionRemainingMs <= 0 && state.health > 0) {
-            var retaliate = findCharacter(simulation, state.targetId)
+            var retaliate = findTargetCharacter(simulation, state)
             if (retaliate && retaliate.health > 0) {
                 beginPursuit(state, retaliate, events)
             } else {
                 var recovered = setBehaviour(state, behaviours.wander, actions.walk)
                 state.legacyState = 0
                 state.targetId = 0
+                state.targetSlot = -1
                 events.push(transitionEvent(state, recovered))
             }
         }
@@ -2996,7 +3457,7 @@ function stepCombatCharacter(simulation, state, world, events) {
     }
 
     if (state.behaviour === behaviours.attack) {
-        var attackTarget = findCharacter(simulation, state.targetId)
+        var attackTarget = findTargetCharacter(simulation, state)
         advanceAnimation(state, stepMs)
         state.actionRemainingMs = Math.max(0, state.actionRemainingMs - stepMs)
 
@@ -3016,6 +3477,7 @@ function stepCombatCharacter(simulation, state, world, events) {
                 var previous = setBehaviour(state, behaviours.wander, actions.walk)
                 state.legacyState = 0
                 state.targetId = 0
+                state.targetSlot = -1
                 events.push(transitionEvent(state, previous))
             }
         }
@@ -3034,13 +3496,14 @@ function stepCombatCharacter(simulation, state, world, events) {
         return null
     }
 
-    var target = findCharacter(simulation, state.targetId)
+    var target = findTargetCharacter(simulation, state)
     if (!target || target.health <= 0 || target.tribe === state.tribe) {
         target = nearestHostile(simulation, state)
         if (target) {
             beginPursuit(state, target, events)
         } else {
             state.targetId = 0
+            state.targetSlot = -1
         }
     }
 
@@ -3094,9 +3557,12 @@ function stepCombatCharacter(simulation, state, world, events) {
 }
 
 function finishDeaths(simulation, events) {
-    var survivors = []
-    for (var index = 0; index < simulation.characters.length; ++index) {
-        var character = simulation.characters[index]
+    var slots = ensureCharacterSlots(simulation)
+    for (var index = 0; index < characterSlotCapacity; ++index) {
+        var character = slots[index]
+        if (!character) {
+            continue
+        }
         if (character.health <= 0 && character.behaviour === behaviours.hit
                 && character.actionRemainingMs <= 0) {
             var soul = createSoul(character, simulation.nextEntityId++)
@@ -3110,12 +3576,10 @@ function finishDeaths(simulation, events) {
                 worldY: character.worldY
             })
             events.push({ type: "character-removed", entityId: character.id })
-        } else {
-            survivors.push(character)
+            slots[index] = null
         }
     }
-
-    simulation.characters = survivors
+    syncCharactersFromSlots(simulation)
 }
 
 // Advances one effect. Returns false when it is finished, having applied
@@ -3304,6 +3768,8 @@ function stepEntities(simulation, world, events) {
 // souls and the future audio layer use the same boundary.
 function stepSimulation(simulation, world, elapsedSeconds) {
     var events = []
+    ensureCharacterSlots(simulation)
+    syncCharactersFromSlots(simulation)
     var characters = simulation.characters
     var index
 
@@ -3348,12 +3814,7 @@ function stepSimulation(simulation, world, elapsedSeconds) {
 
         if (simulation.combatEnabled) {
             finishDeaths(simulation, events)
-            var armageddonModeBeforeStep = simulation.armageddon.mode
             stepArmageddon(simulation, world, events)
-            if (armageddonModeBeforeStep === armageddonModes.restore
-                    && simulation.armageddon.mode === armageddonModes.normal) {
-                topUpPopulation(simulation, world, events)
-            }
             stepEntities(simulation, world, events)
             characters = simulation.characters
         }

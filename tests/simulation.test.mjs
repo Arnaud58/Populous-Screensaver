@@ -28,6 +28,18 @@ const EXPORTS = [
     "createEffect",
     "lightningPaths",
     "createSimulation",
+    "characterSlotCapacity",
+    "ensureCharacterSlots",
+    "syncCharactersFromSlots",
+    "putCharacterInSlot",
+    "clearCharacterSlot",
+    "applyConversion",
+    "stepArmageddonShaman",
+    "armageddonShamanDestination",
+    "restoreArmageddonPopulation",
+    "stepEnteringCharacter",
+    "stepLegacyRoam",
+    "nearestUnaligned",
     "populate",
     "createWorld",
     "originalFormationSlot",
@@ -609,6 +621,56 @@ test("single-screen population creation consumes 4 per shaman and 6 per ordinary
     assert.equal(calls, 4 * 4 + 2 * 6)
 })
 
+test("the sparse character table keeps holes without renumbering later slots", () => {
+    const simulation = Simulation.createSimulation(1, manifest.animations)
+    Simulation.populate(simulation, 6, 1)
+    const later = simulation.characterSlots[5]
+
+    Simulation.clearCharacterSlot(simulation, 4)
+
+    assert.equal(simulation.characterSlots.length, 200)
+    assert.equal(simulation.characterSlots[4], null)
+    assert.equal(simulation.characterSlots[5], later)
+    assert.equal(later.slotIndex, 5)
+    assert.deepEqual(simulation.characters.map(character => character.slotIndex),
+        [0, 1, 2, 3, 5])
+})
+
+test("an entering wildman turns at the native border instead of teleporting", () => {
+    const character = makeCharacter({
+        id: 1, enteringWorld: true, spawnRectIndex: 0,
+        legacyState: 0, worldX: -10, worldY: 100,
+        headingX: -1, headingY: 0, speed: Simulation.tuning.speedMin
+    })
+
+    Simulation.stepEnteringCharacter(character, WORLD)
+
+    assert.equal(character.worldX, -12)
+    assert.ok(character.headingY > 0)
+    assert.equal(character.enteringWorld, true)
+})
+
+test("a wildman becomes selectable when its ground point enters the surface", () => {
+    const shaman = makeCharacter({
+        id: 1, entity: Simulation.entityTypes.shaman, tribe: "blue",
+        worldX: 50, worldY: 50, speed: 0
+    })
+    const neutral = makeCharacter({
+        id: 2, tribe: Simulation.unalignedTribe,
+        enteringWorld: true, spawnRectIndex: 0,
+        legacyState: 0, worldX: -1, worldY: 100,
+        headingX: 1, headingY: 0, speed: Simulation.tuning.speedMin
+    })
+    const simulation = combatSimulation([shaman, neutral])
+    Simulation.ensureCharacterSlots(simulation)
+    assert.equal(Simulation.nearestUnaligned(simulation, shaman), null)
+
+    Simulation.stepEnteringCharacter(neutral, WORLD)
+
+    assert.equal(neutral.enteringWorld, false)
+    assert.equal(Simulation.nearestUnaligned(simulation, shaman), neutral)
+})
+
 // --- The driver ----------------------------------------------------------
 
 function runSimulation(seed, seconds, characterCount = 6) {
@@ -810,15 +872,16 @@ test("Armageddon restoration rebuilds every missing ordinary slot", () => {
     const simulation = combatSimulation([
         makeCharacter({ id: 1, tribe: "blue", worldX: 100, worldY: 100 })
     ])
-    simulation.desiredPopulation = 2
+    simulation.desiredPopulation = 6
     simulation.nextEntityId = 2
     simulation.armageddon.mode = "restore"
     simulation.armageddon.phaseRemainingMs = Simulation.tuning.originalTickMs
 
     const events = Simulation.stepSimulation(simulation, WORLD, STEP)
 
-    assert.equal(simulation.characters.length, 2)
-    const replacement = simulation.characters.find(character => character.id === 2)
+    assert.equal(simulation.characters.length, 6)
+    const replacement = simulation.characters.find(character =>
+        character.tribe === Simulation.unalignedTribe)
     assert.ok(replacement)
     assert.equal(replacement.tribe, Simulation.unalignedTribe)
     assert.equal(replacement.enteringWorld, true)
@@ -868,6 +931,56 @@ function runSteps(simulation, steps, until) {
     }
     return events
 }
+
+test("conversion scans sparse slots in ascending order", () => {
+    const simulation = combatSimulation([])
+    const first = makeCharacter({
+        id: 1, tribe: Simulation.unalignedTribe, worldX: 100, worldY: 100
+    })
+    const second = makeCharacter({
+        id: 2, tribe: Simulation.unalignedTribe, worldX: 101, worldY: 100
+    })
+    Simulation.putCharacterInSlot(simulation, first, 2)
+    Simulation.putCharacterInSlot(simulation, second, 5)
+    const values = [0, 20001, 0]
+    let calls = 0
+    simulation.random = {
+        nextOriginal() { return values[calls++] ?? 0 }
+    }
+    const effect = { worldX: 100, worldY: 100, tribe: "blue" }
+
+    Simulation.applyConversion(simulation, effect, [], 12)
+
+    assert.equal(first.tribe, Simulation.unalignedTribe)
+    assert.equal(second.tribe, "blue")
+})
+
+test("a firewarrior conversion reconstructs the same slot with four draws", () => {
+    const simulation = combatSimulation([])
+    const neutral = makeCharacter({
+        id: 17, tribe: Simulation.unalignedTribe, worldX: 100, worldY: 100
+    })
+    Simulation.putCharacterInSlot(simulation, neutral, 9)
+    const values = [20001, 0x7fff, 41, 18467, 6334, 26500]
+    let calls = 0
+    simulation.random = {
+        nextOriginal() { return values[calls++] }
+    }
+
+    Simulation.applyConversion(
+        simulation, { worldX: 100, worldY: 100, tribe: "red" }, [], 12
+    )
+
+    const replacement = simulation.characterSlots[9]
+    assert.notEqual(replacement, neutral)
+    assert.equal(replacement.id, neutral.id)
+    assert.equal(replacement.entity, Simulation.entityTypes.firewarrior)
+    assert.equal(replacement.tribe, "red")
+    assert.equal(replacement.slotIndex, 9)
+    assert.equal(calls, 6)
+    assert.equal(simulation.entities.length, 0,
+        "the firewarrior branch does not run the brave conversion burst")
+})
 
 test("every conversion and spell state resolves to a catalogued animation", () => {
     const cases = [
@@ -1630,6 +1743,91 @@ test("shamans throw fire and lightning during the battle", () => {
             && event.kind === Simulation.effectKinds.lightning),
         "no lightning bolt reached the world"
     )
+})
+
+test("gathering shamans use the four native battle coordinates", () => {
+    const expected = {
+        blue: [250, 250],
+        red: [BIG_WORLD.bounds.width - 250, 220],
+        yellow: [BIG_WORLD.bounds.width - 230, BIG_WORLD.bounds.height - 250],
+        green: [280, BIG_WORLD.bounds.height - 230]
+    }
+    for (const tribe of Simulation.tribes) {
+        const point = Simulation.armageddonShamanDestination(BIG_WORLD, tribe)
+        assert.deepEqual([point.x, point.y], expected[tribe])
+    }
+})
+
+test("an aligned gathering shaman redraws the native 40-to-70 tick delay", () => {
+    const simulation = combatSimulation([])
+    simulation.armageddon.mode = "gather"
+    const point = Simulation.armageddonShamanDestination(BIG_WORLD, "blue")
+    const shaman = makeCharacter({
+        id: 1, entity: Simulation.entityTypes.shaman, tribe: "blue",
+        worldX: point.x, worldY: point.y, speed: 0,
+        headingX: Math.SQRT1_2, headingY: Math.SQRT1_2
+    })
+    Simulation.putCharacterInSlot(simulation, shaman, 0)
+    let calls = 0
+    simulation.random = { nextOriginal() { calls += 1; return 0x7fff } }
+
+    Simulation.stepArmageddonShaman(simulation, shaman, BIG_WORLD, [])
+
+    assert.equal(calls, 1)
+    assert.equal(shaman.legacyTimerTicks, 70)
+    assert.deepEqual([shaman.worldX, shaman.worldY], [point.x, point.y])
+})
+
+test("Armageddon shaman targeting and lightning use the recovered draw order", () => {
+    const simulation = combatSimulation([])
+    simulation.armageddon.mode = "battle"
+    const tribeList = ["blue", "red", "yellow", "green"]
+    for (let index = 0; index < tribeList.length; ++index) {
+        const tribe = tribeList[index]
+        const point = Simulation.armageddonShamanDestination(BIG_WORLD, tribe)
+        const facing = {
+            blue: [1, 1], red: [-1, 1], yellow: [-1, -1], green: [1, -1]
+        }[tribe]
+        const length = Math.hypot(...facing)
+        const shaman = makeCharacter({
+            id: index + 1, entity: Simulation.entityTypes.shaman, tribe,
+            worldX: point.x, worldY: point.y, speed: 0,
+            headingX: facing[0] / length, headingY: facing[1] / length,
+            legacyTimerTicks: 0
+        })
+        Simulation.putCharacterInSlot(simulation, shaman, index)
+    }
+    const values = [0, 0, 0, 0, 0, 0]
+    let calls = 0
+    simulation.random = { nextOriginal() { return values[calls++] } }
+    const events = []
+
+    Simulation.stepArmageddonShaman(
+        simulation, simulation.characterSlots[0], BIG_WORLD, events
+    )
+
+    assert.equal(calls, 6)
+    assert.equal(simulation.characterSlots[0].targetSlot, 1)
+    assert.ok(events.some(event => event.type === "cast-started"
+        && event.spell === "lightning" && event.targetId === 2))
+})
+
+test("restoration preserves sparse survivors before shamans and filler", () => {
+    const simulation = combatSimulation([])
+    simulation.desiredPopulation = 6
+    simulation.armageddon.mode = "normal"
+    const survivor = makeCharacter({ id: 50, tribe: "blue" })
+    Simulation.putCharacterInSlot(simulation, survivor, 10)
+
+    Simulation.restoreArmageddonPopulation(simulation, WORLD, [])
+
+    assert.equal(simulation.characterSlots[10], survivor)
+    assert.deepEqual(
+        simulation.characterSlots.slice(0, 4).map(character => character.tribe),
+        Simulation.tribes
+    )
+    assert.equal(simulation.characterSlots[4].tribe, Simulation.unalignedTribe)
+    assert.equal(simulation.characters.length, 6)
 })
 
 test("a lightning bolt spans its two ends inside a narrow envelope", () => {
