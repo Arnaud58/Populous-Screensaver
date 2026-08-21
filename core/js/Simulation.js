@@ -160,6 +160,13 @@ var tuning = {
     formationWaitTicks: 100,
     groupFollowerLimit: 15,
     groupTargetDistanceSquared: 125000,
+    // The reach above is a squared distance in the original's own screen
+    // pixels, about 354. Formation geometry, however, scales with the world:
+    // the four blocks are translated by a third of its height. On a screen
+    // larger than the one the constant came from, the formations end up
+    // further apart than the reach and no tribe can ever see another. Scaling
+    // the reach by the same factor keeps the relationship the original had.
+    originalScreenHeight: 480,
     avoidanceIntervalMs: 100,
     // Large enough for a scale-3 character's avoidance radius. Queries still
     // expand over several cells when a host supplies a larger sprite scale.
@@ -504,6 +511,8 @@ function animationId(tribe, directionId) {
     return "brave." + tribe + ".walk." + directionId
 }
 
+var firewarriorActions = { walk: true, stand: true, punch: true }
+
 function stateAnimationId(state) {
     // Effects name their own stream: several of them are directionless, and
     // some are tribe-coloured while others are not.
@@ -519,10 +528,11 @@ function stateAnimationId(state) {
     if (state.action === actions.wave) {
         return "brave." + state.tribe + ".wave"
     }
-    // Firewarriors have no hit stream of their own. The original deliberately
-    // selects the brave hit cells for them, and the atlas carries no others.
+    // A firewarrior owns only walk, stand and punch — wave is handled above.
+    // The original selects the brave cells for everything else, hit and the
+    // idle scratch included, and the atlas carries no alternative.
     var entity = state.entity === entityTypes.firewarrior
-            && state.action === actions.hit
+            && !firewarriorActions[state.action]
         ? entityTypes.brave
         : state.entity
     return entity + "." + state.tribe + "." + state.action
@@ -2107,7 +2117,11 @@ function replaceWithFirewarrior(simulation, character, tribe, events) {
     replacement.legacyState = 1
     replacement.legacySubstate = 0
     replacement.legacyTimerTicks = 0
-    replacement.speed = 0
+    // The ordinary walking speed, the same one initializeCharacter gives a
+    // character it places. A zero here paralysed every firewarrior for its
+    // whole life: only enterLegacyRoam restores the value, and an aligned
+    // character reaching state 0 again is rare.
+    replacement.speed = tuning.speedMin
     initializeCommonRandomState(replacement, simulation.random)
     putCharacterInSlot(simulation, replacement, character.slotIndex)
     events.push({
@@ -2809,9 +2823,25 @@ function groupTargetTribe(simulation, ownTribe) {
     return selected
 }
 
-function nearestGroupTarget(simulation, state, targetTribe, bypassRandomGate) {
+// How far a character will look for a war-party target, scaled out of the
+// original's screen into this world. See originalScreenHeight above.
+function groupTargetReachSquared(world) {
+    if (!world || !world.bounds || world.bounds.height <= 0) {
+        return tuning.groupTargetDistanceSquared
+    }
+    var scale = world.bounds.height / tuning.originalScreenHeight
+    return tuning.groupTargetDistanceSquared * scale * scale
+}
+
+// `ignoreDistance` is for the Armageddon battle, where seeking each other out
+// is the entire point of the phase: a formation that cannot see across the map
+// simply stands still, and the battle never reaches its "fewer than two tribes
+// left" end condition.
+function nearestGroupTarget(simulation, state, targetTribe, world,
+        bypassRandomGate, ignoreDistance) {
     var best = null
     var bestSquared = 0
+    var reachSquared = groupTargetReachSquared(world)
     for (var index = 0; index < simulation.characters.length; ++index) {
         var candidate = simulation.characters[index]
         if (!candidate || candidate === state || candidate.tribe !== targetTribe
@@ -2823,7 +2853,7 @@ function nearestGroupTarget(simulation, state, targetTribe, bypassRandomGate) {
         var dy = candidate.worldY - state.worldY
         var squared = dx * dx + dy * dy
         if ((best === null || squared < bestSquared)
-                && squared < tuning.groupTargetDistanceSquared
+                && (ignoreDistance || squared < reachSquared)
                 && (bypassRandomGate
                     || simulation.random.nextOriginal()
                         > tuning.targetGateThreshold)) {
@@ -2849,13 +2879,13 @@ function beginLegacyPursuit(state, target, events, substate) {
     }
 }
 
-function launchFormationGroup(simulation, leader, events) {
+function launchFormationGroup(simulation, leader, world, events) {
     var targetTribe = groupTargetTribe(simulation, leader.tribe)
     if (!targetTribe) {
         leader.legacyTimerTicks = 30
         return false
     }
-    var target = nearestGroupTarget(simulation, leader, targetTribe)
+    var target = nearestGroupTarget(simulation, leader, targetTribe, world)
     if (!target) {
         leader.legacyTimerTicks = 30
         return false
@@ -2874,7 +2904,9 @@ function launchFormationGroup(simulation, leader, events) {
                 || candidate.legacySubstate !== 4) {
             continue
         }
-        var followerTarget = nearestGroupTarget(simulation, candidate, targetTribe)
+        var followerTarget = nearestGroupTarget(
+            simulation, candidate, targetTribe, world
+        )
         if (!followerTarget) {
             continue
         }
@@ -3200,7 +3232,7 @@ function stepLegacyRoam(simulation, state, world, events) {
                     yellow: "blue", green: "red"
                 }
                 var battleTarget = nearestGroupTarget(
-                    simulation, state, opponents[state.tribe], true
+                    simulation, state, opponents[state.tribe], world, true, true
                 )
                 if (battleTarget) {
                     releaseFormationSlot(simulation, state)
@@ -3211,7 +3243,7 @@ function stepLegacyRoam(simulation, state, world, events) {
             if (random.nextOriginal() > tuning.groupLaunchThreshold
                     && state.legacyMod11 === 0
                     && simulation.armageddon.mode === armageddonModes.normal) {
-                launchFormationGroup(simulation, state, events)
+                launchFormationGroup(simulation, state, world, events)
             }
             return null
         }
@@ -3309,10 +3341,16 @@ function acquireLegacyTarget(simulation, state) {
         var dx = candidate.worldX - state.worldX
         var dy = candidate.worldY - state.worldY
         var squared = dx * dx + dy * dy
+        // Armageddon lifts both gates, not just the random one. The 250 px
+        // acquisition radius is an ordinary-play rule; during the battle a
+        // survivor with nobody inside it ping-pongs between waiting and
+        // pursuing nothing, and the phase's "fewer than two tribes left" end
+        // condition is never reached.
+        var atWar = simulation.armageddon.mode !== armageddonModes.normal
         if ((best === null || squared < bestSquared)
-                && squared < tuning.combatAcquireDistance
-                    * tuning.combatAcquireDistance
-                && (simulation.armageddon.mode !== armageddonModes.normal
+                && (atWar || squared < tuning.combatAcquireDistance
+                    * tuning.combatAcquireDistance)
+                && (atWar
                     || simulation.random.nextOriginal()
                         > tuning.targetGateThreshold)) {
             best = candidate
@@ -3328,7 +3366,15 @@ function stepBehaviourCharacter(simulation, state, world, events) {
     if (state.entity === entityTypes.shaman) {
         return stepShaman(simulation, state, world, events)
     }
-    if (state.entity === entityTypes.brave) {
+    // Firewarriors run the same numeric states as braves. Leaving them out was
+    // a defect with two heads: conversion creates one with a speed of zero and
+    // only enterLegacyRoam restores it, so an excluded firewarrior never moved
+    // again; and it never reached acquireLegacyTarget, so during Armageddon it
+    // could not see a target beyond the ordinary 250 px either. The last
+    // survivors of a battle are usually firewarriors, which deadlocked the
+    // phase for good.
+    if (state.entity === entityTypes.brave
+            || state.entity === entityTypes.firewarrior) {
         if (state.legacyState === 13) {
             return stepCelebrationCharacter(simulation, state, world)
         }

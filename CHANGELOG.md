@@ -6,6 +6,41 @@ reads from: the Windows build has its number written into the payload by
 
 ## Unreleased
 
+### The tribes gather but never fight
+
+Three defects combined into a permanent stalemate: Armageddon entered its
+battle phase and stayed there for good, with the survivors standing motionless
+in their formations.
+
+- **A converted firewarrior was created with a speed of zero.** Only the
+  roaming state restores that value, and an aligned character rarely returns to
+  it, so every firewarrior was paralysed for its whole life. Since firewarriors
+  outlive braves — they kill at 500 px and are rarely approached — the last
+  survivors of a battle were exactly the ones that could not move.
+- **Firewarriors were excluded from the roaming state machine.** The original's
+  state map lists them against the same numeric states as braves, so they now
+  form up, join war parties and acquire targets the same way.
+- **The war-party reach is a constant in the original's screen pixels, but
+  formation geometry scales with the world.** On anything larger than the 1998
+  screen the four formations ended up further apart than any of them could see,
+  so no tribe ever set out. The reach is now scaled by the same factor: at
+  640x480 the nearest two formations are 243 px apart against a 354 px reach,
+  and at 1920x1152 they are 548 px apart against 850.
+
+Measured over the same four minutes, before and after: attacks 29 to 755, war
+parties 2 to 12, conversions 146 to 257, and the Armageddon cycle now completes
+and returns to ordinary play instead of hanging.
+
+- Fixed two test fixtures that had drifted from the code they exercise:
+  `combatSimulation` filled only the character array and not the 200-slot table
+  the recovered rules scan, so a shaman in a focused fixture could see nobody;
+  and a conversion test held a reference to the brave, which a firewarrior
+  conversion replaces rather than mutates, so it saw a character that stayed
+  neutral forever.
+- The battle-end test forced every survivor into one tribe, so it checked the
+  wiring while a real battle deadlocked. A full-population battle now has to
+  reach its own end condition.
+
 ### The original's own state machine
 
 - **Replaced mulberry32 with the Microsoft C runtime PRNG** the 1998 executable

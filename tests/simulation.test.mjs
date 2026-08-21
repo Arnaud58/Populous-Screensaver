@@ -43,6 +43,7 @@ const EXPORTS = [
     "populate",
     "createWorld",
     "originalFormationSlot",
+    "groupTargetReachSquared",
     "worldContains",
     "worldAllows",
     "clampIntoWorld",
@@ -916,7 +917,12 @@ function combatSimulation(states, seed = 1998) {
         manifest.animations,
         { combatEnabled: true }
     )
-    simulation.characters = states
+    // Characters have to go into the 200-slot table, not just the array: the
+    // rules recovered from the executable scan the table. A fixture that only
+    // filled the array left shamans unable to see anyone at all.
+    for (const state of states) {
+        Simulation.putCharacterInSlot(simulation, state)
+    }
     simulation.nextEntityId = states.length + 1
     return simulation
 }
@@ -1259,22 +1265,33 @@ test("conversion produces both braves and firewarriors", () => {
 
         runSteps(simulation, 400,
             list => list.some(event => event.type === "converted"))
-        assert.equal(target.tribe, "green")
-        produced.add(target.entity)
+
+        // Converting to a firewarrior replaces the object rather than mutating
+        // it, keeping the same id and slot. Holding the original reference
+        // would show a character that is forever neutral.
+        const converted = simulation.characters.find(state => state.id === 2)
+        assert.equal(converted.tribe, "green")
+        produced.add(converted.entity)
     }
 
     assert.deepEqual([...produced].sort(), ["brave", "firewarrior"])
 })
 
 test("a firewarrior throws fire instead of closing to melee", () => {
+    // Firewarriors run the same roaming states as braves, so a fixture that is
+    // about the *attack choice* puts one straight into the pursuing state
+    // rather than waiting on the roaming lottery to get it there.
     const firewarrior = makeCharacter({
         id: 1,
         tribe: "blue",
         worldX: 100,
-        speed: 0
+        speed: 0,
+        legacyState: 2,
+        legacySubstate: 0
     })
     firewarrior.entity = Simulation.entityTypes.firewarrior
     const victim = makeCharacter({ id: 2, tribe: "red", worldX: 200, speed: 0 })
+    firewarrior.targetId = victim.id
     const simulation = combatSimulation([firewarrior, victim])
 
     const events = runSteps(simulation, 300,
@@ -1599,7 +1616,9 @@ test("state 9 launches one leader and at most fifteen ready followers", () => {
     simulation.characters = [leader, ...followers, ...targets]
     const events = []
 
-    assert.equal(Simulation.launchFormationGroup(simulation, leader, events), true)
+    assert.equal(
+        Simulation.launchFormationGroup(simulation, leader, WORLD, events), true
+    )
     assert.equal(leader.legacyState, 2)
     assert.equal(followers.filter(state => state.legacyState === 2).length, 15)
     assert.equal(followers.filter(state => state.legacyState === 9).length, 5)
@@ -1723,6 +1742,204 @@ test("battle ends conditionally and preserves its survivors", () => {
         && event.phase === "restore"))
     assert.ok(ending.some(event => event.type === "armageddon-ended"))
     assert.equal(simulation.characters.length, simulation.desiredPopulation)
+})
+
+// research/original-state-map.md lists the firewarrior against the same
+// numeric states as the brave — 0, 1, 2, 9 and the rest. Running it outside the
+// roaming machine left it stuck in the state it was converted into.
+test("firewarriors run the roaming state machine like braves", () => {
+    const simulation = Simulation.createSimulation(1998, manifest.animations, {
+        combatEnabled: true
+    })
+    Simulation.populate(simulation, 60, 1)
+
+    const seen = new Set()
+    for (let step = 0; step < Math.round(150 / STEP); ++step) {
+        Simulation.stepSimulation(simulation, BIG_WORLD, STEP)
+        for (const state of simulation.characters) {
+            if (state.entity === Simulation.entityTypes.firewarrior) {
+                seen.add(state.legacyState)
+            }
+        }
+    }
+
+    assert.ok(seen.size > 0, "conversion never produced a firewarrior")
+    // 1 is the state conversion leaves it in. Anything else means it moved on.
+    assert.ok([...seen].some(state => state !== 1),
+        `firewarriors never left state 1; states seen: ${[...seen].join(", ")}`)
+    assert.ok(seen.has(9),
+        `firewarriors never formed up; states seen: ${[...seen].join(", ")}`)
+})
+
+// A tribe that cannot see the nearest other formation never launches a war
+// party, which is what "they gather but never fight" looks like from outside.
+// The reach is a constant in the original's screen pixels while the formation
+// geometry scales with the world, so the two have to be checked together at
+// more than one size.
+test("a formation can always see the nearest other formation", () => {
+    for (const size of [[640, 480], [1280, 720], [1920, 1152], [3840, 1200]]) {
+        const world = Simulation.createWorld([rect(0, 0, size[0], size[1])])
+        const reach = Math.sqrt(Simulation.groupTargetReachSquared(world))
+
+        let closest = Infinity
+        for (const a of Simulation.tribes) {
+            for (const b of Simulation.tribes) {
+                if (a >= b) {
+                    continue
+                }
+                const first = Simulation.originalFormationSlot(world, a, 0)
+                const second = Simulation.originalFormationSlot(world, b, 0)
+                closest = Math.min(closest,
+                    Math.hypot(first.x - second.x, first.y - second.y))
+            }
+        }
+
+        assert.ok(closest <= reach,
+            `at ${size[0]}x${size[1]} the nearest two formations are `
+                + `${Math.round(closest)} px apart but a war party only looks `
+                + `${Math.round(reach)} px`)
+    }
+})
+
+// Armageddon is a march on the centre, not a free-for-all where the formations
+// fight wherever they happen to meet. Measured in the capture with
+// tools/measure-capture.py:
+//
+//   121-128 s  gathering          0.43 souls/s
+//   128-133 s  the approach       0.00 souls/s   <- nobody dies on the way
+//   133-150 s  the melee          2.71 souls/s
+//
+// and the crowd's RMS spread falls from 0.65 of the screen half-diagonal to
+// 0.26 over the same window. Both halves matter: a port that fought en route
+// would show deaths during the approach, and one that fought in place would
+// never tighten.
+test("Armageddon marches on the centre before anyone fights", () => {
+    const simulation = Simulation.createSimulation(1998, manifest.animations, {
+        combatEnabled: true,
+        armageddonIntervalMs: Simulation.tuning.armageddonIntervalMinMs
+    })
+    Simulation.populate(simulation, 150, 1)
+
+    const bounds = BIG_WORLD.bounds
+    const centreX = bounds.x + bounds.width / 2
+    const centreY = bounds.y + bounds.height / 2
+    const halfDiagonal = Math.hypot(bounds.width, bounds.height) / 2
+
+    const living = () => simulation.characters.filter(state =>
+        state.entity !== Simulation.entityTypes.shaman && state.health > 0)
+
+    let battleStartedAt = -1
+    let soulsDuringApproach = 0
+    let spreadAtBattleStart = 0
+    const secondsAfterBattle = step => (step * STEP) - battleStartedAt
+
+    const steps = Math.round((ARMAGEDDON_AT + 60) / STEP)
+    for (let step = 0; step < steps; ++step) {
+        const events = Simulation.stepSimulation(simulation, BIG_WORLD, STEP)
+        if (battleStartedAt < 0 && simulation.armageddon.mode === "battle") {
+            battleStartedAt = step * STEP
+            const crowd = living()
+            const cx = crowd.reduce((a, c) => a + c.worldX, 0) / crowd.length
+            const cy = crowd.reduce((a, c) => a + c.worldY, 0) / crowd.length
+            spreadAtBattleStart = Math.sqrt(crowd.reduce((a, c) =>
+                a + (c.worldX - cx) ** 2 + (c.worldY - cy) ** 2, 0) / crowd.length)
+        }
+        // The approach: the first four seconds after the formations set off.
+        if (battleStartedAt >= 0 && secondsAfterBattle(step) <= 4) {
+            for (const event of events) {
+                if (event.type === "soul-spawned") {
+                    soulsDuringApproach += 1
+                }
+            }
+        }
+        if (battleStartedAt >= 0 && secondsAfterBattle(step) >= 12) {
+            break
+        }
+    }
+
+    assert.ok(battleStartedAt >= 0, "the battle never started")
+    assert.equal(soulsDuringApproach, 0,
+        `${soulsDuringApproach} characters died on the way to the centre`)
+
+    // They set off spread across the screen...
+    assert.ok(spreadAtBattleStart / halfDiagonal > 0.4,
+        "the formations were already gathered when the battle began")
+
+    // ...and twelve seconds later they are packed around the middle.
+    const crowd = living()
+    const gathered = crowd.filter(state => Math.hypot(
+        state.worldX - centreX, state.worldY - centreY) < 0.35 * halfDiagonal)
+    assert.ok(gathered.length >= crowd.length * 0.9,
+        `only ${gathered.length} of ${crowd.length} reached the centre`)
+})
+
+// The regression that matters most in this phase: a real battle, fought by a
+// full population, has to reach its own end condition.
+//
+// "battle ends conditionally and preserves its survivors" above forces every
+// survivor into one tribe and then checks the wiring, so it passed while a
+// genuine battle deadlocked forever. Three separate reaches were too small for
+// a modern desktop — the war-party reach, the ordinary acquisition radius, and
+// firewarriors being excluded from the roaming states altogether — and the last
+// survivors, usually firewarriors, simply stood still out of each other's
+// sight.
+test("a full battle reaches its own end condition", () => {
+    const simulation = Simulation.createSimulation(1998, manifest.animations, {
+        combatEnabled: true,
+        armageddonIntervalMs: Simulation.tuning.armageddonIntervalMinMs
+    })
+    Simulation.populate(simulation, 150, 1)
+
+    let attacksDuringBattle = 0
+    let endedAt = -1
+    const limitSeconds = ARMAGEDDON_AT + 180
+    const steps = Math.round(limitSeconds / STEP)
+    for (let step = 0; step < steps && endedAt < 0; ++step) {
+        const inBattle = simulation.armageddon.mode === "battle"
+        for (const event of Simulation.stepSimulation(simulation, BIG_WORLD, STEP)) {
+            if (inBattle && event.type === "attack-started") {
+                attacksDuringBattle += 1
+            }
+            if (event.type === "armageddon-ended") {
+                endedAt = step * STEP
+            }
+        }
+    }
+
+    assert.ok(endedAt >= 0,
+        `the battle never ended: still in ${simulation.armageddon.mode} after `
+            + `${limitSeconds} s`)
+    assert.ok(attacksDuringBattle > 50,
+        `only ${attacksDuringBattle} attacks were made during the battle`)
+    assert.equal(simulation.armageddon.mode, "normal")
+})
+
+// Conversion is the only source of firewarriors, and it builds a fresh object
+// rather than mutating the brave. Leaving it at zero speed paralysed the class
+// for its whole life, because only the roaming state restores the value and an
+// aligned character rarely returns to it.
+test("a converted firewarrior can move", () => {
+    const simulation = Simulation.createSimulation(1998, manifest.animations, {
+        combatEnabled: true
+    })
+    Simulation.populate(simulation, 60, 1)
+
+    let firewarriors = []
+    for (let step = 0; step < Math.round(120 / STEP); ++step) {
+        Simulation.stepSimulation(simulation, BIG_WORLD, STEP)
+        firewarriors = simulation.characters.filter(
+            state => state.entity === Simulation.entityTypes.firewarrior
+        )
+        if (firewarriors.length >= 3) {
+            break
+        }
+    }
+
+    assert.ok(firewarriors.length > 0, "conversion never produced a firewarrior")
+    for (const firewarrior of firewarriors) {
+        assert.ok(firewarrior.speed > 0,
+            `a ${firewarrior.tribe} firewarrior has a speed of ${firewarrior.speed}`)
+    }
 })
 
 // The shamans hold their corners and throw at each other over the melee, which
